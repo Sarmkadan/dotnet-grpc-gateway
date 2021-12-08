@@ -1,3 +1,4 @@
+#nullable enable
 // =============================================================================
 // Author: Vladyslav Zaiets | https://sarmkadan.com
 // CTO & Software Architect
@@ -29,7 +30,7 @@ public class OutputFormatterFactory
     /// </summary>
     public void RegisterFormatter(IOutputFormatter formatter)
     {
-        if (formatter == null)
+        if (formatter is null)
             throw new ArgumentNullException(nameof(formatter));
 
         _formatters[formatter.ContentType] = formatter;

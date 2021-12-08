@@ -1,3 +1,4 @@
+#nullable enable
 // =============================================================================
 // Author: Vladyslav Zaiets | https://sarmkadan.com
 // CTO & Software Architect
@@ -89,7 +90,7 @@ public static class StructuredLogger
     {
         var logData = new Dictionary<string, object> { { "context", context } };
 
-        if (additionalData != null)
+        if (additionalData is not null)
         {
             foreach (var kvp in additionalData)
                 logData[kvp.Key] = kvp.Value;

@@ -1,3 +1,4 @@
+#nullable enable
 // =============================================================================
 // Author: Vladyslav Zaiets | https://sarmkadan.com
 // CTO & Software Architect
@@ -35,7 +36,7 @@ public class MetricsCollectionService : IMetricsCollectionService
 
     public async Task RecordRequestMetricAsync(RequestMetric metric)
     {
-        if (metric == null)
+        if (metric is null)
             throw new ArgumentNullException(nameof(metric));
 
         try
@@ -56,7 +57,7 @@ public class MetricsCollectionService : IMetricsCollectionService
                 todayStats.RecordError(metric.GrpcStatusCode ?? "Unknown");
             }
 
-            if (metric.CacheHitStatus != null)
+            if (metric.CacheHitStatus is not null)
             {
                 todayStats.RecordCacheHit(metric.CacheHitStatus == "HIT");
             }
@@ -119,7 +120,7 @@ public class MetricsCollectionService : IMetricsCollectionService
         try
         {
             var service = await _unitOfWork.Services.GetByIdAsync(serviceId);
-            if (service != null)
+            if (service is not null)
             {
                 service.RecordRequestMetric(responseTimeMs, success);
                 await _unitOfWork.Services.UpdateAsync(service);
