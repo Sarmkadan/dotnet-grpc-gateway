@@ -5,21 +5,22 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [2.0.0] - 2026-02-25
+## [2.0.0] - 2026-04-25
 
 ### Added
-- **gRPC Streaming**: Bidirectional streaming support via `IStreamingGatewayService`
-- **Migration Guide**: Added `docs/MIGRATION_v2.md` for v1.x to v2.0 upgrade path
+- Add bidirectional streaming with backpressure and flow control
+- Docker support with multi-stage builds
+- Health check endpoints (/health, /health/ready)
+- Integration test suite with xUnit
+- Migration guide from v1.x
 
 ### Changed
-- **Port Change**: Default listening port changed from `5000` to `8080` (container best practices)
-- **Dockerfile**: Streamlined multi-stage build, removed separate build step, added `UseAppHost=false`
-- **Docker Compose**: Removed deprecated `version` field, upgraded PostgreSQL from 15 to 16
-- **Docker Compose**: Database password now configurable via `POSTGRES_PASSWORD` env variable
-- **Streaming config**: Added `Gateway__EnableStreaming` environment variable
+- Upgraded to .NET 10.0
+- Modern C# features (records, primary constructors)
+- Improved API consistency
 
-### Migration
-- See [MIGRATION_v2.md](docs/MIGRATION_v2.md) for detailed upgrade instructions
+### Fixed
+- Various edge cases found through testing
 
 ---
 
