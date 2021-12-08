@@ -29,7 +29,7 @@ public class GrpcService
 
     public int HealthCheckIntervalSeconds { get; set; } = 30;
 
-    public int MaxRetries { get; set; } = 3;
+    public int MaxRetries { get; set; } = 5;
 
     public bool IsHealthy { get; set; } = true;
 
