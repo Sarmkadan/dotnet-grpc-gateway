@@ -40,6 +40,7 @@ try
     services.AddGatewayServices();
     services.AddGatewayConfiguration(builder.Configuration);
     services.AddGatewayHealthChecks();
+    services.AddGatewayReflection();
 
     // Phase 2: Add new services and infrastructure
 

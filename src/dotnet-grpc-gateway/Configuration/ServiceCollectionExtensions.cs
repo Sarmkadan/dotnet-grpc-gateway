@@ -69,6 +69,20 @@ public static class ServiceCollectionExtensions
 
         return services;
     }
+
+    /// <summary>
+    /// Adds gRPC Server Reflection discovery support and its associated health check.
+    /// </summary>
+    public static IServiceCollection AddGatewayReflection(this IServiceCollection services)
+    {
+        if (services == null)
+            throw new ArgumentNullException(nameof(services));
+
+        services.AddHttpClient<IReflectionService, ReflectionService>();
+        services.AddHealthChecks().AddCheck<ReflectionHealthCheck>("reflection");
+
+        return services;
+    }
 }
 
 /// <summary>
@@ -146,6 +160,55 @@ public class GatewayHealthCheck : IHealthCheck
         {
             _logger.LogError(ex, "Gateway health check failed");
             return HealthCheckResult.Unhealthy("Gateway health check failed", ex);
+        }
+    }
+}
+
+/// <summary>
+/// Health check for the gRPC Server Reflection subsystem. Reports Healthy when at least
+/// one registered service has cached reflection data available, Degraded when only a
+/// subset does, and Unhealthy when no services respond to the reflection probe.
+/// </summary>
+public class ReflectionHealthCheck : IHealthCheck
+{
+    private readonly IReflectionService _reflectionService;
+    private readonly ILogger<ReflectionHealthCheck> _logger;
+
+    public ReflectionHealthCheck(
+        IReflectionService reflectionService,
+        ILogger<ReflectionHealthCheck> logger)
+    {
+        _reflectionService = reflectionService ?? throw new ArgumentNullException(nameof(reflectionService));
+        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+    }
+
+    public async Task<HealthCheckResult> CheckHealthAsync(
+        HealthCheckContext context,
+        CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var allInfo = await _reflectionService.GetAllReflectionInfoAsync(cancellationToken);
+            var total = allInfo.Count;
+
+            if (total == 0)
+                return HealthCheckResult.Healthy("No services registered; reflection subsystem is idle");
+
+            var available = allInfo.Count(i => i.IsAvailable);
+            var pct = (double)available / total * 100;
+
+            if (available == total)
+                return HealthCheckResult.Healthy($"Reflection available on all {total} service(s)");
+
+            if (available > 0)
+                return HealthCheckResult.Degraded($"Reflection available on {available}/{total} service(s) ({pct:F0}%)");
+
+            return HealthCheckResult.Unhealthy($"Reflection unreachable on all {total} registered service(s)");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Reflection health check failed");
+            return HealthCheckResult.Unhealthy("Reflection health check failed", ex);
         }
     }
 }
