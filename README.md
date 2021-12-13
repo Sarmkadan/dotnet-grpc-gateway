@@ -1,3 +1,7 @@
+[![Build](https://github.com/sarmkadan/dotnet-grpc-gateway/actions/workflows/build.yml/badge.svg)](https://github.com/sarmkadan/dotnet-grpc-gateway/actions/workflows/build.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![.NET](https://img.shields.io/badge/.NET-10.0-purple.svg)](https://dotnet.microsoft.com/)
+
 # dotnet-grpc-gateway
 
 A minimal, production-ready gRPC-Web gateway for .NET — browser-compatible gRPC without Envoy or complex proxies.

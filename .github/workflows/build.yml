@@ -50,7 +50,7 @@ jobs:
         ConnectionStrings__DefaultConnection: "Host=localhost;Port=5432;Database=grpc_gateway_test;Username=postgres;Password=postgres"
 
     - name: Upload coverage
-      uses: codecov/codecov-action@v3
+      uses: codecov/codecov-action@v4
       with:
         files: ./coverage.xml
         flags: unittests
@@ -143,6 +143,6 @@ jobs:
         output: 'trivy-results.sarif'
 
     - name: Upload Trivy results to GitHub Security tab
-      uses: github/codeql-action/upload-sarif@v2
+      uses: github/codeql-action/upload-sarif@v3
       with:
         sarif_file: 'trivy-results.sarif'
