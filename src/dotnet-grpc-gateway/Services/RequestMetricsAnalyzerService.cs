@@ -80,24 +80,24 @@ public class RequestMetricsAnalyzerService : IRequestMetricsAnalyzerService
             var stats = await _metricsService.GetTodayStatisticsAsync();
             var slowRequests = await _metricsService.GetSlowRequestsAsync(0);
 
-            var successCount = slowRequests.Count(r => r.StatusCode < 400);
-            var failureCount = slowRequests.Count(r => r.StatusCode >= 400);
+            var successCount = slowRequests.Count(r => r.HttpStatusCode < 400);
+            var failureCount = slowRequests.Count(r => r.HttpStatusCode >= 400);
 
             var mostAccessedEndpoint = slowRequests
-                .GroupBy(r => r.Path)
+                .GroupBy(r => $"{r.ServiceName}/{r.MethodName}")
                 .OrderByDescending(g => g.Count())
                 .FirstOrDefault()?.Key;
 
             var slowestEndpoint = slowRequests
-                .GroupBy(r => r.Path)
-                .Select(g => new { path = g.Key, avgTime = g.Average(r => r.ResponseTime) })
+                .GroupBy(r => $"{r.ServiceName}/{r.MethodName}")
+                .Select(g => new { path = g.Key, avgTime = g.Average(r => r.DurationMs) })
                 .OrderByDescending(x => x.avgTime)
                 .FirstOrDefault()?.path;
 
             return new RequestPatternAnalysis
             {
                 TotalRequests = slowRequests.Count,
-                AverageResponseTime = stats.AverageResponseTime,
+                AverageResponseTime = stats.AverageResponseTimeMs,
                 SuccessCount = successCount,
                 FailureCount = failureCount,
                 SuccessRate = slowRequests.Count > 0 ? (double)successCount / slowRequests.Count : 1.0,
@@ -120,14 +120,15 @@ public class RequestMetricsAnalyzerService : IRequestMetricsAnalyzerService
         try
         {
             var slowRequests = await _metricsService.GetSlowRequestsAsync(0);
-            var endpointRequests = slowRequests.Where(r => r.Path == path).ToList();
+            var endpointRequests = slowRequests
+                .Where(r => $"{r.ServiceName}/{r.MethodName}" == path).ToList();
 
             if (endpointRequests.Count == 0)
                 return new EndpointHealthScore { Endpoint = path, HealthScore = 0 };
 
-            var successCount = endpointRequests.Count(r => r.StatusCode < 400);
+            var successCount = endpointRequests.Count(r => r.HttpStatusCode < 400);
             var successRate = (double)successCount / endpointRequests.Count;
-            var avgResponseTime = endpointRequests.Average(r => r.ResponseTime);
+            var avgResponseTime = endpointRequests.Average(r => r.DurationMs);
 
             // Calculate health score (0-100)
             var healthScore = (successRate * 80) + (Math.Max(0, 100 - avgResponseTime) / 100 * 20);

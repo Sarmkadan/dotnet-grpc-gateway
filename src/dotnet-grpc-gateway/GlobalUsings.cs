@@ -4,8 +4,11 @@
 // =============================================================================
 
 global using Microsoft.AspNetCore.Mvc;
+global using Microsoft.Extensions.Caching.Memory;
 global using Microsoft.Extensions.DependencyInjection;
+global using Microsoft.Extensions.Diagnostics.HealthChecks;
 global using Microsoft.Extensions.Logging;
+global using Microsoft.Extensions.Options;
 global using Microsoft.Extensions.Configuration;
 global using DotNetGrpcGateway.Domain;
 global using DotNetGrpcGateway.Services;

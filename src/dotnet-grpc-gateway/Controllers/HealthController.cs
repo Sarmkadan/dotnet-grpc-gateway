@@ -39,8 +39,8 @@ public class HealthController : ControllerBase
         {
             var allServicesHealth = await _discoveryService.GetAllServicesHealthAsync();
 
-            var healthyCount = allServicesHealth.Count(h => h.IsHealthy);
-            var totalCount = allServicesHealth.Count();
+            var healthyCount = allServicesHealth.Count(h => h.Value == DotNetGrpcGateway.Services.ServiceHealthStatus.Healthy);
+            var totalCount = allServicesHealth.Count;
 
             var status = new HealthStatus
             {
@@ -67,22 +67,19 @@ public class HealthController : ControllerBase
     /// Gets detailed health information for all services.
     /// </summary>
     [HttpGet("services")]
-    [ProducesResponseType(typeof(List<ServiceHealthStatus>), StatusCodes.Status200OK)]
-    public async Task<ActionResult<List<ServiceHealthStatus>>> GetServicesHealth()
+    [ProducesResponseType(typeof(List<ServiceHealthInfo>), StatusCodes.Status200OK)]
+    public async Task<ActionResult<List<ServiceHealthInfo>>> GetServicesHealth()
     {
         try
         {
             var allServicesHealth = await _discoveryService.GetAllServicesHealthAsync();
 
-            var serviceStatuses = allServicesHealth.Select(h => new ServiceHealthStatus
+            var serviceStatuses = allServicesHealth.Select(h => new ServiceHealthInfo
             {
-                ServiceId = h.ServiceId,
-                ServiceName = h.ServiceName,
-                IsHealthy = h.IsHealthy,
-                LastCheckedAt = h.LastCheckedAt,
-                CheckCount = h.CheckCount,
-                FailureCount = h.FailureCount,
-                Message = h.IsHealthy ? "Service is responding normally" : h.FailureMessage
+                ServiceId = h.Key,
+                IsHealthy = h.Value == DotNetGrpcGateway.Services.ServiceHealthStatus.Healthy,
+                LastCheckedAt = DateTime.UtcNow,
+                Message = h.Value.ToString()
             }).ToList();
 
             return Ok(serviceStatuses);
@@ -98,9 +95,9 @@ public class HealthController : ControllerBase
     /// Gets health for a specific service.
     /// </summary>
     [HttpGet("services/{serviceId}")]
-    [ProducesResponseType(typeof(ServiceHealthStatus), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ServiceHealthInfo), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public async Task<ActionResult<ServiceHealthStatus>> GetServiceHealth(int serviceId)
+    public async Task<ActionResult<ServiceHealthInfo>> GetServiceHealth(int serviceId)
     {
         try
         {
@@ -109,15 +106,14 @@ public class HealthController : ControllerBase
             if (report == null)
                 return NotFound($"Service {serviceId} not found");
 
-            var status = new ServiceHealthStatus
+            var status = new ServiceHealthInfo
             {
                 ServiceId = report.ServiceId,
-                ServiceName = report.ServiceName,
                 IsHealthy = report.IsHealthy,
-                LastCheckedAt = report.LastCheckedAt,
-                CheckCount = report.CheckCount,
-                FailureCount = report.FailureCount,
-                Message = report.IsHealthy ? "Service is healthy" : report.FailureMessage
+                LastCheckedAt = report.LastCheckAt,
+                CheckCount = report.TotalHealthChecks,
+                FailureCount = report.FailedChecksInARow,
+                Message = report.IsHealthy ? "Service is healthy" : report.ErrorMessage
             };
 
             return Ok(status);
@@ -144,7 +140,7 @@ public class HealthController : ControllerBase
             if (allServicesHealth.Count == 0)
                 return StatusCode(StatusCodes.Status503ServiceUnavailable);
 
-            var healthyCount = allServicesHealth.Count(h => h.IsHealthy);
+            var healthyCount = allServicesHealth.Count(h => h.Value == DotNetGrpcGateway.Services.ServiceHealthStatus.Healthy);
 
             // Consider ready if at least 50% of services are healthy
             return healthyCount >= (allServicesHealth.Count / 2)
@@ -183,7 +179,7 @@ public class HealthStatus
 /// <summary>
 /// Service health status response model.
 /// </summary>
-public class ServiceHealthStatus
+public class ServiceHealthInfo
 {
     public int ServiceId { get; set; }
     public string? ServiceName { get; set; }

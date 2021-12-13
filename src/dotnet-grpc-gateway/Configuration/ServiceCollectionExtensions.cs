@@ -173,7 +173,7 @@ public class ServiceDiscoveryHealthCheck : IHealthCheck
         try
         {
             var health = await _discoveryService.GetAllServicesHealthAsync();
-            var healthyCount = health.Values.Count(x => x == ServiceHealthStatus.Healthy);
+            var healthyCount = health.Values.Count(x => x == DotNetGrpcGateway.Services.ServiceHealthStatus.Healthy);
             var totalCount = health.Count;
 
             if (totalCount == 0)

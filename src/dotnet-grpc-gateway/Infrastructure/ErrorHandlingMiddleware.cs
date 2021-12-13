@@ -62,11 +62,6 @@ public class ErrorHandlingMiddleware
                 response.ErrorCode = "VALIDATION_ERROR";
                 break;
 
-            case TimeoutException:
-                context.Response.StatusCode = (int)HttpStatusCode.GatewayTimeout;
-                response.ErrorCode = "TIMEOUT";
-                break;
-
             case UnauthorizedAccessException:
                 context.Response.StatusCode = (int)HttpStatusCode.Unauthorized;
                 response.ErrorCode = "UNAUTHORIZED";

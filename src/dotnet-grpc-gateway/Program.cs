@@ -92,11 +92,6 @@ try
         options.MaxSendMessageSize = 10 * 1024 * 1024;
     });
 
-    services.AddGrpcWeb(options =>
-    {
-        options.GrpcWebEnabled = true;
-    });
-
     services.AddCors(options =>
     {
         options.AddPolicy("GrpcWebPolicy", builder =>
@@ -135,7 +130,6 @@ try
     app.UseMiddleware<ErrorHandlingMiddleware>();
 
     app.MapControllers();
-    app.MapGrpcReflectionService();
     app.MapHealthChecks("/health");
 
     Log.Information("Gateway starting on {ListenAddress}:{Port}", "0.0.0.0", 5000);
