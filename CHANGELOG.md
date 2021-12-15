@@ -5,7 +5,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [1.2.0] - 2026-05-04
+## [1.0.0] - 2025-10-08
 
 ### Added
 - **Comprehensive Documentation**: Full API reference, deployment guide, architecture documentation
@@ -16,21 +16,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Examples**: 8 complete example applications demonstrating common patterns
 - **FAQ**: 50+ frequently asked questions and answers
 - **EditorConfig**: Code style configuration for consistency across IDEs
-
-### Changed
-- Updated README with comprehensive 2000+ word guide
-- Improved error messages with more context
-- Enhanced logging with structured fields
-- Optimized Docker image size (multi-stage build)
-
-### Fixed
-- Fixed memory leak in metrics collection for long-running instances
-- Fixed race condition in health check updates
-- Fixed potential null reference in webhook service
-
-## [1.1.0] - 2026-04-20
-
-### Added
 - **Advanced Route Management**: Route conflict detection and analysis
 - **Webhook Integration**: Send notifications on events with retry logic
 - **Performance Monitoring**: Real-time P50/P95/P99 latency tracking
@@ -48,63 +33,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Authentication with bearer tokens
 
 ### Changed
+- Updated README with comprehensive guide
+- Improved error messages with more context
+- Enhanced logging with structured fields
+- Optimized Docker image size (multi-stage build)
 - Refactored service registration to use event-driven approach
 - Improved health check reliability with configurable thresholds
 - Enhanced metrics storage with date-partitioned queries
-- Updated domain models with richer metadata
 
 ### Fixed
+- Fixed memory leak in metrics collection for long-running instances
+- Fixed race condition in health check updates
+- Fixed potential null reference in webhook service
 - Fixed connection pool exhaustion under high load
 - Fixed metrics calculation for concurrent requests
 - Fixed race condition in route matching
-
-## [1.0.0] - 2026-03-15
-
-### Added
-- **Core Gateway Functionality**
-  - gRPC-Web protocol support for browser clients
-  - HTTP/1.1 to gRPC translation
-  - Request routing with pattern matching
-  - Dynamic service registration and deregistration
-  - Real-time health monitoring
-  - Metrics collection and statistics
-  
-- **Security Features**
-  - Bearer token authentication
-  - Per-route authorization
-  - Rate limiting per IP address
-  - CORS support
-  
-- **Performance Features**
-  - In-memory response caching with TTL
-  - Connection pooling
-  - Configurable request timeouts
-  
-- **Data Persistence**
-  - PostgreSQL repository layer
-  - Entity Framework Core integration
-  - Unit of Work pattern for transactions
-  
-- **REST API Endpoints** (20+ endpoints)
-  - Service management
-  - Route configuration
-  - Metrics and statistics
-  - Health checks
-  - Readiness/liveness probes
-  
-- **Infrastructure**
-  - Structured logging with Serilog
-  - Global error handling middleware
-  - Configuration management
-  - Dependency injection setup
-  
-- **Utilities**
-  - String manipulation helpers
-  - HTTP header parsing
-  - DateTime utilities
-  - Validation utilities
-  - JSON serialization helpers
-  - Configuration utilities
 
 ### Known Limitations
 - Single-region deployment (multi-region support planned)
@@ -113,13 +56,118 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
-## [0.1.0] - 2026-02-01
+## [0.5.0] - 2025-08-12
+
+### Added
+- **REST API Endpoints** (20+ endpoints)
+  - Service management
+  - Route configuration
+  - Metrics and statistics
+  - Health checks
+  - Readiness/liveness probes
+- **Infrastructure**
+  - Structured logging with Serilog
+  - Global error handling middleware
+  - Configuration management
+  - Dependency injection setup
+- **Utilities**
+  - String manipulation helpers
+  - HTTP header parsing
+  - DateTime utilities
+  - Validation utilities
+  - JSON serialization helpers
+  - Configuration utilities
+
+### Changed
+- Stabilized public API surface for 1.0.0 release
+- Improved request validation error messages
+- Expanded test coverage to >80%
+
+### Fixed
+- Fixed edge case in wildcard route matching with nested patterns
+- Fixed incorrect status code mapping for upstream gRPC errors
+
+---
+
+## [0.4.0] - 2025-06-19
+
+### Added
+- **Security Features**
+  - Bearer token authentication
+  - Per-route authorization policies
+  - Rate limiting per IP address
+  - CORS support
+- **Performance Features**
+  - In-memory response caching with TTL
+  - Connection pooling
+  - Configurable request timeouts
+- Cache statistics endpoint
+
+### Changed
+- Rate limiting moved to dedicated middleware
+- Authentication token validation extracted to service
+
+### Fixed
+- Fixed token expiry not being checked on each request
+- Fixed CORS preflight handling for gRPC-Web requests
+
+---
+
+## [0.3.0] - 2025-04-30
+
+### Added
+- **Service Discovery**
+  - Automatic service registration and deregistration
+  - Real-time health checks with configurable intervals
+  - Per-service health reports
+- **Metrics & Analytics**
+  - Per-request metrics collection
+  - Latency percentiles (P50, P95, P99)
+  - Error rate tracking
+  - 30-day retention
+- **Data Persistence**
+  - PostgreSQL repository layer
+  - Dapper-based data access
+  - Unit of Work pattern for transactions
+
+### Changed
+- Health check interval made configurable per service (default 30 s)
+- Metrics storage schema revised for efficient date-range queries
+
+### Fixed
+- Fixed service not marked unhealthy after consecutive failures
+- Fixed duplicate metric rows on concurrent requests
+
+---
+
+## [0.2.0] - 2025-03-10
+
+### Added
+- **Core Gateway Functionality**
+  - gRPC-Web protocol support for browser clients
+  - HTTP/1.1 to gRPC translation
+  - Request routing with pattern matching
+  - Priority-based route selection
+  - Dynamic route updates without restart
+
+### Changed
+- Project renamed from `grpc-proxy` to `dotnet-grpc-gateway`
+- Restructured into layered architecture (Domain / Services / Infrastructure)
+
+### Fixed
+- Fixed protocol framing error for gRPC-Web trailers
+- Fixed route priority not respected when multiple patterns matched
+
+---
+
+## [0.1.0] - 2025-01-27
 
 ### Added
 - Initial project structure
 - Basic gRPC gateway skeleton
-- Initial domain models
+- Initial domain models (GrpcService, GatewayRoute, GatewayConfiguration)
 - PostgreSQL integration setup
+- Solution file and project references
 
 ---
 
@@ -141,16 +189,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Under Consideration
 - [ ] Web UI for configuration management
-- [ ] Machine learning-based anomaly detection
 - [ ] Automatic route discovery from reflection
 - [ ] Service mesh integration
-- [ ] DynamoDB/CosmosDB support
 
 ---
 
 ## Migration Guide
 
-### From 1.1.0 to 1.2.0
+### From 0.5.0 to 1.0.0
 
 No breaking changes. Update is safe:
 
@@ -160,7 +206,7 @@ dotnet build -c Release
 # Restart the gateway
 ```
 
-### From 1.0.0 to 1.1.0
+### From 0.4.0 to 0.5.0
 
 Minor database schema changes for new fields:
 
@@ -171,7 +217,7 @@ dotnet run --project src/dotnet-grpc-gateway -- migrate
 # Restart the gateway
 ```
 
-### From 0.1.0 to 1.0.0
+### From 0.1.0 to 0.2.0
 
 Breaking changes:
 - Configuration format updated
@@ -179,14 +225,6 @@ Breaking changes:
 - Database schema changes
 
 See [MIGRATION.md](docs/MIGRATION.md) for detailed steps.
-
----
-
-## Release Schedule
-
-- **Major Releases** (v2.0.0, v3.0.0): Twice yearly (June, December)
-- **Minor Releases** (v1.1.0, v1.2.0): Monthly
-- **Patch Releases** (v1.0.1, v1.0.2): As needed for critical bugs
 
 ---
 
@@ -198,6 +236,6 @@ Special thanks to all contributors:
 ## Support
 
 For issues and questions:
-- 📚 [Documentation](https://github.com/Sarmkadan/dotnet-grpc-gateway)
-- 🐛 [Issue Tracker](https://github.com/Sarmkadan/dotnet-grpc-gateway/issues)
-- 💬 [Discussions](https://github.com/Sarmkadan/dotnet-grpc-gateway/discussions)
+- [Documentation](https://github.com/Sarmkadan/dotnet-grpc-gateway)
+- [Issue Tracker](https://github.com/Sarmkadan/dotnet-grpc-gateway/issues)
+- [Discussions](https://github.com/Sarmkadan/dotnet-grpc-gateway/discussions)
