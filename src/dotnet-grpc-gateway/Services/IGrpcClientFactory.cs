@@ -1,3 +1,4 @@
+#nullable enable
 // =============================================================================
 // Author: Vladyslav Zaiets | https://sarmkadan.com
 // CTO & Software Architect
@@ -31,7 +32,7 @@ public class GrpcClientFactory : IGrpcClientFactory
 
     public HttpClient CreateHttpClient(GrpcService service)
     {
-        if (service == null)
+        if (service is null)
             throw new ArgumentNullException(nameof(service));
 
         if (_clientCache.TryGetValue(service.Id, out var cachedClient))
@@ -63,13 +64,13 @@ public class GrpcClientFactory : IGrpcClientFactory
 
     public async Task<T> InvokeAsync<T>(GrpcService service, string methodName, object request) where T : class
     {
-        if (service == null)
+        if (service is null)
             throw new ArgumentNullException(nameof(service));
 
         if (string.IsNullOrWhiteSpace(methodName))
             throw new ArgumentException("Method name is required", nameof(methodName));
 
-        if (request == null)
+        if (request is null)
             throw new ArgumentNullException(nameof(request));
 
         try
@@ -110,7 +111,7 @@ public class GrpcClientFactory : IGrpcClientFactory
 
     public async Task<Stream> InvokeStreamingAsync(GrpcService service, string methodName, object request)
     {
-        if (service == null)
+        if (service is null)
             throw new ArgumentNullException(nameof(service));
 
         try

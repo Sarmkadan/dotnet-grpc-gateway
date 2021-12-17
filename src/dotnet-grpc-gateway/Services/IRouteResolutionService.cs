@@ -1,3 +1,4 @@
+#nullable enable
 // =============================================================================
 // Author: Vladyslav Zaiets | https://sarmkadan.com
 // CTO & Software Architect
@@ -56,7 +57,7 @@ public class RouteResolutionService : IRouteResolutionService
         }
 
         var route = await FindMatchingRouteAsync(serviceName, methodName);
-        if (route == null)
+        if (route is null)
         {
             throw new RouteResolutionException(
                 $"{serviceName}.{methodName}",
@@ -77,7 +78,7 @@ public class RouteResolutionService : IRouteResolutionService
     public async Task<GrpcService> ResolveTargetServiceAsync(int serviceId)
     {
         var service = await _unitOfWork.Services.GetByIdAsync(serviceId);
-        if (service == null)
+        if (service is null)
             throw new ServiceNotFoundException($"Service with ID {serviceId}");
 
         if (!service.IsActive)
@@ -108,7 +109,7 @@ public class RouteResolutionService : IRouteResolutionService
 
     public async Task ValidateRouteAccessAsync(GatewayRoute route, string? clientId = null)
     {
-        if (route == null)
+        if (route is null)
             throw new ArgumentNullException(nameof(route));
 
         if (route.RequiresAuthentication && string.IsNullOrWhiteSpace(clientId))

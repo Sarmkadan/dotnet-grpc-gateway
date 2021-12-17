@@ -1,3 +1,4 @@
+#nullable enable
 // =============================================================================
 // Author: Vladyslav Zaiets | https://sarmkadan.com
 // CTO & Software Architect
@@ -17,7 +18,7 @@ public class JsonFormatter : IOutputFormatter
 
     public string Format<T>(T? data, bool pretty = false)
     {
-        if (data == null)
+        if (data is null)
             return "null";
 
         return pretty

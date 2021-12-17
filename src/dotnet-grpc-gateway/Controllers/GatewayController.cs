@@ -1,3 +1,4 @@
+#nullable enable
 // =============================================================================
 // Author: Vladyslav Zaiets | https://sarmkadan.com
 // CTO & Software Architect
@@ -50,7 +51,7 @@ public class GatewayController : ControllerBase
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<GatewayConfiguration>> UpdateConfiguration([FromBody] GatewayConfiguration config)
     {
-        if (config == null)
+        if (config is null)
             return BadRequest("Configuration is required");
 
         var updated = await _gatewayService.UpdateConfigurationAsync(config);
@@ -106,7 +107,7 @@ public class GatewayController : ControllerBase
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<ActionResult> RegisterService([FromBody] GrpcService service)
     {
-        if (service == null)
+        if (service is null)
             return BadRequest("Service is required");
 
         try
@@ -160,7 +161,7 @@ public class GatewayController : ControllerBase
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<ActionResult> AddRoute([FromBody] GatewayRoute route)
     {
-        if (route == null)
+        if (route is null)
             return BadRequest("Route is required");
 
         try
