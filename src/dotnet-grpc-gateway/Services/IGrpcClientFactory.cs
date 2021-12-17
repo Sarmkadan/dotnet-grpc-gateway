@@ -14,8 +14,8 @@ namespace DotNetGrpcGateway.Services;
 public interface IGrpcClientFactory
 {
     HttpClient CreateHttpClient(GrpcService service);
-    Task<T> InvokeAsync<T>(GrpcService service, string methodName, object request) where T : class;
-    Task<Stream> InvokeStreamingAsync(GrpcService service, string methodName, object request);
+    Task<T> InvokeAsync<T>(GrpcService service, string methodName, object request, CancellationToken cancellationToken = default) where T : class;
+    Task<Stream> InvokeStreamingAsync(GrpcService service, string methodName, object request, CancellationToken cancellationToken = default);
 }
 
 public class GrpcClientFactory : IGrpcClientFactory
@@ -62,7 +62,7 @@ public class GrpcClientFactory : IGrpcClientFactory
         return client;
     }
 
-    public async Task<T> InvokeAsync<T>(GrpcService service, string methodName, object request) where T : class
+    public async Task<T> InvokeAsync<T>(GrpcService service, string methodName, object request, CancellationToken cancellationToken) where T : class
     {
         if (service is null)
             throw new ArgumentNullException(nameof(service));
@@ -78,7 +78,7 @@ public class GrpcClientFactory : IGrpcClientFactory
             var client = CreateHttpClient(service);
 
             // In real implementation, would serialize request and call gRPC service
-            var response = await client.GetAsync($"/{service.ServiceFullName}/{methodName}");
+            var response = await client.GetAsync($"/{service.ServiceFullName}/{methodName}", cancellationToken);
 
             if (!response.IsSuccessStatusCode)
             {
@@ -91,7 +91,7 @@ public class GrpcClientFactory : IGrpcClientFactory
                 throw new HttpRequestException($"Service returned {response.StatusCode}");
             }
 
-            var content = await response.Content.ReadAsStringAsync();
+            var content = await response.Content.ReadAsStringAsync(cancellationToken);
             _logger.LogDebug("Response from {Service}.{Method}: {Content}", service.Name, methodName, content);
 
             // In real implementation, would deserialize response to T
@@ -109,7 +109,7 @@ public class GrpcClientFactory : IGrpcClientFactory
         }
     }
 
-    public async Task<Stream> InvokeStreamingAsync(GrpcService service, string methodName, object request)
+    public async Task<Stream> InvokeStreamingAsync(GrpcService service, string methodName, object request, CancellationToken cancellationToken)
     {
         if (service is null)
             throw new ArgumentNullException(nameof(service));
@@ -119,14 +119,15 @@ public class GrpcClientFactory : IGrpcClientFactory
             var client = CreateHttpClient(service);
             var response = await client.GetAsync(
                 $"/{service.ServiceFullName}/{methodName}",
-                HttpCompletionOption.ResponseHeadersRead);
+                HttpCompletionOption.ResponseHeadersRead,
+                cancellationToken);
 
             if (!response.IsSuccessStatusCode)
             {
                 throw new HttpRequestException($"Service returned {response.StatusCode}");
             }
 
-            return await response.Content.ReadAsStreamAsync();
+            return await response.Content.ReadAsStreamAsync(cancellationToken);
         }
         catch (Exception ex)
         {
