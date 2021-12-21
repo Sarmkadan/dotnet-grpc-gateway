@@ -4,6 +4,8 @@
 // CTO & Software Architect
 // =============================================================================
 
+using System.Text.RegularExpressions;
+
 namespace DotNetGrpcGateway.Domain;
 
 /// <summary>
@@ -49,6 +51,14 @@ public class GatewayRoute
 
     public bool IsActive { get; set; } = true;
 
+    /// <summary>
+    /// Compiled regex for routes with <see cref="RouteMatchType.Regex"/> match type.
+    /// Lazy-initialized on first use with a 100ms timeout to prevent ReDoS.
+    /// </summary>
+    private Regex? _compiledRegex;
+    private Regex CompiledRegex => _compiledRegex ??= new Regex(
+        Pattern, RegexOptions.Compiled, matchTimeout: TimeSpan.FromMilliseconds(100));
+
     public void Validate()
     {
         if (string.IsNullOrWhiteSpace(Pattern))
@@ -73,7 +83,7 @@ public class GatewayRoute
         {
             RouteMatchType.ExactMatch => Pattern == $"{serviceName}.{methodName}",
             RouteMatchType.Prefix => $"{serviceName}.{methodName}".StartsWith(Pattern),
-            RouteMatchType.Regex => System.Text.RegularExpressions.Regex.IsMatch($"{serviceName}.{methodName}", Pattern),
+            RouteMatchType.Regex => CompiledRegex.IsMatch($"{serviceName}.{methodName}"),
             _ => false
         };
     }
