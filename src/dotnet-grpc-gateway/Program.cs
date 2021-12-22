@@ -102,7 +102,13 @@ try
                 .AllowAnyOrigin()
                 .AllowAnyMethod()
                 .AllowAnyHeader()
-                .WithExposedHeaders("Grpc-Status", "Grpc-Message", "Grpc-Encoding");
+                .WithExposedHeaders(
+                    "Grpc-Status",
+                    "Grpc-Message",
+                    "Grpc-Encoding",
+                    "Grpc-Accept-Encoding",
+                    "Grpc-Status-Details-Bin",
+                    "Trailer");
         });
     });
 
@@ -127,6 +133,7 @@ try
 
     app.UseCors("GrpcWebPolicy");
     app.UseGrpcWeb();
+    app.UseMiddleware<GrpcWebTrailerForwardingMiddleware>();
 
     // Exception handling middleware
     app.UseMiddleware<ErrorHandlingMiddleware>();
