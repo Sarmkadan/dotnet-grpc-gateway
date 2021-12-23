@@ -75,6 +75,15 @@ try
     // Metrics analysis
     services.AddScoped<IRequestMetricsAnalyzerService, RequestMetricsAnalyzerService>();
 
+    // Load balancing
+    services.AddSingleton<ILoadBalancerService, LoadBalancerService>();
+
+    // Circuit breaker registry
+    services.AddSingleton<ICircuitBreakerRegistry, CircuitBreakerRegistry>();
+
+    // Request/response log store (10 000 entry ring buffer)
+    services.AddSingleton<IRequestLogService>(new RequestLogService(10_000));
+
     // Request context
     services.AddScoped<RequestContextAccessor>();
 
@@ -135,6 +144,7 @@ try
     app.UseGrpcWeb();
     app.UseMiddleware<GrpcWebCompressionMiddleware>();
     app.UseMiddleware<GrpcWebTrailerForwardingMiddleware>();
+    app.UseMiddleware<RequestResponseCapturingMiddleware>();
 
     // Exception handling middleware
     app.UseMiddleware<ErrorHandlingMiddleware>();
