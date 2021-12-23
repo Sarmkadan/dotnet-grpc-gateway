@@ -1,0 +1,44 @@
+name: CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build:
+    name: Build & Test (.NET ${{ matrix.dotnet-version }})
+    runs-on: ubuntu-latest
+
+    strategy:
+      fail-fast: false
+      matrix:
+        dotnet-version: [ '8.0.x', '10.0.x' ]
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Setup .NET ${{ matrix.dotnet-version }}
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: ${{ matrix.dotnet-version }}
+
+    - name: Restore dependencies
+      run: dotnet restore
+
+    - name: Build
+      run: dotnet build --no-restore -c Release
+
+    - name: Run tests
+      run: dotnet test --no-build --verbosity normal --logger "trx" -c Release
+      env:
+        DOTNET_CLI_TELEMETRY_OPTOUT: 1
+
+    - name: Upload test results
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: test-results-dotnet-${{ matrix.dotnet-version }}
+        path: '**/*.trx'
+        retention-days: 7
