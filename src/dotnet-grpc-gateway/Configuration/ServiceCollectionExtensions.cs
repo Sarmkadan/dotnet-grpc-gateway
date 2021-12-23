@@ -117,6 +117,8 @@ public class GatewayOptions
     public HealthCheckOptions HealthCheck { get; set; } = new();
 
     public MetricsOptions Metrics { get; set; } = new();
+
+    public RequestLoggingOptions RequestLogging { get; set; } = new();
 }
 
 public class HealthCheckOptions
@@ -135,6 +137,31 @@ public class MetricsOptions
     public int CollectionIntervalSeconds { get; set; } = 60;
 
     public int RetentionDays { get; set; } = 30;
+}
+
+/// <summary>
+/// Verbosity level for request logging middleware.
+/// </summary>
+public enum RequestLoggingVerbosity
+{
+    /// <summary>Log gRPC method, response status, and duration only.</summary>
+    Minimal,
+
+    /// <summary>Also log request/response headers and upstream service address.</summary>
+    Normal,
+
+    /// <summary>Also log request and response body sizes.</summary>
+    Verbose
+}
+
+/// <summary>
+/// Configuration options for <see cref="DotNetGrpcGateway.Middleware.RequestLoggingMiddleware"/>.
+/// </summary>
+public class RequestLoggingOptions
+{
+    public bool Enabled { get; set; } = true;
+
+    public RequestLoggingVerbosity Verbosity { get; set; } = RequestLoggingVerbosity.Normal;
 }
 
 /// <summary>
