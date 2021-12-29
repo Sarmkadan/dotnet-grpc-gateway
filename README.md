@@ -3,7 +3,7 @@
 A lightweight gRPC-Web gateway for .NET that enables browser-compatible gRPC communication without complex infrastructure like Envoy.
 
 ![Build](https://github.com/sarmkadan/dotnet-grpc-gateway/actions/workflows/build.yml/badge.svg)
-![License](https://img.shields.io/github/license/sarmkadan/dotnet-grpc-gateway)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 ## Overview
 
