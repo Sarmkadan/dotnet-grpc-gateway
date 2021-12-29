@@ -14,10 +14,42 @@ namespace DotNetGrpcGateway.Services;
 /// </summary>
 public interface IRouteResolutionService
 {
+    /// <summary>
+    /// Resolves an incoming request to its designated target route.
+    /// </summary>
+    /// <param name="serviceName">The name of the service.</param>
+    /// <param name="methodName">The name of the method.</param>
+    /// <returns>A task that represents the asynchronous operation. The task result contains the resolved <see cref="GatewayRoute"/>.</returns>
     Task<GatewayRoute> ResolveRouteAsync(string serviceName, string methodName);
+    
+    /// <summary>
+    /// Resolves the backend target service.
+    /// </summary>
+    /// <param name="serviceId">The service ID.</param>
+    /// <returns>A task that represents the asynchronous operation. The task result contains the resolved <see cref="GrpcService"/>.</returns>
     Task<GrpcService> ResolveTargetServiceAsync(int serviceId);
+    
+    /// <summary>
+    /// Finds a matching route for the specified service and method names.
+    /// </summary>
+    /// <param name="serviceName">The name of the service.</param>
+    /// <param name="methodName">The name of the method.</param>
+    /// <returns>A task that represents the asynchronous operation. The task result contains the matching <see cref="GatewayRoute"/> or null if not found.</returns>
     Task<GatewayRoute?> FindMatchingRouteAsync(string serviceName, string methodName);
+    
+    /// <summary>
+    /// Gets all routes defined for a specific service.
+    /// </summary>
+    /// <param name="serviceId">The service ID.</param>
+    /// <returns>A task that represents the asynchronous operation. The task result contains a list of <see cref="GatewayRoute"/>.</returns>
     Task<List<GatewayRoute>> GetRoutesForServiceAsync(int serviceId);
+    
+    /// <summary>
+    /// Validates access to the specified route.
+    /// </summary>
+    /// <param name="route">The route to validate.</param>
+    /// <param name="clientId">Optional client identifier.</param>
+    /// <returns>A task that represents the asynchronous operation.</returns>
     Task ValidateRouteAccessAsync(GatewayRoute route, string? clientId = null);
 }
 
