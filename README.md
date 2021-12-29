@@ -77,6 +77,15 @@ fetch('http://localhost:5000/user.UserService/GetUser', {
 })
 ```
 
+## Examples
+
+The repository includes a variety of practical examples to help you get started:
+
+- `examples/BasicUsage.cs`: Minimal setup and registration example.
+- `examples/AdvancedUsage.cs`: Configuration, routing, and error handling.
+- `examples/IntegrationExample.cs`: Wiring into ASP.NET dependency injection.
+- `examples/`: Additional service-specific examples and Docker deployment guides.
+
 ## Installation
 
 ### Option 1: Docker Compose (Recommended)
