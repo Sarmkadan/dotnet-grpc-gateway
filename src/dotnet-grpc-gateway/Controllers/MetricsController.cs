@@ -1,3 +1,4 @@
+#nullable enable
 // =============================================================================
 // Author: Vladyslav Zaiets | https://sarmkadan.com
 // CTO & Software Architect
@@ -39,7 +40,7 @@ public class MetricsController : ControllerBase
     [ProducesResponseType(typeof(PerformanceMetrics), StatusCodes.Status200OK)]
     public async Task<ActionResult<PerformanceMetrics>> GetPerformanceMetrics()
     {
-        if (_performanceMonitor == null)
+        if (_performanceMonitor is null)
             return StatusCode(StatusCodes.Status503ServiceUnavailable, "Performance monitoring not enabled");
 
         var metrics = await _performanceMonitor.GetMetricsAsync();
@@ -148,7 +149,7 @@ public class MetricsController : ControllerBase
     [ProducesResponseType(StatusCodes.Status200OK)]
     public async Task<ActionResult> ResetMetrics()
     {
-        if (_performanceMonitor == null)
+        if (_performanceMonitor is null)
             return StatusCode(StatusCodes.Status503ServiceUnavailable, "Performance monitoring not enabled");
 
         await _performanceMonitor.ResetAsync();

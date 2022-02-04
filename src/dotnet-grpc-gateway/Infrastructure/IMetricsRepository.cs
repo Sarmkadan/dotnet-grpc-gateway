@@ -1,3 +1,4 @@
+#nullable enable
 // =============================================================================
 // Author: Vladyslav Zaiets | https://sarmkadan.com
 // CTO & Software Architect
@@ -35,7 +36,7 @@ public class MetricsRepository : IMetricsRepository
 
     public async Task<RequestMetric> RecordRequestAsync(RequestMetric metric)
     {
-        if (metric == null)
+        if (metric is null)
             throw new ArgumentNullException(nameof(metric));
 
         metric.Validate();
@@ -84,7 +85,7 @@ public class MetricsRepository : IMetricsRepository
 
     public async Task UpdateStatisticsAsync(GatewayStatistics stats)
     {
-        if (stats == null)
+        if (stats is null)
             throw new ArgumentNullException(nameof(stats));
 
         stats.Validate();

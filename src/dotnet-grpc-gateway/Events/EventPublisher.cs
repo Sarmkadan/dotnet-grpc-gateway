@@ -1,3 +1,4 @@
+#nullable enable
 // =============================================================================
 // Author: Vladyslav Zaiets | https://sarmkadan.com
 // CTO & Software Architect
@@ -28,7 +29,7 @@ public class EventPublisher : IEventPublisher
 
     public async Task PublishAsync<TEvent>(TEvent @event) where TEvent : GatewayEvent
     {
-        if (@event == null)
+        if (@event is null)
             throw new ArgumentNullException(nameof(@event));
 
         var eventType = typeof(TEvent);
@@ -49,7 +50,7 @@ public class EventPublisher : IEventPublisher
             {
                 // Get or create handler instance from DI container
                 var handler = _serviceProvider.GetService(handlerType);
-                if (handler == null)
+                if (handler is null)
                 {
                     _logger.LogWarning("Could not resolve handler: {HandlerType}", handlerType.Name);
                     continue;
@@ -59,10 +60,10 @@ public class EventPublisher : IEventPublisher
                 var method = handlerType.GetMethod("HandleAsync",
                     new[] { typeof(TEvent) });
 
-                if (method != null)
+                if (method is not null)
                 {
                     var task = (Task?)method.Invoke(handler, new object[] { @event });
-                    if (task != null)
+                    if (task is not null)
                         tasks.Add(task);
                 }
             }
