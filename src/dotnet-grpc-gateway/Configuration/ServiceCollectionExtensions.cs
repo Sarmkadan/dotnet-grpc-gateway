@@ -107,6 +107,13 @@ public class GatewayOptions
 
     public string LogLevel { get; set; } = "Information";
 
+    /// <summary>
+    /// When <see langword="true"/>, the gateway gzip-compresses gRPC-Web message frames
+    /// for clients that advertise <c>grpc-accept-encoding: gzip</c>.
+    /// Defaults to <see langword="true"/>.
+    /// </summary>
+    public bool EnableCompression { get; set; } = true;
+
     public HealthCheckOptions HealthCheck { get; set; } = new();
 
     public MetricsOptions Metrics { get; set; } = new();
