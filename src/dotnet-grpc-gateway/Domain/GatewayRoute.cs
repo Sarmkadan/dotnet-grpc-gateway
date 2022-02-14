@@ -43,6 +43,12 @@ public class GatewayRoute
 
     public bool EnableCompression { get; set; } = true;
 
+    /// <summary>
+    /// Optional per-route gRPC channel settings (timeouts, message sizes, TLS overrides).
+    /// When <see langword="null"/> the gateway-level defaults apply.
+    /// </summary>
+    public RouteChannelOptions? ChannelOptions { get; set; }
+
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
     public DateTime ModifiedAt { get; set; } = DateTime.UtcNow;
