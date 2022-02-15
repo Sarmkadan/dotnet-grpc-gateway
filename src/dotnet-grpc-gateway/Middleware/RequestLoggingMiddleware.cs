@@ -6,56 +6,80 @@
 
 using System.Diagnostics;
 using System.Text;
+using DotNetGrpcGateway.Configuration;
 using DotNetGrpcGateway.Extensions;
+using Microsoft.Extensions.Options;
 
 namespace DotNetGrpcGateway.Middleware;
 
 /// <summary>
-/// Middleware for comprehensive request/response logging with performance metrics.
-/// Captures request body, response body, headers, and execution time for debugging and analysis.
+/// Middleware for structured gRPC request/response logging with configurable verbosity.
 /// </summary>
+/// <remarks>
+/// Verbosity levels (configured via <c>Gateway:RequestLogging:Verbosity</c>):
+/// <list type="bullet">
+///   <item><b>Minimal</b> – gRPC method, response status, and duration.</item>
+///   <item><b>Normal</b> – Minimal + request/response headers and upstream service address.</item>
+///   <item><b>Verbose</b> – Normal + request and response body sizes.</item>
+/// </list>
+/// </remarks>
 public class RequestLoggingMiddleware
 {
     private readonly RequestDelegate _next;
     private readonly ILogger<RequestLoggingMiddleware> _logger;
-    private const int MaxBodyLogSize = 5000; // Limit body logging to 5KB to avoid log bloat
+    private readonly RequestLoggingOptions _options;
 
-    public RequestLoggingMiddleware(RequestDelegate next, ILogger<RequestLoggingMiddleware> logger)
+    private const int MaxBodyLogSize = 5000;
+
+    public RequestLoggingMiddleware(
+        RequestDelegate next,
+        ILogger<RequestLoggingMiddleware> logger,
+        IOptions<GatewayOptions> gatewayOptions)
     {
         _next = next ?? throw new ArgumentNullException(nameof(next));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+        _options = (gatewayOptions ?? throw new ArgumentNullException(nameof(gatewayOptions))).Value.RequestLogging;
     }
 
     public async Task InvokeAsync(HttpContext context)
     {
+        if (!_options.Enabled)
+        {
+            await _next(context);
+            return;
+        }
+
         var stopwatch = Stopwatch.StartNew();
         var originalResponseBody = context.Response.Body;
 
+        using var responseBodyBuffer = new MemoryStream();
+        context.Response.Body = responseBodyBuffer;
+
         try
         {
-            // Log incoming request
-            await LogRequestAsync(context);
+            long requestBodyBytes = 0;
 
-            // Enable response body buffering to capture response data
-            using var responseBody = new MemoryStream();
-            context.Response.Body = responseBody;
+            if (_options.Verbosity >= RequestLoggingVerbosity.Verbose && IsBodyAllowed(context.Request.Method))
+            {
+                context.Request.EnableBuffering();
+                requestBodyBytes = context.Request.ContentLength ?? 0;
+            }
 
-            // Call the next middleware
             await _next(context);
 
             stopwatch.Stop();
 
-            // Log response with elapsed time
-            await LogResponseAsync(context, stopwatch.ElapsedMilliseconds, responseBody);
+            await LogCompletedRequestAsync(context, stopwatch.ElapsedMilliseconds, requestBodyBytes, responseBodyBuffer);
 
-            // Write buffered response to original body stream
-            await responseBody.CopyToAsync(originalResponseBody);
+            responseBodyBuffer.Seek(0, SeekOrigin.Begin);
+            await responseBodyBuffer.CopyToAsync(originalResponseBody);
         }
         catch (Exception ex)
         {
             stopwatch.Stop();
-            _logger.LogError(ex, "Unhandled exception in request processing. Path: {Path}, Time: {ElapsedMs}ms",
-                context.Request.Path, stopwatch.ElapsedMilliseconds);
+            _logger.LogError(ex,
+                "Unhandled exception. Method={GrpcMethod} Path={Path} Duration={ElapsedMs}ms",
+                GetGrpcMethod(context), context.Request.Path, stopwatch.ElapsedMilliseconds);
             throw;
         }
         finally
@@ -64,64 +88,105 @@ public class RequestLoggingMiddleware
         }
     }
 
-    private async Task LogRequestAsync(HttpContext context)
+    private async Task LogCompletedRequestAsync(
+        HttpContext context,
+        long elapsedMs,
+        long requestBodyBytes,
+        MemoryStream responseBodyBuffer)
     {
         var request = context.Request;
-
-        // Only log body for content-bearing methods (POST, PUT, PATCH)
-        string? bodyContent = null;
-        if (request.ContentLength.GetValueOrDefault() > 0 && IsBodyAllowed(request.Method))
-        {
-            request.EnableBuffering(); // Allow body to be read multiple times
-            bodyContent = await ReadBodyAsync(request.Body);
-            request.Body.Position = 0; // Reset for actual processing
-        }
-
-        var logData = new
-        {
-            Method = request.Method,
-            Path = request.Path.Value,
-            QueryString = request.QueryString.Value,
-            ContentType = request.ContentType,
-            ContentLength = request.ContentLength,
-            Body = bodyContent is not null ? TruncateBody(bodyContent) : null
-        };
-
-        _logger.LogInformation("Incoming request: {@RequestData}", logData);
-    }
-
-    private async Task LogResponseAsync(HttpContext context, long elapsedMs, MemoryStream responseBody)
-    {
         var response = context.Response;
-        responseBody.Seek(0, SeekOrigin.Begin);
+        var grpcMethod = GetGrpcMethod(context);
+        var upstream = GetUpstreamAddress(context);
 
-        string? responseContent = null;
-        if (responseBody.Length > 0)
+        var logLevel = response.StatusCode >= 500 ? LogLevel.Error
+                     : response.StatusCode >= 400 ? LogLevel.Warning
+                     : LogLevel.Information;
+
+        switch (_options.Verbosity)
         {
-            using var reader = new StreamReader(responseBody, Encoding.UTF8);
-            responseContent = await reader.ReadToEndAsync();
-            responseBody.Seek(0, SeekOrigin.Begin);
+            case RequestLoggingVerbosity.Minimal:
+                _logger.Log(logLevel,
+                    "[{Timestamp}] gRPC {GrpcMethod} {Status} {ElapsedMs}ms",
+                    DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ss.fffZ"),
+                    grpcMethod,
+                    response.StatusCode,
+                    elapsedMs);
+                break;
+
+            case RequestLoggingVerbosity.Normal:
+                _logger.Log(logLevel,
+                    "[{Timestamp}] gRPC {GrpcMethod} upstream={Upstream} {Status} {ElapsedMs}ms {@RequestHeaders}",
+                    DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ss.fffZ"),
+                    grpcMethod,
+                    upstream,
+                    response.StatusCode,
+                    elapsedMs,
+                    GetSafeHeaders(request.Headers));
+                break;
+
+            case RequestLoggingVerbosity.Verbose:
+            default:
+                var responseBodyBytes = responseBodyBuffer.Length;
+                _logger.Log(logLevel,
+                    "[{Timestamp}] gRPC {GrpcMethod} upstream={Upstream} {Status} {ElapsedMs}ms " +
+                    "req_bytes={RequestBytes} res_bytes={ResponseBytes} {@RequestHeaders}",
+                    DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ss.fffZ"),
+                    grpcMethod,
+                    upstream,
+                    response.StatusCode,
+                    elapsedMs,
+                    requestBodyBytes,
+                    responseBodyBytes,
+                    GetSafeHeaders(request.Headers));
+                break;
         }
-
-        var logData = new
-        {
-            StatusCode = response.StatusCode,
-            ContentType = response.ContentType,
-            ContentLength = response.ContentLength,
-            ElapsedMs = elapsedMs,
-            Body = responseContent is not null ? TruncateBody(responseContent) : null
-        };
-
-        var logLevel = response.StatusCode >= 500 ? LogLevel.Error :
-                      response.StatusCode >= 400 ? LogLevel.Warning : LogLevel.Information;
-
-        _logger.Log(logLevel, "Request completed: {@ResponseData}", logData);
     }
 
-    private static async Task<string> ReadBodyAsync(Stream body)
+    /// <summary>
+    /// Resolves the gRPC method name from the request path or the gRPC-method header.
+    /// Falls back to the HTTP method + path when neither is available.
+    /// </summary>
+    private static string GetGrpcMethod(HttpContext context)
     {
-        using var reader = new StreamReader(body, Encoding.UTF8, detectEncodingFromByteOrderMarks: false, leaveOpen: true);
-        return await reader.ReadToEndAsync();
+        // gRPC-Web requests include a path like /package.Service/Method
+        var path = context.Request.Path.Value;
+        if (!string.IsNullOrEmpty(path) && path.StartsWith('/') && path.Count(c => c == '/') >= 2)
+            return path.TrimStart('/');
+
+        return $"{context.Request.Method} {context.Request.Path}";
+    }
+
+    private static string GetUpstreamAddress(HttpContext context)
+    {
+        // The upstream address may be stored by the proxy/gateway logic in a custom header or item
+        if (context.Items.TryGetValue("UpstreamAddress", out var upstream) && upstream is string addr)
+            return addr;
+
+        if (context.Request.Headers.TryGetValue("X-Upstream-Address", out var headerVal))
+            return headerVal.ToString();
+
+        return "unknown";
+    }
+
+    private static Dictionary<string, string> GetSafeHeaders(IHeaderDictionary headers)
+    {
+        var safe = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var (key, value) in headers)
+        {
+            // Skip sensitive headers
+            if (key.Equals("Authorization", StringComparison.OrdinalIgnoreCase) ||
+                key.Equals("Cookie", StringComparison.OrdinalIgnoreCase) ||
+                key.Equals("X-Api-Key", StringComparison.OrdinalIgnoreCase))
+            {
+                safe[key] = "***";
+                continue;
+            }
+
+            safe[key] = value.ToString();
+        }
+
+        return safe;
     }
 
     private static string TruncateBody(string? body)
@@ -134,8 +199,6 @@ public class RequestLoggingMiddleware
             : body;
     }
 
-    private static bool IsBodyAllowed(string method)
-    {
-        return method is "POST" or "PUT" or "PATCH";
-    }
+    private static bool IsBodyAllowed(string method) =>
+        method is "POST" or "PUT" or "PATCH";
 }
