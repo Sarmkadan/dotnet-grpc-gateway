@@ -1,1 +1,89 @@
-1 #nullable enable 2 // ============================================================================= 3 // Author: Vladyslav Zaiets | https://sarmkadan.com 4 // CTO & Software Architect 5 // ============================================================================= 6 7 using DotNetGrpcGateway.Domain; 8 9 namespace DotNetGrpcGateway.Infrastructure; 10 11 /// <summary> 12 /// Repository for GatewayConfiguration entities 13 /// </summary> 14 public interface IGatewayRepository 15 { 16 Task<GatewayConfiguration> GetByIdAsync(int id); 17 Task<List<GatewayConfiguration>> GetAllAsync(); 18 Task<List<GatewayConfiguration>> GetActiveAsync(); 19 Task<GatewayConfiguration> CreateAsync(GatewayConfiguration config); 20 Task UpdateAsync(GatewayConfiguration config); 21 Task DeleteAsync(int id); 22 Task<int> CountAsync(); 23 } 24 25 public class GatewayRepository : IGatewayRepository 26 { 27 private readonly IConnectionStringProvider _connectionProvider; 28 private readonly Dictionary<int, GatewayConfiguration> _memoryStore = new(); 29 30 public GatewayRepository(IConnectionStringProvider connectionProvider) 31 { 32 _connectionProvider = connectionProvider ?? throw new ArgumentNullException(nameof(connectionProvider)); 33 } 34 35 public async Task<GatewayConfiguration> GetByIdAsync(int id) 36 { 37 if (_memoryStore.TryGetValue(id, out var config)) 38 return config; 39 40 throw new KeyNotFoundException($"Gateway configuration with ID {id} not found"); 41 } 42 43 public async Task<List<GatewayConfiguration>> GetAllAsync() 44 { 45 return _memoryStore.Values.ToList(); 46 } 47 48 public async Task<List<GatewayConfiguration>> GetActiveAsync() 49 { 50 return _memoryStore.Values 51 .Where(x => x.IsActive) 52 .ToList(); 53 } 54 55 public async Task<GatewayConfiguration> CreateAsync(GatewayConfiguration config) 56 { 57 if (config is null) 58 throw new ArgumentNullException(nameof(config)); 59 60 config.Validate(); 61 62 int nextId = _memoryStore.Count > 0 ? _memoryStore.Keys.Max() + 1 : 1; 63 config.Id = nextId; 64 config.CreatedAt = DateTime.UtcNow; 65 config.ModifiedAt = DateTime.UtcNow; 66 67 _memoryStore[nextId] = config; 68 return config; 69 } 70 71 public async Task UpdateAsync(GatewayConfiguration config) 72 { 73 if (config is null) 74 throw new ArgumentNullException(nameof(config)); 75 76 if (!_memoryStore.ContainsKey(config.Id)) 77 throw new KeyNotFoundException($"Gateway configuration with ID {config.Id} not found"); 78 79 config.Validate(); 80 config.UpdateModifiedDate(); 81 _memoryStore[config.Id] = config; 82 } 83 84 public async Task DeleteAsync(int id) 85 { 86 if (!_memoryStore.Remove(id)) 87 throw new KeyNotFoundException($"Gateway configuration with ID {id} not found"); 88 } 89 90 public async Task<int> CountAsync() 91 { 92 return _memoryStore.Count; 93 } 94 } 95
+#nullable enable
+// =============================================================================
+// Author: Vladyslav Zaiets | https://sarmkadan.com
+// CTO & Software Architect
+// =============================================================================
+
+using DotNetGrpcGateway.Domain;
+
+namespace DotNetGrpcGateway.Infrastructure;
+
+/// <summary>
+/// Repository for <see cref="GatewayConfiguration"/> entities.
+/// </summary>
+public interface IGatewayRepository
+{
+    Task<GatewayConfiguration> GetByIdAsync(int id);
+    Task<List<GatewayConfiguration>> GetAllAsync();
+    Task<List<GatewayConfiguration>> GetActiveAsync();
+    Task<GatewayConfiguration> CreateAsync(GatewayConfiguration config);
+    Task UpdateAsync(GatewayConfiguration config);
+    Task DeleteAsync(int id);
+    Task<int> CountAsync();
+}
+
+public class GatewayRepository : IGatewayRepository
+{
+    private readonly IConnectionStringProvider _connectionProvider;
+    private readonly Dictionary<int, GatewayConfiguration> _memoryStore = new();
+
+    public GatewayRepository(IConnectionStringProvider connectionProvider)
+    {
+        _connectionProvider = connectionProvider ?? throw new ArgumentNullException(nameof(connectionProvider));
+    }
+
+    public Task<GatewayConfiguration> GetByIdAsync(int id)
+    {
+        if (_memoryStore.TryGetValue(id, out var config))
+            return Task.FromResult(config);
+
+        throw new KeyNotFoundException($"Gateway configuration with ID {id} not found");
+    }
+
+    public Task<List<GatewayConfiguration>> GetAllAsync() =>
+        Task.FromResult(_memoryStore.Values.ToList());
+
+    public Task<List<GatewayConfiguration>> GetActiveAsync() =>
+        Task.FromResult(_memoryStore.Values.Where(configuration => configuration.IsActive).ToList());
+
+    public Task<GatewayConfiguration> CreateAsync(GatewayConfiguration config)
+    {
+        if (config is null)
+            throw new ArgumentNullException(nameof(config));
+
+        config.Validate();
+
+        var nextId = _memoryStore.Count > 0 ? _memoryStore.Keys.Max() + 1 : 1;
+        config.Id = nextId;
+        config.CreatedAt = DateTime.UtcNow;
+        config.ModifiedAt = DateTime.UtcNow;
+
+        _memoryStore[nextId] = config;
+        return Task.FromResult(config);
+    }
+
+    public Task UpdateAsync(GatewayConfiguration config)
+    {
+        if (config is null)
+            throw new ArgumentNullException(nameof(config));
+
+        if (!_memoryStore.ContainsKey(config.Id))
+            throw new KeyNotFoundException($"Gateway configuration with ID {config.Id} not found");
+
+        config.Validate();
+        config.UpdateModifiedDate();
+        _memoryStore[config.Id] = config;
+        return Task.CompletedTask;
+    }
+
+    public Task DeleteAsync(int id)
+    {
+        if (!_memoryStore.Remove(id))
+            throw new KeyNotFoundException($"Gateway configuration with ID {id} not found");
+
+        return Task.CompletedTask;
+    }
+
+    public Task<int> CountAsync() =>
+        Task.FromResult(_memoryStore.Count);
+}
