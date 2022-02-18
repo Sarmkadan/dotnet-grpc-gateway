@@ -13,6 +13,7 @@ insert_final_newline = true
 [*.{cs,csx,vb,vbx}]
 indent_size = 4
 indent_style = space
+charset = utf-8-bom
 
 # C# files
 [*.cs]
