@@ -13,14 +13,65 @@ namespace DotNetGrpcGateway.Infrastructure;
 /// </summary>
 public interface IServiceRegistry
 {
+    /// <summary>
+    /// Gets a service by ID.
+    /// </summary>
+    /// <param name="id">The service ID.</param>
+    /// <returns>A task that represents the asynchronous operation. The task result contains the <see cref="GrpcService"/>.</returns>
     Task<GrpcService> GetByIdAsync(int id);
+    
+    /// <summary>
+    /// Gets a service by name.
+    /// </summary>
+    /// <param name="serviceName">The service name.</param>
+    /// <returns>A task that represents the asynchronous operation. The task result contains the <see cref="GrpcService"/> or null if not found.</returns>
     Task<GrpcService?> GetByNameAsync(string serviceName);
+    
+    /// <summary>
+    /// Gets a service by full name.
+    /// </summary>
+    /// <param name="serviceFullName">The service full name.</param>
+    /// <returns>A task that represents the asynchronous operation. The task result contains the <see cref="GrpcService"/> or null if not found.</returns>
     Task<GrpcService?> GetByFullNameAsync(string serviceFullName);
+    
+    /// <summary>
+    /// Gets all services.
+    /// </summary>
+    /// <returns>A task that represents the asynchronous operation. The task result contains all services.</returns>
     Task<List<GrpcService>> GetAllAsync();
+    
+    /// <summary>
+    /// Gets all active services.
+    /// </summary>
+    /// <returns>A task that represents the asynchronous operation. The task result contains all active services.</returns>
     Task<List<GrpcService>> GetActiveAsync();
+    
+    /// <summary>
+    /// Registers a new service.
+    /// </summary>
+    /// <param name="service">The service to register.</param>
+    /// <returns>A task that represents the asynchronous operation. The task result contains the registered <see cref="GrpcService"/>.</returns>
     Task<GrpcService> RegisterAsync(GrpcService service);
+    
+    /// <summary>
+    /// Updates an existing service.
+    /// </summary>
+    /// <param name="service">The service to update.</param>
+    /// <returns>A task that represents the asynchronous operation.</returns>
     Task UpdateAsync(GrpcService service);
+    
+    /// <summary>
+    /// Unregisters a service by ID.
+    /// </summary>
+    /// <param name="id">The service ID.</param>
+    /// <returns>A task that represents the asynchronous operation.</returns>
     Task UnregisterAsync(int id);
+    
+    /// <summary>
+    /// Finds services by host.
+    /// </summary>
+    /// <param name="host">The host name.</param>
+    /// <returns>A task that represents the asynchronous operation. The task result contains a list of <see cref="GrpcService"/>.</returns>
     Task<List<GrpcService>> FindByHostAsync(string host);
 }
 

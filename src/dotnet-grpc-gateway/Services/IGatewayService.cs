@@ -14,15 +14,70 @@ namespace DotNetGrpcGateway.Services;
 /// </summary>
 public interface IGatewayService
 {
+    /// <summary>
+    /// Gets the current gateway configuration.
+    /// </summary>
+    /// <returns>A task that represents the asynchronous operation. The task result contains the <see cref="GatewayConfiguration"/>.</returns>
     Task<GatewayConfiguration> GetConfigurationAsync();
+    
+    /// <summary>
+    /// Updates the gateway configuration.
+    /// </summary>
+    /// <param name="config">The new configuration.</param>
+    /// <returns>A task that represents the asynchronous operation. The task result contains the updated <see cref="GatewayConfiguration"/>.</returns>
     Task<GatewayConfiguration> UpdateConfigurationAsync(GatewayConfiguration config);
+    
+    /// <summary>
+    /// Registers a new gRPC service.
+    /// </summary>
+    /// <param name="service">The service to register.</param>
+    /// <returns>A task that represents the asynchronous operation.</returns>
     Task RegisterServiceAsync(GrpcService service);
+    
+    /// <summary>
+    /// Unregisters a gRPC service by ID.
+    /// </summary>
+    /// <param name="serviceId">The ID of the service.</param>
+    /// <returns>A task that represents the asynchronous operation.</returns>
     Task UnregisterServiceAsync(int serviceId);
+    
+    /// <summary>
+    /// Gets a gRPC service by ID.
+    /// </summary>
+    /// <param name="serviceId">The ID of the service.</param>
+    /// <returns>A task that represents the asynchronous operation. The task result contains the <see cref="GrpcService"/>.</returns>
     Task<GrpcService> GetServiceAsync(int serviceId);
+    
+    /// <summary>
+    /// Gets all registered gRPC services.
+    /// </summary>
+    /// <returns>A task that represents the asynchronous operation. The task result contains a list of <see cref="GrpcService"/>.</returns>
     Task<List<GrpcService>> GetAllServicesAsync();
+    
+    /// <summary>
+    /// Gets all healthy gRPC services.
+    /// </summary>
+    /// <returns>A task that represents the asynchronous operation. The task result contains a list of healthy <see cref="GrpcService"/>.</returns>
     Task<List<GrpcService>> GetHealthyServicesAsync();
+    
+    /// <summary>
+    /// Adds a new routing rule.
+    /// </summary>
+    /// <param name="route">The route to add.</param>
+    /// <returns>A task that represents the asynchronous operation. The task result contains the added <see cref="GatewayRoute"/>.</returns>
     Task<GatewayRoute> AddRouteAsync(GatewayRoute route);
+    
+    /// <summary>
+    /// Removes a routing rule by ID.
+    /// </summary>
+    /// <param name="routeId">The ID of the route.</param>
+    /// <returns>A task that represents the asynchronous operation.</returns>
     Task RemoveRouteAsync(int routeId);
+    
+    /// <summary>
+    /// Gets all active routing rules.
+    /// </summary>
+    /// <returns>A task that represents the asynchronous operation. The task result contains a list of active <see cref="GatewayRoute"/>.</returns>
     Task<List<GatewayRoute>> GetAllRoutesAsync();
 }
 
