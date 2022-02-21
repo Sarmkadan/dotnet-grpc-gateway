@@ -47,6 +47,25 @@ public class RouteManagementServiceTests
     }
 
     [Fact]
+    public async Task ValidateRouteAsync_EmptyPattern_LogsWarning()
+    {
+        var route = BuildRoute(1, string.Empty, 1);
+        var sut = CreateSut();
+
+        await sut.ValidateRouteAsync(route);
+
+        _logger.Verify(
+            x => x.Log(
+                LogLevel.Warning,
+                It.IsAny<EventId>(),
+                It.Is<It.IsAnyType>((v, t) => v.ToString()!.Contains("Route validation failed - Pattern is empty (RouteId: 1)")),
+                It.IsAny<Exception>(),
+                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+            Times.Once);
+    }
+
+
+    [Fact]
     public async Task ValidateRouteAsync_DuplicatePatternInRepository_ReturnsFalse()
     {
         var existingRoute = BuildRoute(99, "UserService.GetUser", serviceId: 1);

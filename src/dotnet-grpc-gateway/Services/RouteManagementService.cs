@@ -120,28 +120,28 @@ public class RouteManagementService : IRouteManagementService
             // Validate pattern
             if (string.IsNullOrWhiteSpace(route.Pattern))
             {
-                _logger.LogWarning("Route pattern is empty");
+                _logger.LogWarning("Route validation failed - Pattern is empty (RouteId: {RouteId})", route.Id);
                 return false;
             }
 
             // Validate priority
             if (route.Priority < 0 || route.Priority > 1000)
             {
-                _logger.LogWarning("Route priority {Priority} is out of valid range", route.Priority);
+                _logger.LogWarning("Route validation failed - Priority {Priority} is out of valid range (RouteId: {RouteId})", route.Priority, route.Id);
                 return false;
             }
 
             // Validate rate limit
             if (route.RateLimitPerMinute < 0)
             {
-                _logger.LogWarning("Route rate limit cannot be negative");
+                _logger.LogWarning("Route validation failed - Rate limit cannot be negative (RouteId: {RouteId})", route.Id);
                 return false;
             }
 
             // Validate cache duration
             if (route.EnableCaching && route.CacheDurationSeconds < 0)
             {
-                _logger.LogWarning("Cache duration cannot be negative");
+                _logger.LogWarning("Route validation failed - Cache duration cannot be negative (RouteId: {RouteId})", route.Id);
                 return false;
             }
 
