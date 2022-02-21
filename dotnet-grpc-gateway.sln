@@ -7,6 +7,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "dotnet-grpc-gateway", "src\
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "dotnet-grpc-gateway.Tests", "tests\dotnet-grpc-gateway.Tests\dotnet-grpc-gateway.Tests.csproj", "{A3C1D2E4-5F6B-7C8D-9E0A-1B2C3D4E5F6A}"
 EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "dotnet-grpc-gateway.Benchmarks", "benchmarks/dotnet-grpc-gateway.Benchmarks/dotnet-grpc-gateway.Benchmarks.csproj", "{B4C1D2E4-5F6B-7C8D-9E0A-1B2C3D4E5F6B}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -20,6 +22,10 @@ Global
 		{A3C1D2E4-5F6B-7C8D-9E0A-1B2C3D4E5F6A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{A3C1D2E4-5F6B-7C8D-9E0A-1B2C3D4E5F6A}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{A3C1D2E4-5F6B-7C8D-9E0A-1B2C3D4E5F6A}.Release|Any CPU.ActiveCfg = Release|Any CPU
+{B4C1D2E4-5F6B-7C8D-9E0A-1B2C3D4E5F6B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+{B4C1D2E4-5F6B-7C8D-9E0A-1B2C3D4E5F6B}.Debug|Any CPU.Build.0 = Debug|Any CPU
+{B4C1D2E4-5F6B-7C8D-9E0A-1B2C3D4E5F6B}.Release|Any CPU.ActiveCfg = Release|Any CPU
+{B4C1D2E4-5F6B-7C8D-9E0A-1B2C3D4E5F6B}.Release|Any CPU.Build.0 = Release|Any CPU
 		{A3C1D2E4-5F6B-7C8D-9E0A-1B2C3D4E5F6A}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal
