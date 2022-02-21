@@ -5,6 +5,7 @@
 // =============================================================================
 
 using System.Net.Http.Headers;
+using DotNetGrpcGateway.Exceptions;
 
 namespace DotNetGrpcGateway.Integration;
 
@@ -84,8 +85,9 @@ public class HttpClientProvider : IHttpClientProvider
         }
         catch (Exception ex)
         {
+            // Wrap any exception in a custom gateway exception to keep a consistent error model
             _logger.LogError(ex, "Error creating HTTP client: {ClientName}", name);
-            throw;
+            throw new DotnetGrpcGatewayException($"Failed to create HTTP client '{name}'.", ex);
         }
     }
 
