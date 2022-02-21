@@ -4,7 +4,7 @@
 // CTO & Software Architect
 // =============================================================================
 
-using DotNetGrpcGateway.Configuration;
+using DotNetGrpcGateway.Options;
 using Microsoft.Extensions.Options;
 
 namespace DotNetGrpcGateway.Services;
@@ -16,13 +16,13 @@ public class HealthCheckBackgroundService : BackgroundService
 {
     private readonly IServiceProvider _serviceProvider;
     private readonly ILogger<HealthCheckBackgroundService> _logger;
-    private readonly IOptions<GatewayOptions> _options;
+    private readonly IOptions<DotnetGrpcGatewayOptions> _options;
     private PeriodicTimer? _timer;
 
     public HealthCheckBackgroundService(
         IServiceProvider serviceProvider,
         ILogger<HealthCheckBackgroundService> logger,
-        IOptions<GatewayOptions> options)
+        IOptions<DotnetGrpcGatewayOptions> options)
     {
         _serviceProvider = serviceProvider ?? throw new ArgumentNullException(nameof(serviceProvider));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));

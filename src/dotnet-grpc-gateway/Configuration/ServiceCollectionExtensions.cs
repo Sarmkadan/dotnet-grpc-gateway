@@ -6,6 +6,8 @@
 
 using DotNetGrpcGateway.Infrastructure;
 using DotNetGrpcGateway.Services;
+using DotNetGrpcGateway.Options;
+using Microsoft.Extensions.Options;
 
 namespace DotNetGrpcGateway.Configuration;
 
@@ -53,7 +55,10 @@ public static class ServiceCollectionExtensions
         if (configuration is null)
             throw new ArgumentNullException(nameof(configuration));
 
-        services.Configure<GatewayOptions>(configuration.GetSection("Gateway"));
+        services.AddOptions<DotnetGrpcGatewayOptions>()
+            .Bind(configuration.GetSection(DotnetGrpcGatewayOptions.SectionName))
+            .ValidateDataAnnotations()
+            .ValidateOnStart();
 
         return services;
     }
@@ -84,84 +89,6 @@ public static class ServiceCollectionExtensions
 
         return services;
     }
-}
-
-/// <summary>
-/// Configuration options for the gateway
-/// </summary>
-public class GatewayOptions
-{
-    public const string SectionName = "Gateway";
-
-    public string ListenAddress { get; set; } = "0.0.0.0";
-
-    public int Port { get; set; } = 5000;
-
-    public bool EnableReflection { get; set; } = true;
-
-    public bool EnableMetrics { get; set; } = true;
-
-    public int MaxConcurrentConnections { get; set; } = 1000;
-
-    public int RequestTimeoutMs { get; set; } = 30000;
-
-    public string LogLevel { get; set; } = "Information";
-
-    /// <summary>
-    /// When <see langword="true"/>, the gateway gzip-compresses gRPC-Web message frames
-    /// for clients that advertise <c>grpc-accept-encoding: gzip</c>.
-    /// Defaults to <see langword="true"/>.
-    /// </summary>
-    public bool EnableCompression { get; set; } = true;
-
-    public HealthCheckOptions HealthCheck { get; set; } = new();
-
-    public MetricsOptions Metrics { get; set; } = new();
-
-    public RequestLoggingOptions RequestLogging { get; set; } = new();
-}
-
-public class HealthCheckOptions
-{
-    public int IntervalSeconds { get; set; } = 30;
-
-    public int TimeoutMs { get; set; } = 5000;
-
-    public int FailureThreshold { get; set; } = 3;
-}
-
-public class MetricsOptions
-{
-    public bool EnableMetrics { get; set; } = true;
-
-    public int CollectionIntervalSeconds { get; set; } = 60;
-
-    public int RetentionDays { get; set; } = 30;
-}
-
-/// <summary>
-/// Verbosity level for request logging middleware.
-/// </summary>
-public enum RequestLoggingVerbosity
-{
-    /// <summary>Log gRPC method, response status, and duration only.</summary>
-    Minimal,
-
-    /// <summary>Also log request/response headers and upstream service address.</summary>
-    Normal,
-
-    /// <summary>Also log request and response body sizes.</summary>
-    Verbose
-}
-
-/// <summary>
-/// Configuration options for <see cref="DotNetGrpcGateway.Middleware.RequestLoggingMiddleware"/>.
-/// </summary>
-public class RequestLoggingOptions
-{
-    public bool Enabled { get; set; } = true;
-
-    public RequestLoggingVerbosity Verbosity { get; set; } = RequestLoggingVerbosity.Normal;
 }
 
 /// <summary>

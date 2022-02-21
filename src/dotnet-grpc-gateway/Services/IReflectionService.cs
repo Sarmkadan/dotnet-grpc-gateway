@@ -5,7 +5,7 @@
 // =============================================================================
 
 using System.Net;
-using DotNetGrpcGateway.Configuration;
+using DotNetGrpcGateway.Options;
 using DotNetGrpcGateway.Domain;
 
 namespace DotNetGrpcGateway.Services;
@@ -65,7 +65,7 @@ public class ReflectionService : IReflectionService
     private readonly IGatewayService _gatewayService;
     private readonly HttpClient _httpClient;
     private readonly ILogger<ReflectionService> _logger;
-    private readonly IOptions<GatewayOptions> _options;
+    private readonly IOptions<DotnetGrpcGatewayOptions> _options;
 
     // Per-scope cache — populated on demand via GetServiceReflectionAsync / Refresh*.
     private readonly Dictionary<int, ServiceReflectionInfo> _cache = new();
@@ -74,7 +74,7 @@ public class ReflectionService : IReflectionService
         IGatewayService gatewayService,
         HttpClient httpClient,
         ILogger<ReflectionService> logger,
-        IOptions<GatewayOptions> options)
+        IOptions<DotnetGrpcGatewayOptions> options)
     {
         _gatewayService = gatewayService ?? throw new ArgumentNullException(nameof(gatewayService));
         _httpClient = httpClient ?? throw new ArgumentNullException(nameof(httpClient));
