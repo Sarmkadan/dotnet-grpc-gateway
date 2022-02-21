@@ -23,7 +23,7 @@ public class RequestLogServiceTests
             ClientIp = "192.168.1.1",
             RequestSizeBytes = 1024,
             ResponseSizeBytes = 2048,
-            DurationMs = 150.5,
+            DurationMs = 150,
             HttpStatusCode = 200,
             IsSuccessful = true,
             Timestamp = DateTime.UtcNow
