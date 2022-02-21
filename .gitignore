@@ -68,3 +68,7 @@ packages/
 
 # Rider/ReSharper user settings
 *.DotSettings.user
+bin/
+obj/
+BenchmarkDotNet.Artifacts/
+.aider*
