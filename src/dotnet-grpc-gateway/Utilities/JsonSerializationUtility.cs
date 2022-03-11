@@ -13,7 +13,7 @@ namespace DotNetGrpcGateway.Utilities;
 /// JSON serialization utilities with consistent settings and error handling.
 /// Ensures uniform JSON formatting across the application.
 /// </summary>
-public static class JsonSerializationUtility
+public class JsonSerializationUtility
 {
     // Default serialization options with camelCase property naming
     private static readonly JsonSerializerOptions DefaultOptions = new()
@@ -36,7 +36,7 @@ public static class JsonSerializationUtility
     /// <summary>
     /// Serializes an object to JSON string with default formatting.
     /// </summary>
-    public static string Serialize<T>(T? value)
+    public string Serialize<T>(T? value)
     {
         if (value is null)
             return "null";
@@ -47,7 +47,7 @@ public static class JsonSerializationUtility
     /// <summary>
     /// Serializes an object to pretty-printed JSON string.
     /// </summary>
-    public static string SerializePretty<T>(T? value)
+    public string SerializePretty<T>(T? value)
     {
         if (value is null)
             return "null";
@@ -58,7 +58,7 @@ public static class JsonSerializationUtility
     /// <summary>
     /// Deserializes a JSON string to an object.
     /// </summary>
-    public static T? Deserialize<T>(string json)
+    public T? Deserialize<T>(string json)
     {
         if (string.IsNullOrEmpty(json))
             return default;
@@ -76,7 +76,7 @@ public static class JsonSerializationUtility
     /// <summary>
     /// Safely deserializes with error information.
     /// </summary>
-    public static (bool Success, T? Data, string? Error) TryDeserialize<T>(string json)
+    public (bool Success, T? Data, string? Error) TryDeserialize<T>(string json)
     {
         if (string.IsNullOrEmpty(json))
             return (false, default, "JSON string is null or empty");
@@ -95,7 +95,7 @@ public static class JsonSerializationUtility
     /// <summary>
     /// Checks if a string is valid JSON.
     /// </summary>
-    public static bool IsValidJson(string? json)
+    public bool IsValidJson(string? json)
     {
         if (string.IsNullOrWhiteSpace(json))
             return false;
@@ -114,7 +114,7 @@ public static class JsonSerializationUtility
     /// <summary>
     /// Formats a JSON string with consistent indentation.
     /// </summary>
-    public static string? FormatJson(string? json)
+    public string? FormatJson(string? json)
     {
         if (!IsValidJson(json))
             return json;
@@ -133,7 +133,7 @@ public static class JsonSerializationUtility
     /// <summary>
     /// Merges two JSON objects (simple shallow merge).
     /// </summary>
-    public static T? MergeObjects<T>(T? obj1, T? obj2) where T : class
+    public T? MergeObjects<T>(T? obj1, T? obj2) where T : class
     {
         if (obj1 is null)
             return obj2;
@@ -160,7 +160,7 @@ public static class JsonSerializationUtility
     /// <summary>
     /// Extracts a value from a JSON path (dot notation: "user.profile.name").
     /// </summary>
-    public static object? GetValueByPath(string json, string path)
+    public object? GetValueByPath(string json, string path)
     {
         if (string.IsNullOrEmpty(json) || string.IsNullOrEmpty(path))
             return null;

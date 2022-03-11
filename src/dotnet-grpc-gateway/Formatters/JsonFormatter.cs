@@ -22,8 +22,8 @@ public class JsonFormatter : IOutputFormatter
             return "null";
 
         return pretty
-            ? JsonSerializationUtility.SerializePretty(data)
-            : JsonSerializationUtility.Serialize(data);
+            ? new JsonSerializationUtility().SerializePretty(data)
+            : new JsonSerializationUtility().Serialize(data);
     }
 
     public async Task<string> FormatAsync<T>(T? data, bool pretty = false)
