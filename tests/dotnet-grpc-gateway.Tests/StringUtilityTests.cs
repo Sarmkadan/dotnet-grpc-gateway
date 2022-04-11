@@ -8,10 +8,14 @@ using FluentAssertions;
 using DotNetGrpcGateway.Utilities;
 using Xunit;
 
-namespace DotNetGrpcGateway.Tests;
-
+/// <summary>
+/// Tests for the StringUtility class.
+/// </summary>
 public class StringUtilityTests
 {
+    /// <summary>
+    /// Tests the Truncate method.
+    /// </summary>
     [Fact]
     public void Truncate_ValueExceedsMaxLength_ReturnsEllipsisSuffix()
     {
@@ -24,6 +28,9 @@ public class StringUtilityTests
         result.Should().Be("This is a very lo...");
     }
 
+    /// <summary>
+    /// Tests the Truncate method with a null input.
+    /// </summary>
     [Fact]
     public void Truncate_NullInput_ReturnsEmptyString()
     {
@@ -32,6 +39,9 @@ public class StringUtilityTests
         result.Should().BeEmpty();
     }
 
+    /// <summary>
+    /// Tests the Truncate method with a value shorter than the max length.
+    /// </summary>
     [Fact]
     public void Truncate_ValueShorterThanMaxLength_ReturnsOriginal()
     {
@@ -42,6 +52,9 @@ public class StringUtilityTests
         result.Should().Be(input);
     }
 
+    /// <summary>
+    /// Tests the MaskSensitiveData method.
+    /// </summary>
     [Fact]
     public void MaskSensitiveData_ValueLongerThanShowChars_MasksRemainder()
     {
@@ -54,6 +67,9 @@ public class StringUtilityTests
         result.Should().MatchRegex(@"^secr\*+$");
     }
 
+    /// <summary>
+    /// Tests the MatchesWildcardPattern method.
+    /// </summary>
     [Fact]
     public void MatchesWildcardPattern_PatternWithStar_MatchesBroadly()
     {
@@ -62,6 +78,9 @@ public class StringUtilityTests
         result.Should().BeTrue();
     }
 
+    /// <summary>
+    /// Tests the ToKebabCase method.
+    /// </summary>
     [Fact]
     public void ToKebabCase_PascalCaseInput_InsertsHyphensBeforeUppercase()
     {
@@ -70,6 +89,9 @@ public class StringUtilityTests
         result.Should().Be("gateway-route-manager");
     }
 
+    /// <summary>
+    /// Tests the ToSlug method.
+    /// </summary>
     [Fact]
     public void ToSlug_StringWithSpecialChars_ReturnsAlphanumericHyphenated()
     {
