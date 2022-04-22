@@ -18,11 +18,11 @@ public static class GatewayConfigurationExtensions
     /// Gets the full endpoint URL for this gateway configuration
     /// </summary>
     /// <param name="configuration">The gateway configuration</param>
-    /// <returns>Formatted endpoint URL (http://{ListenAddress}:{Port})</returns>
+    /// <returns>Formatted endpoint URL (http://{ListenAddress}:{Port} or https://{ListenAddress}:{Port})</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="configuration"/> is null.</exception>
     public static string GetEndpointUrl(this GatewayConfiguration configuration)
     {
-        if (configuration == null)
-            throw new ArgumentNullException(nameof(configuration));
+        ArgumentNullException.ThrowIfNull(configuration);
 
         return configuration.EnableSsl()
             ? $"https://{configuration.ListenAddress}:{configuration.Port}"
@@ -34,13 +34,13 @@ public static class GatewayConfigurationExtensions
     /// </summary>
     /// <param name="configuration">The gateway configuration</param>
     /// <returns>True if SSL should be enabled, false otherwise</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="configuration"/> is null.</exception>
     public static bool EnableSsl(this GatewayConfiguration configuration)
     {
-        if (configuration == null)
-            throw new ArgumentNullException(nameof(configuration));
+        ArgumentNullException.ThrowIfNull(configuration);
 
-        return configuration.ListenAddress.Equals("0.0.0.0", StringComparison.OrdinalIgnoreCase) == false
-            && configuration.ListenAddress.Equals("localhost", StringComparison.OrdinalIgnoreCase) == false
+        return !configuration.ListenAddress.Equals("0.0.0.0", StringComparison.OrdinalIgnoreCase)
+            && !configuration.ListenAddress.Equals("localhost", StringComparison.OrdinalIgnoreCase)
             && configuration.Port != 443;
     }
 
@@ -49,10 +49,10 @@ public static class GatewayConfigurationExtensions
     /// </summary>
     /// <param name="configuration">The gateway configuration</param>
     /// <returns>Maximum message size in bytes</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="configuration"/> is null.</exception>
     public static long GetMaxRequestSizeBytes(this GatewayConfiguration configuration)
     {
-        if (configuration == null)
-            throw new ArgumentNullException(nameof(configuration));
+        ArgumentNullException.ThrowIfNull(configuration);
 
         return configuration.MaxMessageSize;
     }
@@ -62,10 +62,10 @@ public static class GatewayConfigurationExtensions
     /// </summary>
     /// <param name="configuration">The gateway configuration</param>
     /// <returns>Request timeout as TimeSpan</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="configuration"/> is null.</exception>
     public static TimeSpan GetRequestTimeout(this GatewayConfiguration configuration)
     {
-        if (configuration == null)
-            throw new ArgumentNullException(nameof(configuration));
+        ArgumentNullException.ThrowIfNull(configuration);
 
         return TimeSpan.FromMilliseconds(configuration.RequestTimeoutMs);
     }
@@ -75,10 +75,10 @@ public static class GatewayConfigurationExtensions
     /// </summary>
     /// <param name="name">The name for the new configuration</param>
     /// <returns>New GatewayConfiguration instance</returns>
+    /// <exception cref="ArgumentException"><paramref name="name"/> cannot be null or whitespace.</exception>
     public static GatewayConfiguration CreateDefault(string name)
     {
-        if (string.IsNullOrWhiteSpace(name))
-            throw new ArgumentException("Name cannot be null or whitespace", nameof(name));
+        ArgumentException.ThrowIfNullOrEmpty(name);
 
         return new GatewayConfiguration
         {
@@ -108,10 +108,10 @@ public static class GatewayConfigurationExtensions
     /// </summary>
     /// <param name="configuration">The gateway configuration to clone</param>
     /// <returns>New GatewayConfiguration instance with same values</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="configuration"/> is null.</exception>
     public static GatewayConfiguration Clone(this GatewayConfiguration configuration)
     {
-        if (configuration == null)
-            throw new ArgumentNullException(nameof(configuration));
+        ArgumentNullException.ThrowIfNull(configuration);
 
         return new GatewayConfiguration
         {
@@ -144,13 +144,12 @@ public static class GatewayConfigurationExtensions
     /// <param name="configuration">The gateway configuration</param>
     /// <param name="ipAddress">The IP address to check</param>
     /// <returns>True if the gateway listens on the specified IP</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="configuration"/> is null.</exception>
+    /// <exception cref="ArgumentException"><paramref name="ipAddress"/> cannot be null or empty.</exception>
     public static bool ListensOnIp(this GatewayConfiguration configuration, string ipAddress)
     {
-        if (configuration == null)
-            throw new ArgumentNullException(nameof(configuration));
-
-        if (string.IsNullOrWhiteSpace(ipAddress))
-            throw new ArgumentException("IP address cannot be null or empty", nameof(ipAddress));
+        ArgumentNullException.ThrowIfNull(configuration);
+        ArgumentException.ThrowIfNullOrEmpty(ipAddress);
 
         return configuration.ListenAddress.Equals(ipAddress, StringComparison.OrdinalIgnoreCase);
     }
@@ -160,10 +159,10 @@ public static class GatewayConfigurationExtensions
     /// </summary>
     /// <param name="configuration">The gateway configuration</param>
     /// <returns>Connection string suitable for monitoring tools</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="configuration"/> is null.</exception>
     public static string GetMonitoringConnectionString(this GatewayConfiguration configuration)
     {
-        if (configuration == null)
-            throw new ArgumentNullException(nameof(configuration));
+        ArgumentNullException.ThrowIfNull(configuration);
 
         return $"grpc://{configuration.ListenAddress}:{configuration.Port}";
     }
