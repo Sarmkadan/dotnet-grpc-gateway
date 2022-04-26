@@ -1,6 +1,6 @@
 using System;
 
-namespace DotnetGrpcGateway.Domain
+namespace DotNetGrpcGateway.Domain
 {
     /// <summary>
     /// Extension methods that add useful behaviour to <see cref="GrpcService"/>.
@@ -11,13 +11,18 @@ namespace DotnetGrpcGateway.Domain
         /// Determines whether a health‑check is due based on the configured interval
         /// and the timestamp of the last health check.
         /// </summary>
+        /// <param name="service">The gRPC service instance.</param>
+        /// <returns><see langword="true"/> if a health check is due; otherwise, <see langword="false"/>.</returns>
+        /// <exception cref="ArgumentNullException"><paramref name="service"/> is <see langword="null"/>.</exception>
         public static bool IsHealthCheckDue(this GrpcService service)
         {
-            if (service == null) throw new ArgumentNullException(nameof(service));
+            ArgumentNullException.ThrowIfNull(service);
 
             // If the service has never been health‑checked, we consider it due.
             if (service.LastHealthCheckAt == default)
+            {
                 return true;
+            }
 
             var elapsedSeconds = (DateTime.UtcNow - service.LastHealthCheckAt).TotalSeconds;
             return elapsedSeconds >= service.HealthCheckIntervalSeconds;
@@ -26,9 +31,12 @@ namespace DotnetGrpcGateway.Domain
         /// <summary>
         /// Returns the full URI that can be used to perform a health‑check on the service.
         /// </summary>
+        /// <param name="service">The gRPC service instance.</param>
+        /// <returns>The health check endpoint URI.</returns>
+        /// <exception cref="ArgumentNullException"><paramref name="service"/> is <see langword="null"/>.</exception>
         public static string GetHealthCheckUri(this GrpcService service)
         {
-            if (service == null) throw new ArgumentNullException(nameof(service));
+            ArgumentNullException.ThrowIfNull(service);
 
             // Convention: health‑check endpoint is "/health" on the service base URI.
             return $"{service.GetEndpointUri()}/health";
@@ -37,11 +45,14 @@ namespace DotnetGrpcGateway.Domain
         /// <summary>
         /// Records a successful request, updating request counters and the average response time.
         /// </summary>
+        /// <param name="service">The gRPC service instance.</param>
         /// <param name="responseTimeMs">The response time of the request in milliseconds.</param>
+        /// <exception cref="ArgumentNullException"><paramref name="service"/> is <see langword="null"/>.</exception>
+        /// <exception cref="ArgumentOutOfRangeException"><paramref name="responseTimeMs"/> is negative.</exception>
         public static void RecordSuccessfulRequest(this GrpcService service, double responseTimeMs)
         {
-            if (service == null) throw new ArgumentNullException(nameof(service));
-            if (responseTimeMs < 0) throw new ArgumentOutOfRangeException(nameof(responseTimeMs));
+            ArgumentNullException.ThrowIfNull(service);
+            ArgumentOutOfRangeException.ThrowIfNegative(responseTimeMs);
 
             // Increment total processed requests.
             service.TotalRequestsProcessed++;
@@ -61,11 +72,13 @@ namespace DotnetGrpcGateway.Domain
         /// <summary>
         /// Records a failed request, incrementing the failure counter and storing the error message.
         /// </summary>
+        /// <param name="service">The gRPC service instance.</param>
         /// <param name="errorMessage">A description of the failure.</param>
+        /// <exception cref="ArgumentNullException"><paramref name="service"/> or <paramref name="errorMessage"/> is <see langword="null"/>.</exception>
         public static void RecordFailedRequest(this GrpcService service, string errorMessage)
         {
-            if (service == null) throw new ArgumentNullException(nameof(service));
-            if (errorMessage == null) throw new ArgumentNullException(nameof(errorMessage));
+            ArgumentNullException.ThrowIfNull(service);
+            ArgumentNullException.ThrowIfNull(errorMessage);
 
             service.FailedRequestsCount++;
             service.LastHealthCheckError = errorMessage;
@@ -76,9 +89,12 @@ namespace DotnetGrpcGateway.Domain
         /// <summary>
         /// Returns a concise, human‑readable summary of the service.
         /// </summary>
+        /// <param name="service">The gRPC service instance.</param>
+        /// <returns>A formatted summary string.</returns>
+        /// <exception cref="ArgumentNullException"><paramref name="service"/> is <see langword="null"/>.</exception>
         public static string GetSummary(this GrpcService service)
         {
-            if (service == null) throw new ArgumentNullException(nameof(service));
+            ArgumentNullException.ThrowIfNull(service);
 
             return $"[{service.Id}] {service.Name} ({service.ServiceFullName}) - " +
                    $"{service.GetEndpointUri()} - " +
