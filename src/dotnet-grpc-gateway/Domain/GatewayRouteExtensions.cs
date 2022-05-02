@@ -21,16 +21,13 @@ public static class GatewayRouteExtensions
     /// <param name="serviceName">The gRPC service name</param>
     /// <param name="methodName">The gRPC method name</param>
     /// <returns>True if the route matches the request; otherwise, false</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="route"/> is null</exception>
+    /// <exception cref="ArgumentException"><paramref name="serviceName"/> is null or whitespace</exception>
+    /// <exception cref="ArgumentException"><paramref name="methodName"/> is null or whitespace</exception>
     public static bool ShouldHandleRequest(this GatewayRoute route, string serviceName, string methodName)
     {
-        if (route == null)
-            throw new ArgumentNullException(nameof(route));
-
-        if (string.IsNullOrWhiteSpace(serviceName))
-            throw new ArgumentException("Service name cannot be null or empty", nameof(serviceName));
-
-        if (string.IsNullOrWhiteSpace(methodName))
-            throw new ArgumentException("Method name cannot be null or empty", nameof(methodName));
+        ArgumentException.ThrowIfNullOrWhiteSpace(serviceName);
+        ArgumentException.ThrowIfNullOrWhiteSpace(methodName);
 
         return route.MatchesRequest(serviceName, methodName);
     }
@@ -41,10 +38,10 @@ public static class GatewayRouteExtensions
     /// <param name="route">The gateway route</param>
     /// <param name="defaultRateLimit">The system-wide default rate limit to use as fallback</param>
     /// <returns>The effective rate limit per minute</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="route"/> is null</exception>
     public static int GetEffectiveRateLimit(this GatewayRoute route, int defaultRateLimit = 1000)
     {
-        if (route == null)
-            throw new ArgumentNullException(nameof(route));
+        ArgumentNullException.ThrowIfNull(route);
 
         return route.RateLimitPerMinute > 0 ? route.RateLimitPerMinute : defaultRateLimit;
     }
@@ -55,15 +52,12 @@ public static class GatewayRouteExtensions
     /// <param name="route">The gateway route</param>
     /// <param name="defaultCacheDuration">The system-wide default cache duration in seconds</param>
     /// <returns>The effective cache duration in seconds, or 0 if caching is disabled</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="route"/> is null</exception>
     public static int GetEffectiveCacheDuration(this GatewayRoute route, int defaultCacheDuration = 60)
     {
-        if (route == null)
-            throw new ArgumentNullException(nameof(route));
+        ArgumentNullException.ThrowIfNull(route);
 
-        if (!route.EnableCaching)
-            return 0;
-
-        return route.CacheDurationSeconds >= 0 ? route.CacheDurationSeconds : defaultCacheDuration;
+        return !route.EnableCaching ? 0 : route.CacheDurationSeconds >= 0 ? route.CacheDurationSeconds : defaultCacheDuration;
     }
 
     /// <summary>
@@ -72,42 +66,42 @@ public static class GatewayRouteExtensions
     /// </summary>
     /// <param name="route">The gateway route</param>
     /// <returns>A formatted diagnostic string</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="route"/> is null</exception>
     public static string ToDiagnosticString(this GatewayRoute route)
     {
-        if (route == null)
-            throw new ArgumentNullException(nameof(route));
+        ArgumentNullException.ThrowIfNull(route);
 
         var sb = new StringBuilder();
         sb.AppendLine($"GatewayRoute Diagnostic Information:");
-        sb.AppendLine($"  ID: {route.Id}");
-        sb.AppendLine($"  Pattern: {route.Pattern}");
-        sb.AppendLine($"  Target Service ID: {route.TargetServiceId}");
-        sb.AppendLine($"  Priority: {route.Priority}");
-        sb.AppendLine($"  Match Type: {route.MatchType}");
-        sb.AppendLine($"  Description: {route.Description ?? "(none)"}");
-        sb.AppendLine($"  Active: {route.IsActive}");
-        sb.AppendLine($"  Requires Authentication: {route.RequiresAuthentication}");
-        sb.AppendLine($"  Rate Limit: {route.GetEffectiveRateLimit()} per minute");
-        sb.AppendLine($"  Caching: {(route.EnableCaching ? $"Enabled ({route.GetEffectiveCacheDuration()}s)" : "Disabled")}");
-        sb.AppendLine($"  Compression: {(route.EnableCompression ? "Enabled" : "Disabled")}");
-        sb.AppendLine($"  Created: {route.CreatedAt:yyyy-MM-dd HH:mm:ss}");
-        sb.AppendLine($"  Modified: {route.ModifiedAt:yyyy-MM-dd HH:mm:ss}");
+        sb.AppendLine($" ID: {route.Id}");
+        sb.AppendLine($" Pattern: {route.Pattern}");
+        sb.AppendLine($" Target Service ID: {route.TargetServiceId}");
+        sb.AppendLine($" Priority: {route.Priority}");
+        sb.AppendLine($" Match Type: {route.MatchType}");
+        sb.AppendLine($" Description: {route.Description ?? "(none)"}");
+        sb.AppendLine($" Active: {route.IsActive}");
+        sb.AppendLine($" Requires Authentication: {route.RequiresAuthentication}");
+        sb.AppendLine($" Rate Limit: {route.GetEffectiveRateLimit()} per minute");
+        sb.AppendLine($" Caching: {(route.EnableCaching ? $"Enabled ({route.GetEffectiveCacheDuration()}s)" : "Disabled")}");
+        sb.AppendLine($" Compression: {(route.EnableCompression ? "Enabled" : "Disabled")}");
+        sb.AppendLine($" Created: {route.CreatedAt:yyyy-MM-dd HH:mm:ss}");
+        sb.AppendLine($" Modified: {route.ModifiedAt:yyyy-MM-dd HH:mm:ss}");
 
         if (route.Headers.Count > 0)
         {
-            sb.AppendLine("  Headers:");
+            sb.AppendLine(" Headers:");
             foreach (var header in route.Headers)
             {
-                sb.AppendLine($"    {header.Key}: {header.Value}");
+                sb.AppendLine($"  {header.Key}: {header.Value}");
             }
         }
 
         if (route.Metadata.Count > 0)
         {
-            sb.AppendLine("  Metadata:");
+            sb.AppendLine(" Metadata:");
             foreach (var meta in route.Metadata)
             {
-                sb.AppendLine($"    {meta.Key}: {meta.Value}");
+                sb.AppendLine($"  {meta.Key}: {meta.Value}");
             }
         }
 
@@ -120,10 +114,10 @@ public static class GatewayRouteExtensions
     /// </summary>
     /// <param name="route">The gateway route</param>
     /// <returns>True if authentication is required; otherwise, false</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="route"/> is null</exception>
     public static bool RequiresAuth(this GatewayRoute route)
     {
-        if (route == null)
-            throw new ArgumentNullException(nameof(route));
+        ArgumentNullException.ThrowIfNull(route);
 
         return route.RequiresAuthentication || !string.IsNullOrWhiteSpace(route.AuthorizationPolicy);
     }
