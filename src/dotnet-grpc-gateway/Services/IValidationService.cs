@@ -4,6 +4,7 @@
 // CTO & Software Architect
 // =============================================================================
 
+using System.Text.Json;
 using DotNetGrpcGateway.Domain;
 using DotNetGrpcGateway.Exceptions;
 
@@ -157,9 +158,44 @@ public class ValidationService : IValidationService
 
         try
         {
-            // In real implementation, would validate JWT or API key against database
-            // For now, just do basic validation
-            return token.Length > 20 && token.Contains(".");
+            await Task.CompletedTask;
+
+            // Structural JWT validation: three base64url segments where the
+            // header and payload decode to JSON objects, and an "exp" claim
+            // (when present) has not elapsed.
+            var segments = token.Split('.');
+            if (segments.Length != 3 || segments.Any(string.IsNullOrEmpty))
+            {
+                _logger.LogWarning("Authentication validation failed - Reason: {Reason}", "Malformed token structure");
+                return false;
+            }
+
+            if (!TryDecodeBase64UrlJson(segments[0], out _))
+            {
+                _logger.LogWarning("Authentication validation failed - Reason: {Reason}", "Invalid token header");
+                return false;
+            }
+
+            if (!TryDecodeBase64UrlJson(segments[1], out var payload))
+            {
+                _logger.LogWarning("Authentication validation failed - Reason: {Reason}", "Invalid token payload");
+                return false;
+            }
+
+            using (payload)
+            {
+                if (payload!.RootElement.ValueKind == JsonValueKind.Object &&
+                    payload.RootElement.TryGetProperty("exp", out var exp) &&
+                    exp.ValueKind == JsonValueKind.Number &&
+                    exp.TryGetInt64(out var expSeconds) &&
+                    DateTimeOffset.FromUnixTimeSeconds(expSeconds) <= DateTimeOffset.UtcNow)
+                {
+                    _logger.LogWarning("Authentication validation failed - Reason: {Reason}", "Token expired");
+                    return false;
+                }
+            }
+
+            return true;
         }
         catch (Exception ex)
         {
@@ -168,16 +204,59 @@ public class ValidationService : IValidationService
         }
     }
 
+    private static bool TryDecodeBase64UrlJson(string segment, out JsonDocument? document)
+    {
+        document = null;
+        try
+        {
+            var padded = segment.Replace('-', '+').Replace('_', '/');
+            padded = (padded.Length % 4) switch
+            {
+                2 => padded + "==",
+                3 => padded + "=",
+                _ => padded
+            };
+
+            var bytes = Convert.FromBase64String(padded);
+            document = JsonDocument.Parse(bytes);
+            return true;
+        }
+        catch (FormatException)
+        {
+            return false;
+        }
+        catch (JsonException)
+        {
+            return false;
+        }
+    }
+
     public async Task<bool> ValidateAuthorizationAsync(string clientId, int serviceId)
     {
-        if (string.IsNullOrWhiteSpace(clientId))
+        if (string.IsNullOrWhiteSpace(clientId) || serviceId <= 0)
             return false;
 
         try
         {
-            // In real implementation, would check token against service access list
-            _logger.LogDebug("Validating authorization for client {ClientId} accessing service {ServiceId}", clientId, serviceId);
+            // A client is authorized only for services that exist and are active.
+            var service = await _unitOfWork.Services.GetByIdAsync(serviceId);
+            if (service is null || !service.IsActive)
+            {
+                _logger.LogWarning(
+                    "Authorization denied for client {ClientId} - service {ServiceId} not found or inactive",
+                    clientId, serviceId);
+                return false;
+            }
+
+            _logger.LogDebug("Authorization granted for client {ClientId} accessing service {ServiceId}", clientId, serviceId);
             return true;
+        }
+        catch (KeyNotFoundException)
+        {
+            _logger.LogWarning(
+                "Authorization denied for client {ClientId} - service {ServiceId} not found",
+                clientId, serviceId);
+            return false;
         }
         catch (Exception ex)
         {
