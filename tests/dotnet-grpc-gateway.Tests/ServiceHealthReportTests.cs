@@ -189,7 +189,7 @@ public class ServiceHealthReportTests
 
         report.RecordCheckResult(success: true, responseTimeMs: 150);
 
-        report.HealthCheckSuccessRate.Should().BeApproximately(77.77, 0.01);
+        report.HealthCheckSuccessRate.Should().BeApproximately(72.73, 0.01);
     }
 
     [Fact]

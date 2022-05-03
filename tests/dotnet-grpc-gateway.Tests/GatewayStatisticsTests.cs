@@ -212,7 +212,7 @@ public class GatewayStatisticsTests
         stats.AverageResponseTimeMs.Should().BeApproximately(200.0, 0.01);
         stats.MinResponseTimeMs.Should().Be(100);
         stats.MaxResponseTimeMs.Should().Be(300);
-        stats.TotalDataProcessedBytes.Should().Be(3680);
+        stats.TotalDataProcessedBytes.Should().Be(3584);
     }
 
     /// <summary>

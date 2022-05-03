@@ -21,6 +21,7 @@ public class ServiceEndpoint
     public int Weight { get; set; } = 1;
     public int ActiveConnections;
     public long TotalRequestsHandled { get; set; }
+    public long FailedRequestsCount { get; set; }
     public double AverageResponseTimeMs { get; set; }
     public DateTime RegisteredAt { get; set; } = DateTime.UtcNow;
     public DateTime LastUsedAt { get; set; } = DateTime.UtcNow;
@@ -30,6 +31,8 @@ public class ServiceEndpoint
     public void RecordRequest(double responseTimeMs, bool success)
     {
         TotalRequestsHandled++;
+        if (!success)
+            FailedRequestsCount++;
         LastUsedAt = DateTime.UtcNow;
         AverageResponseTimeMs =
             (AverageResponseTimeMs * (TotalRequestsHandled - 1) + responseTimeMs) / TotalRequestsHandled;

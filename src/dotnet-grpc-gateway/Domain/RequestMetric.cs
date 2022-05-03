@@ -78,7 +78,11 @@ public class RequestMetric
         StackTrace = stackTrace;
     }
 
-    public void RecordRetry() => RetryCount++;
+    public void RecordRetry()
+    {
+        RetryCount++;
+        WasRetried = true;
+    }
 
     public void SetCacheStatus(string status) => CacheHitStatus = status;
 }

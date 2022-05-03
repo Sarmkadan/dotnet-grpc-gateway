@@ -34,11 +34,13 @@ namespace DotNetGrpcGateway.Domain
                 return 0;
             }
 
-            // Success rate is calculated as successful requests divided by total requests
-            // Since RecordRequest tracks both successful and failed requests, we need to track failures
-            // For now, we assume all handled requests are successful (as per the simplified implementation)
-            // In a real implementation, this should use endpoint.FailedRequests or similar
-            return 1.0;
+            var successful = endpoint.TotalRequestsHandled - endpoint.FailedRequestsCount;
+            if (successful < 0)
+            {
+                successful = 0;
+            }
+
+            return (double)successful / endpoint.TotalRequestsHandled;
         }
 
         /// <summary>
