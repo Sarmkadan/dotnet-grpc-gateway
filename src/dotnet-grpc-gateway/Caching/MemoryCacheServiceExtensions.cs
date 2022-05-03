@@ -22,17 +22,12 @@ public static class MemoryCacheServiceExtensions
     /// <param name="cacheService">The cache service.</param>
     /// <param name="key">The key of the value to get.</param>
     /// <returns>A tuple containing a boolean indicating if the key exists and the value (or default if not found).</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="cacheService"/> is <see langword="null"/></exception>
+    /// <exception cref="ArgumentException"><paramref name="key"/> is <see langword="null"/> or empty</exception>
     public static async Task<(bool Exists, T? Value)> TryGetValueAsync<T>(this MemoryCacheService cacheService, string key)
     {
-        if (cacheService is null)
-        {
-            throw new ArgumentNullException(nameof(cacheService));
-        }
-
-        if (string.IsNullOrEmpty(key))
-        {
-            return (false, default);
-        }
+        ArgumentNullException.ThrowIfNull(cacheService);
+        ArgumentException.ThrowIfNullOrEmpty(key);
 
         var result = await cacheService.GetAsync<T>(key);
         return (result is not null, result);
@@ -47,26 +42,17 @@ public static class MemoryCacheServiceExtensions
     /// <param name="valueFactory">The function used to create the value if it doesn't exist.</param>
     /// <param name="expiration">Optional expiration time for the cache entry.</param>
     /// <returns>The value from cache or newly created value.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="cacheService"/> or <paramref name="valueFactory"/> is <see langword="null"/></exception>
+    /// <exception cref="ArgumentException"><paramref name="key"/> is <see langword="null"/> or empty</exception>
     public static async Task<T> GetOrCreateAsync<T>(
         this MemoryCacheService cacheService,
         string key,
         Func<Task<T>> valueFactory,
         TimeSpan? expiration = null)
     {
-        if (cacheService is null)
-        {
-            throw new ArgumentNullException(nameof(cacheService));
-        }
-
-        if (string.IsNullOrEmpty(key))
-        {
-            throw new ArgumentException("Cache key cannot be null or empty", nameof(key));
-        }
-
-        if (valueFactory is null)
-        {
-            throw new ArgumentNullException(nameof(valueFactory));
-        }
+        ArgumentNullException.ThrowIfNull(cacheService);
+        ArgumentException.ThrowIfNullOrEmpty(key);
+        ArgumentNullException.ThrowIfNull(valueFactory);
 
         // Try to get from cache first
         var cachedValue = await cacheService.GetAsync<T>(key);
@@ -88,19 +74,13 @@ public static class MemoryCacheServiceExtensions
     /// <param name="cacheService">The cache service.</param>
     /// <param name="keys">The collection of keys to retrieve.</param>
     /// <returns>A dictionary containing the found key-value pairs.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="cacheService"/> or <paramref name="keys"/> is <see langword="null"/></exception>
     public static async Task<Dictionary<string, T>> GetManyAsync<T>(
         this MemoryCacheService cacheService,
         IEnumerable<string> keys)
     {
-        if (cacheService is null)
-        {
-            throw new ArgumentNullException(nameof(cacheService));
-        }
-
-        if (keys is null)
-        {
-            throw new ArgumentNullException(nameof(keys));
-        }
+        ArgumentNullException.ThrowIfNull(cacheService);
+        ArgumentNullException.ThrowIfNull(keys);
 
         var result = new Dictionary<string, T>();
         foreach (var key in keys)
@@ -126,20 +106,14 @@ public static class MemoryCacheServiceExtensions
     /// <param name="items">The key-value pairs to set in cache.</param>
     /// <param name="expiration">Optional expiration time for all cache entries.</param>
     /// <returns>A task representing the asynchronous operation.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="cacheService"/> or <paramref name="items"/> is <see langword="null"/></exception>
     public static async Task SetManyAsync<T>(
         this MemoryCacheService cacheService,
         IEnumerable<KeyValuePair<string, T>> items,
         TimeSpan? expiration = null)
     {
-        if (cacheService is null)
-        {
-            throw new ArgumentNullException(nameof(cacheService));
-        }
-
-        if (items is null)
-        {
-            throw new ArgumentNullException(nameof(items));
-        }
+        ArgumentNullException.ThrowIfNull(cacheService);
+        ArgumentNullException.ThrowIfNull(items);
 
         foreach (var item in items)
         {
@@ -155,13 +129,11 @@ public static class MemoryCacheServiceExtensions
     /// </summary>
     /// <param name="cacheService">The cache service.</param>
     /// <returns>A tuple containing cache statistics and hit/miss ratio.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="cacheService"/> is <see langword="null"/></exception>
     public static async Task<(CacheStatistics Statistics, double HitRatio)> GetStatisticsWithRatioAsync(
         this MemoryCacheService cacheService)
     {
-        if (cacheService is null)
-        {
-            throw new ArgumentNullException(nameof(cacheService));
-        }
+        ArgumentNullException.ThrowIfNull(cacheService);
 
         var stats = await cacheService.GetStatisticsAsync();
         var hitRatio = stats.HitCount + stats.MissCount > 0
@@ -176,19 +148,13 @@ public static class MemoryCacheServiceExtensions
     /// <param name="cacheService">The cache service.</param>
     /// <param name="keys">The keys to remove from cache.</param>
     /// <returns>A task representing the asynchronous operation.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="cacheService"/> or <paramref name="keys"/> is <see langword="null"/></exception>
     public static async Task RemoveManyAsync(
         this MemoryCacheService cacheService,
         IEnumerable<string> keys)
     {
-        if (cacheService is null)
-        {
-            throw new ArgumentNullException(nameof(cacheService));
-        }
-
-        if (keys is null)
-        {
-            throw new ArgumentNullException(nameof(keys));
-        }
+        ArgumentNullException.ThrowIfNull(cacheService);
+        ArgumentNullException.ThrowIfNull(keys);
 
         foreach (var key in keys)
         {
@@ -205,19 +171,13 @@ public static class MemoryCacheServiceExtensions
     /// <param name="cacheService">The cache service.</param>
     /// <param name="keys">The keys to check.</param>
     /// <returns>A dictionary mapping keys to their existence status.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="cacheService"/> or <paramref name="keys"/> is <see langword="null"/></exception>
     public static async Task<Dictionary<string, bool>> ExistsManyAsync(
         this MemoryCacheService cacheService,
         IEnumerable<string> keys)
     {
-        if (cacheService is null)
-        {
-            throw new ArgumentNullException(nameof(cacheService));
-        }
-
-        if (keys is null)
-        {
-            throw new ArgumentNullException(nameof(keys));
-        }
+        ArgumentNullException.ThrowIfNull(cacheService);
+        ArgumentNullException.ThrowIfNull(keys);
 
         var result = new Dictionary<string, bool>();
         foreach (var key in keys)
