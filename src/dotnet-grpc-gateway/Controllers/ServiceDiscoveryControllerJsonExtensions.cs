@@ -6,11 +6,11 @@ using System.Text.Json.Serialization;
 namespace DotNetGrpcGateway.Controllers;
 
 /// <summary>
-/// Provides System.Text.Json serialization/deserialization extension methods for ServiceDiscoveryController.
+/// Provides System.Text.Json serialization/deserialization extension methods for <see cref="ServiceDiscoveryController"/>.
 /// </summary>
 public static class ServiceDiscoveryControllerJsonExtensions
 {
-    private static readonly JsonSerializerOptions _jsonSerializerOptions = new JsonSerializerOptions
+    private static readonly JsonSerializerOptions _jsonSerializerOptions = new()
     {
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
         WriteIndented = false,
@@ -20,36 +20,34 @@ public static class ServiceDiscoveryControllerJsonExtensions
     };
 
     /// <summary>
-    /// Serializes the ServiceDiscoveryController instance to a JSON string.
+    /// Serializes the <see cref="ServiceDiscoveryController"/> instance to a JSON string.
     /// </summary>
-    /// <param name="value">The ServiceDiscoveryController instance to serialize.</param>
+    /// <param name="value">The <see cref="ServiceDiscoveryController"/> instance to serialize.</param>
     /// <param name="indented">Whether to format the JSON with indentation for readability.</param>
-    /// <returns>A JSON string representation of the ServiceDiscoveryController.</returns>
+    /// <returns>A JSON string representation of the <see cref="ServiceDiscoveryController"/>.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="value"/> is <see langword="null"/>.</exception>
     public static string ToJson(this ServiceDiscoveryController value, bool indented = false)
     {
-        if (value is null)
-        {
-            return "null";
-        }
+        ArgumentNullException.ThrowIfNull(value);
 
         var options = indented
-            ? new JsonSerializerOptions(_jsonSerializerOptions)
-            {
-                WriteIndented = true
-            }
+            ? new JsonSerializerOptions(_jsonSerializerOptions) { WriteIndented = true }
             : _jsonSerializerOptions;
 
         return JsonSerializer.Serialize(value, options);
     }
 
     /// <summary>
-    /// Deserializes a JSON string to a ServiceDiscoveryController instance.
+    /// Deserializes a JSON string to a <see cref="ServiceDiscoveryController"/> instance.
     /// </summary>
     /// <param name="json">The JSON string to deserialize.</param>
-    /// <returns>The deserialized ServiceDiscoveryController instance, or null if JSON is null or empty.</returns>
+    /// <returns>The deserialized <see cref="ServiceDiscoveryController"/> instance, or <see langword="null"/> if JSON is <see langword="null"/>, empty, or whitespace.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="json"/> is <see langword="null"/>.</exception>
     public static ServiceDiscoveryController? FromJson(string json)
     {
-        if (string.IsNullOrWhiteSpace(json) || json == "null")
+        ArgumentNullException.ThrowIfNull(json);
+
+        if (string.IsNullOrWhiteSpace(json))
         {
             return null;
         }
@@ -65,16 +63,19 @@ public static class ServiceDiscoveryControllerJsonExtensions
     }
 
     /// <summary>
-    /// Attempts to deserialize a JSON string to a ServiceDiscoveryController instance.
+    /// Attempts to deserialize a JSON string to a <see cref="ServiceDiscoveryController"/> instance.
     /// </summary>
     /// <param name="json">The JSON string to deserialize.</param>
-    /// <param name="value">The deserialized ServiceDiscoveryController instance, or null if deserialization fails.</param>
-    /// <returns>True if deserialization succeeds; otherwise, false.</returns>
+    /// <param name="value">The deserialized <see cref="ServiceDiscoveryController"/> instance, or <see langword="null"/> if deserialization fails.</param>
+    /// <returns><see langword="true"/> if deserialization succeeds; otherwise, <see langword="false"/>.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="json"/> is <see langword="null"/>.</exception>
     public static bool TryFromJson(string json, out ServiceDiscoveryController? value)
     {
+        ArgumentNullException.ThrowIfNull(json);
+
         value = null;
 
-        if (string.IsNullOrWhiteSpace(json) || json == "null")
+        if (string.IsNullOrWhiteSpace(json))
         {
             return false;
         }
