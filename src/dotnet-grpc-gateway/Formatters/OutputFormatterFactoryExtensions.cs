@@ -13,12 +13,10 @@ public static class OutputFormatterFactoryExtensions
     /// <param name="factory">The formatter factory instance.</param>
     /// <param name="contentType">The content type to find a formatter for.</param>
     /// <returns>The formatter if found, otherwise null.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="factory"/> is <see langword="null"/>.</exception>
     public static IOutputFormatter? GetFormatterOrDefault(this OutputFormatterFactory factory, string? contentType)
     {
-        if (factory is null)
-        {
-            throw new ArgumentNullException(nameof(factory));
-        }
+        ArgumentNullException.ThrowIfNull(factory);
 
         if (string.IsNullOrEmpty(contentType))
         {
@@ -48,12 +46,10 @@ public static class OutputFormatterFactoryExtensions
     /// <param name="contentType">The content type to find a formatter for.</param>
     /// <param name="formatter">When this method returns, contains the formatter if found, otherwise null.</param>
     /// <returns>True if the formatter was found, otherwise false.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="factory"/> is <see langword="null"/>.</exception>
     public static bool TryGetFormatter(this OutputFormatterFactory factory, string? contentType, [NotNullWhen(true)] out IOutputFormatter? formatter)
     {
-        if (factory is null)
-        {
-            throw new ArgumentNullException(nameof(factory));
-        }
+        ArgumentNullException.ThrowIfNull(factory);
 
         formatter = factory.GetFormatterOrDefault(contentType);
         return formatter != null;
@@ -68,12 +64,11 @@ public static class OutputFormatterFactoryExtensions
     /// <param name="contentType">The content type to determine which formatter to use.</param>
     /// <param name="pretty">Whether to format with pretty printing (if supported by the formatter).</param>
     /// <returns>The formatted string representation of the data.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="factory"/> is <see langword="null"/>.</exception>
+    /// <exception cref="ArgumentNullException"><paramref name="contentType"/> is <see langword="null"/> and no default formatter exists.</exception>
     public static string Format<T>(this OutputFormatterFactory factory, T? data, string? contentType, bool pretty = false)
     {
-        if (factory is null)
-        {
-            throw new ArgumentNullException(nameof(factory));
-        }
+        ArgumentNullException.ThrowIfNull(factory);
 
         var formatter = factory.GetFormatter(contentType ?? "application/json");
         return formatter.Format(data, pretty);
@@ -88,12 +83,11 @@ public static class OutputFormatterFactoryExtensions
     /// <param name="contentType">The content type to determine which formatter to use.</param>
     /// <param name="pretty">Whether to format with pretty printing (if supported by the formatter).</param>
     /// <returns>A task that represents the asynchronous formatting operation. The task result contains the formatted string.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="factory"/> is <see langword="null"/>.</exception>
+    /// <exception cref="ArgumentNullException"><paramref name="contentType"/> is <see langword="null"/> and no default formatter exists.</exception>
     public static async Task<string> FormatAsync<T>(this OutputFormatterFactory factory, T? data, string? contentType, bool pretty = false)
     {
-        if (factory is null)
-        {
-            throw new ArgumentNullException(nameof(factory));
-        }
+        ArgumentNullException.ThrowIfNull(factory);
 
         var formatter = factory.GetFormatter(contentType ?? "application/json");
         return await formatter.FormatAsync(data, pretty).ConfigureAwait(false);
