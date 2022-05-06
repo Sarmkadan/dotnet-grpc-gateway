@@ -4,23 +4,26 @@
 // CTO & Software Architect
 // =====================================================================
 
+using System;
 using DotNetGrpcGateway.Domain;
 
 namespace DotNetGrpcGateway.Tests;
 
 /// <summary>
-/// Extension methods for GatewayStatisticsTests to provide additional utility functionality
+/// Extension methods for <see cref="GatewayStatisticsTests"/> to provide test data builders for <see cref="GatewayStatistics"/> instances.
+/// These methods create realistic test data with various configurations for unit and integration testing scenarios.
 /// </summary>
 public static class GatewayStatisticsTestsExtensions
 {
     /// <summary>
-    /// Creates a GatewayStatistics instance with realistic production-like values for testing
+    /// Creates a <see cref="GatewayStatistics"/> instance with realistic production-like values for testing.
     /// </summary>
-    /// <param name="totalRequests">Total requests processed</param>
-    /// <param name="successRate">Success rate percentage (0-100)</param>
-    /// <param name="avgResponseTimeMs">Average response time in milliseconds</param>
-    /// <param name="dataProcessedBytes">Total data processed in bytes</param>
-    /// <returns>Configured GatewayStatistics instance</returns>
+    /// <param name="totalRequests">Total requests processed. Must be non-negative.</param>
+    /// <param name="successRate">Success rate percentage (0-100).</param>
+    /// <param name="avgResponseTimeMs">Average response time in milliseconds. Must be non-negative.</param>
+    /// <param name="dataProcessedBytes">Total data processed in bytes. Must be non-negative.</param>
+    /// <returns>Configured <see cref="GatewayStatistics"/> instance.</returns>
+    /// <exception cref="ArgumentOutOfRangeException">Thrown when any parameter is negative or success rate is outside [0, 100] range.</exception>
     public static GatewayStatistics CreateTestStatistics(
         this GatewayStatisticsTests _,
         long totalRequests = 1000,
@@ -28,6 +31,12 @@ public static class GatewayStatisticsTestsExtensions
         double avgResponseTimeMs = 125.5,
         long dataProcessedBytes = 1024 * 1024)
     {
+        ArgumentOutOfRangeException.ThrowIfNegative(totalRequests);
+        ArgumentOutOfRangeException.ThrowIfNegative(avgResponseTimeMs);
+        ArgumentOutOfRangeException.ThrowIfNegative(dataProcessedBytes);
+        ArgumentOutOfRangeException.ThrowIfLessThan(successRate, 0);
+        ArgumentOutOfRangeException.ThrowIfGreaterThan(successRate, 100);
+
         var stats = new GatewayStatistics
         {
             TotalRequestsProcessed = totalRequests,
@@ -65,14 +74,20 @@ public static class GatewayStatisticsTestsExtensions
     }
 
     /// <summary>
-    /// Creates a GatewayStatistics instance with minimal default values
+    /// Creates a <see cref="GatewayStatistics"/> instance with minimal default values.
     /// </summary>
-    /// <param name="date">Statistics date (defaults to today)</param>
-    /// <returns>GatewayStatistics instance with default values</returns>
+    /// <param name="date">Statistics date (defaults to today).</param>
+    /// <returns><see cref="GatewayStatistics"/> instance with default values.</returns>
+    /// <exception cref="ArgumentOutOfRangeException">Thrown when <paramref name="date"/> is in the future.</exception>
     public static GatewayStatistics CreateEmptyStatistics(
         this GatewayStatisticsTests _,
         DateTime? date = null)
     {
+        if (date.HasValue && date.Value > DateTime.UtcNow.Date)
+        {
+            throw new ArgumentOutOfRangeException(nameof(date), "Statistics date cannot be in the future.");
+        }
+
         return new GatewayStatistics
         {
             StatisticsDate = date ?? DateTime.UtcNow.Date
@@ -80,12 +95,12 @@ public static class GatewayStatisticsTestsExtensions
     }
 
     /// <summary>
-    /// Creates a GatewayStatistics instance with error conditions for negative testing
+    /// Creates a <see cref="GatewayStatistics"/> instance with error conditions for negative testing.
     /// </summary>
-    /// <param name="negativeTotalRequests">Whether to set negative total requests</param>
-    /// <param name="negativeSuccessRate">Whether to set success rate below zero</param>
-    /// <param name="invalidMinMax">Whether to set min > max response times</param>
-    /// <returns>GatewayStatistics instance configured for error scenarios</returns>
+    /// <param name="negativeTotalRequests">Whether to set negative total requests.</param>
+    /// <param name="negativeSuccessRate">Whether to set success rate below zero.</param>
+    /// <param name="invalidMinMax">Whether to set min > max response times.</param>
+    /// <returns><see cref="GatewayStatistics"/> instance configured for error scenarios.</returns>
     public static GatewayStatistics CreateErrorStatistics(
         this GatewayStatisticsTests _,
         bool negativeTotalRequests = false,
@@ -109,10 +124,10 @@ public static class GatewayStatisticsTestsExtensions
     }
 
     /// <summary>
-    /// Creates a GatewayStatistics instance with zero values for edge case testing
+    /// Creates a <see cref="GatewayStatistics"/> instance with zero values for edge case testing.
     /// </summary>
-    /// <param name="zeroRequests">Whether to set all request counters to zero</param>
-    /// <returns>GatewayStatistics instance with zero values</returns>
+    /// <param name="zeroRequests">Whether to set all request counters to zero.</param>
+    /// <returns><see cref="GatewayStatistics"/> instance with zero values.</returns>
     public static GatewayStatistics CreateZeroStatistics(
         this GatewayStatisticsTests _,
         bool zeroRequests = true)
