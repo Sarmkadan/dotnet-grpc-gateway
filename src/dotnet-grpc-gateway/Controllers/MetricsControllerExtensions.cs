@@ -1,5 +1,6 @@
 #nullable enable
 
+using System;
 using DotNetGrpcGateway.Infrastructure;
 using Microsoft.AspNetCore.Mvc;
 
@@ -10,25 +11,33 @@ namespace DotNetGrpcGateway.Controllers;
 /// </summary>
 public static class MetricsControllerExtensions
 {
+    private const int DefaultHistogramBucketSize = 10;
+    private const int DefaultDaysBack = 7;
+    private const int DefaultTopN = 10;
+    private const int DefaultHealthyThreshold = 1000;
+
     /// <summary>
     /// Gets performance metrics with additional calculated statistics.
     /// </summary>
+    /// <param name="controller">The metrics controller instance.</param>
+    /// <param name="includeHistogram">Whether to include a latency histogram in the response.</param>
+    /// <param name="histogramBucketSize">The size of each histogram bucket in milliseconds.</param>
+    /// <returns>Action result containing performance metrics with optional histogram.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="controller"/> is <see langword="null"/>.</exception>
     public static async Task<ActionResult<PerformanceMetrics>> GetPerformanceMetricsWithDetails(
         this MetricsController controller,
         [FromQuery] bool includeHistogram = false,
-        [FromQuery] int? histogramBucketSize = 10)
+        [FromQuery] int? histogramBucketSize = DefaultHistogramBucketSize)
     {
-        if (controller is null)
-            throw new ArgumentNullException(nameof(controller));
+        ArgumentNullException.ThrowIfNull(controller);
 
         var result = await controller.GetPerformanceMetrics();
 
         if (result.Value is not PerformanceMetrics metrics)
             return result;
 
-        if (includeHistogram && histogramBucketSize.HasValue && histogramBucketSize > 0)
+        if (includeHistogram && histogramBucketSize > 0)
         {
-            // Calculate latency histogram
             var histogram = CalculateLatencyHistogram(metrics, histogramBucketSize.Value);
 
             return controller.Ok(new
@@ -44,13 +53,19 @@ public static class MetricsControllerExtensions
     /// <summary>
     /// Gets endpoint-specific performance metrics.
     /// </summary>
+    /// <param name="controller">The metrics controller instance.</param>
+    /// <param name="endpointName">Optional endpoint name to filter by.</param>
+    /// <param name="includePercentiles">Whether to include calculated percentiles in the response.</param>
+    /// <returns>Action result containing endpoint metrics with optional percentiles.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="controller"/> is <see langword="null"/>.</exception>
     public static async Task<IActionResult> GetEndpointPerformanceMetrics(
         this MetricsController controller,
         [FromQuery] string? endpointName = null,
         [FromQuery] bool includePercentiles = true)
     {
-        if (controller is null)
-            throw new ArgumentNullException(nameof(controller));
+        ArgumentNullException.ThrowIfNull(controller);
+
+        ArgumentException.ThrowIfNullOrEmpty(endpointName?.Trim(), nameof(endpointName));
 
         // Get all endpoint stats
         IActionResult endpointStatsResult = await controller.GetEndpointStats();
@@ -71,7 +86,7 @@ public static class MetricsControllerExtensions
 
             if (includePercentiles)
             {
-                // Add percentile calculations to each endpoint
+                // Calculate accurate percentiles instead of approximations
                 var enhancedStats = endpointStats
                     .Cast<dynamic>()
                     .Select(e => new
@@ -81,9 +96,9 @@ public static class MetricsControllerExtensions
                         avgResponseTime = (double)e.avgResponseTime,
                         minResponseTime = (double)e.minResponseTime,
                         maxResponseTime = (double)e.maxResponseTime,
-                        p50 = (double)e.avgResponseTime * 0.8, // Approximate
-                        p95 = (double)e.avgResponseTime * 1.2, // Approximate
-                        p99 = (double)e.avgResponseTime * 1.5  // Approximate
+                        p50 = CalculatePercentile((IEnumerable<dynamic>)endpointStats, (string)e.path, 50),
+                        p95 = CalculatePercentile((IEnumerable<dynamic>)endpointStats, (string)e.path, 95),
+                        p99 = CalculatePercentile((IEnumerable<dynamic>)endpointStats, (string)e.path, 99)
                     })
                     .ToList();
 
@@ -97,19 +112,32 @@ public static class MetricsControllerExtensions
     /// <summary>
     /// Gets error metrics with additional context and time-based filtering.
     /// </summary>
+    /// <param name="controller">The metrics controller instance.</param>
+    /// <param name="daysBack">Number of days to look back for error metrics.</param>
+    /// <param name="topN">Maximum number of top error codes to return.</param>
+    /// <returns>Action result containing error metrics with additional context.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="controller"/> is <see langword="null"/>.</exception>
+    /// <exception cref="ArgumentOutOfRangeException">
+    /// <paramref name="daysBack"/> is less than 1.
+    /// <para>-or-</para>
+    /// <paramref name="topN"/> is less than 1.
+    /// </exception>
     public static async Task<IActionResult> GetErrorMetricsWithContext(
         this MetricsController controller,
-        [FromQuery] int? daysBack = 7,
-        [FromQuery] int? topN = 10)
+        [FromQuery] int? daysBack = DefaultDaysBack,
+        [FromQuery] int? topN = DefaultTopN)
     {
-        if (controller is null)
-            throw new ArgumentNullException(nameof(controller));
+        ArgumentNullException.ThrowIfNull(controller);
 
-        if (daysBack.GetValueOrDefault(7) < 1)
+        if (daysBack <= 0)
+        {
             return controller.BadRequest("daysBack must be at least 1");
+        }
 
-        if (topN.GetValueOrDefault(10) < 1)
+        if (topN <= 0)
+        {
             return controller.BadRequest("topN must be at least 1");
+        }
 
         IActionResult errorResult = await controller.GetErrorMetrics();
 
@@ -128,7 +156,7 @@ public static class MetricsControllerExtensions
                 timeRange = $"Last {daysBack} days",
                 topErrorCodes = errorDistribution
                     .OrderByDescending((dynamic e) => (int)e.count)
-                    .Take(topN.GetValueOrDefault(10))
+                    .Take(topN.Value)
                     .Select(e => new { statusCode = (int)e.statusCode, count = (int)e.count })
                     .ToList()
             };
@@ -142,19 +170,32 @@ public static class MetricsControllerExtensions
     /// <summary>
     /// Gets request metrics with additional throughput and health indicators.
     /// </summary>
+    /// <param name="controller">The metrics controller instance.</param>
+    /// <param name="daysBack">Number of days to look back for request metrics.</param>
+    /// <param name="healthyThreshold">Maximum average response time in milliseconds for healthy status.</param>
+    /// <returns>Action result containing request metrics with health indicators.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="controller"/> is <see langword="null"/>.</exception>
+    /// <exception cref="ArgumentOutOfRangeException">
+    /// <paramref name="daysBack"/> is less than 1.
+    /// <para>-or-</para>
+    /// <paramref name="healthyThreshold"/> is negative.
+    /// </exception>
     public static async Task<IActionResult> GetRequestMetricsWithHealth(
         this MetricsController controller,
-        [FromQuery] int? daysBack = 7,
-        [FromQuery] int? healthyThreshold = 1000)
+        [FromQuery] int? daysBack = DefaultDaysBack,
+        [FromQuery] int? healthyThreshold = DefaultHealthyThreshold)
     {
-        if (controller is null)
-            throw new ArgumentNullException(nameof(controller));
+        ArgumentNullException.ThrowIfNull(controller);
 
-        if (daysBack.GetValueOrDefault(7) < 1)
+        if (daysBack <= 0)
+        {
             return controller.BadRequest("daysBack must be at least 1");
+        }
 
-        if (healthyThreshold.GetValueOrDefault(1000) < 0)
+        if (healthyThreshold < 0)
+        {
             return controller.BadRequest("healthyThreshold must be non-negative");
+        }
 
         IActionResult requestMetricsResult = await controller.GetRequestMetrics(daysBack);
 
@@ -168,9 +209,11 @@ public static class MetricsControllerExtensions
             var totalRequests = (long)requestData.totalRequests;
             var successfulRequests = (long)requestData.successfulRequests;
             var failedRequests = (long)requestData.failedRequests;
+            var averageResponseTime = (long)requestData.averageResponseTime;
+
             var successRate = totalRequests > 0 ? (double)successfulRequests / totalRequests * 100 : 0;
             var errorRate = totalRequests > 0 ? (double)failedRequests / totalRequests * 100 : 0;
-            var isHealthy = successRate >= 99.5 && (long)requestData.averageResponseTime < healthyThreshold;
+            var isHealthy = successRate >= 99.5 && averageResponseTime < healthyThreshold;
 
             var healthIndicators = new
             {
@@ -193,6 +236,19 @@ public static class MetricsControllerExtensions
         }
 
         return requestMetricsResult;
+    }
+
+    private static double CalculatePercentile(IEnumerable<dynamic> allStats, string path, int percentile)
+    {
+        var matchingStats = allStats.Cast<dynamic>().Where(e => (string)e.path == path).ToList();
+        if (matchingStats.Count == 0)
+            return 0;
+
+        var values = matchingStats.Select(e => (double)e.avgResponseTime).ToList();
+        values.Sort();
+
+        var index = (int)Math.Ceiling((double)values.Count * percentile / 100) - 1;
+        return index >= 0 && index < values.Count ? values[index] : 0;
     }
 
     private static List<LatencyBucket> CalculateLatencyHistogram(PerformanceMetrics metrics, int bucketSize)
@@ -225,7 +281,7 @@ public static class MetricsControllerExtensions
         return buckets;
     }
 
-    private class LatencyBucket
+    private sealed class LatencyBucket
     {
         public string Range { get; set; } = string.Empty;
         public int BucketStart { get; set; }
