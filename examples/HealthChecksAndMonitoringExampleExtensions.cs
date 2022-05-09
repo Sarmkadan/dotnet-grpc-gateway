@@ -8,13 +8,14 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net.Http;
 using System.Text.Json;
 using System.Threading.Tasks;
 
 namespace DotNetGrpcGateway.Examples;
 
 /// <summary>
-/// Extension methods for HealthChecksAndMonitoringExample providing additional
+/// Extension methods for <see cref="HealthChecksAndMonitoringExample"/> providing additional
 /// monitoring and health check functionality.
 /// </summary>
 public static class HealthChecksAndMonitoringExampleExtensions
@@ -22,11 +23,16 @@ public static class HealthChecksAndMonitoringExampleExtensions
     /// <summary>
     /// Check health status of multiple services by their IDs and return a summary report.
     /// </summary>
-    /// <param name="example">The HealthChecksAndMonitoringExample instance</param>
+    /// <param name="example">The <see cref="HealthChecksAndMonitoringExample"/> instance</param>
     /// <param name="serviceIds">List of service IDs to check</param>
     /// <returns>Dictionary mapping service ID to health status</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="example"/> is <see langword="null"/></exception>
+    /// <exception cref="ArgumentNullException"><paramref name="serviceIds"/> is <see langword="null"/></exception>
     public static async Task<Dictionary<int, bool>> CheckMultipleServicesHealthAsync(this HealthChecksAndMonitoringExample example, IEnumerable<int> serviceIds)
     {
+        ArgumentNullException.ThrowIfNull(example);
+        ArgumentNullException.ThrowIfNull(serviceIds);
+
         var results = new Dictionary<int, bool>();
 
         foreach (var serviceId in serviceIds)
@@ -41,11 +47,14 @@ public static class HealthChecksAndMonitoringExampleExtensions
     /// <summary>
     /// Get formatted health status report as a string for logging or display purposes.
     /// </summary>
-    /// <param name="example">The HealthChecksAndMonitoringExample instance</param>
+    /// <param name="example">The <see cref="HealthChecksAndMonitoringExample"/> instance</param>
     /// <param name="includeMetrics">Whether to include detailed metrics in the report</param>
     /// <returns>Formatted health status report string</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="example"/> is <see langword="null"/></exception>
     public static async Task<string> GetHealthReportAsync(this HealthChecksAndMonitoringExample example, bool includeMetrics = true)
     {
+        ArgumentNullException.ThrowIfNull(example);
+
         var report = new System.Text.StringBuilder();
         report.AppendLine("=== Gateway Health Report ===");
 
@@ -68,11 +77,16 @@ public static class HealthChecksAndMonitoringExampleExtensions
     /// <summary>
     /// Check if all specified services are healthy.
     /// </summary>
-    /// <param name="example">The HealthChecksAndMonitoringExample instance</param>
+    /// <param name="example">The <see cref="HealthChecksAndMonitoringExample"/> instance</param>
     /// <param name="serviceIds">List of service IDs to check</param>
     /// <returns>True if all services are healthy, false otherwise</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="example"/> is <see langword="null"/></exception>
+    /// <exception cref="ArgumentNullException"><paramref name="serviceIds"/> is <see langword="null"/></exception>
     public static async Task<bool> AreAllServicesHealthyAsync(this HealthChecksAndMonitoringExample example, IEnumerable<int> serviceIds)
     {
+        ArgumentNullException.ThrowIfNull(example);
+        ArgumentNullException.ThrowIfNull(serviceIds);
+
         var results = await example.CheckMultipleServicesHealthAsync(serviceIds);
         return results.Values.All(isHealthy => isHealthy);
     }
@@ -80,10 +94,15 @@ public static class HealthChecksAndMonitoringExampleExtensions
     /// <summary>
     /// Get detailed health status with structured data.
     /// </summary>
-    /// <param name="example">The HealthChecksAndMonitoringExample instance</param>
+    /// <param name="example">The <see cref="HealthChecksAndMonitoringExample"/> instance</param>
     /// <returns>Structured health status data</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="example"/> is <see langword="null"/></exception>
+    /// <exception cref="HttpRequestException">Failed to get detailed health status</exception>
+    /// <exception cref="JsonException">Response is not valid JSON</exception>
     public static async Task<HealthStatus> GetDetailedHealthStatusAsync(this HealthChecksAndMonitoringExample example)
     {
+        ArgumentNullException.ThrowIfNull(example);
+
         var response = await example.GetHttpClient().GetAsync("http://localhost:5000/api/health/status");
 
         if (!response.IsSuccessStatusCode)
@@ -108,11 +127,16 @@ public static class HealthChecksAndMonitoringExampleExtensions
     /// <summary>
     /// Check health status of a specific service by ID.
     /// </summary>
-    /// <param name="example">The HealthChecksAndMonitoringExample instance</param>
+    /// <param name="example">The <see cref="HealthChecksAndMonitoringExample"/> instance</param>
     /// <param name="serviceId">Service ID to check</param>
     /// <returns>Service health status</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="example"/> is <see langword="null"/></exception>
+    /// <exception cref="HttpRequestException">Failed to get service health status</exception>
+    /// <exception cref="JsonException">Response is not valid JSON</exception>
     public static async Task<ServiceHealth> CheckServiceHealthAsync(this HealthChecksAndMonitoringExample example, int serviceId)
     {
+        ArgumentNullException.ThrowIfNull(example);
+
         var response = await example.GetHttpClient().GetAsync($"http://localhost:5000/api/health/services/{serviceId}");
 
         if (!response.IsSuccessStatusCode)
@@ -146,24 +170,29 @@ public static class HealthChecksAndMonitoringExampleExtensions
     /// <summary>
     /// Get the HttpClient instance used by the example for health checks.
     /// </summary>
-    /// <param name="example">The HealthChecksAndMonitoringExample instance</param>
+    /// <param name="example">The <see cref="HealthChecksAndMonitoringExample"/> instance</param>
     /// <returns>HttpClient instance</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="example"/> is <see langword="null"/></exception>
+    /// <exception cref="InvalidOperationException">Failed to access HttpClient via reflection</exception>
     public static HttpClient GetHttpClient(this HealthChecksAndMonitoringExample example)
     {
+        ArgumentNullException.ThrowIfNull(example);
+
         // Use reflection to access the private _httpClient field
         var field = typeof(HealthChecksAndMonitoringExample).GetField(
             "_httpClient",
             System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance
         );
 
-        return (HttpClient)field?.GetValue(example)!;
+        return field?.GetValue(example) as HttpClient
+            ?? throw new InvalidOperationException("Failed to access HttpClient via reflection");
     }
 }
 
 /// <summary>
 /// Represents detailed health status data.
 /// </summary>
-public class HealthStatus
+public sealed class HealthStatus
 {
     public string? Status { get; set; }
     public string? Uptime { get; set; }
@@ -175,7 +204,7 @@ public class HealthStatus
 /// <summary>
 /// Represents service health status data.
 /// </summary>
-public class ServiceHealth
+public sealed class ServiceHealth
 {
     public int ServiceId { get; set; }
     public string? ServiceName { get; set; }
