@@ -6,16 +6,15 @@
 
 using System;
 using System.Text.Json;
-using System.Text.Json.Serialization;
 
 namespace DotNetGrpcGateway.Examples;
 
 /// <summary>
-/// System.Text.Json serialization extensions for BasicServiceRegistrationExample
+/// Provides JSON serialization and deserialization extensions for <see cref="BasicServiceRegistrationExample"/>.
 /// </summary>
 public static class BasicServiceRegistrationExampleJsonExtensions
 {
-    private static readonly JsonSerializerOptions _jsonOptions = new JsonSerializerOptions
+    private static readonly JsonSerializerOptions _jsonOptions = new()
     {
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
         WriteIndented = false,
@@ -24,32 +23,32 @@ public static class BasicServiceRegistrationExampleJsonExtensions
     };
 
     /// <summary>
-    /// Serializes BasicServiceRegistrationExample to JSON string.
+    /// Serializes a <see cref="BasicServiceRegistrationExample"/> instance to a JSON string.
     /// </summary>
-    /// <param name="value">The BasicServiceRegistrationExample instance to serialize</param>
-    /// <param name="indented">Whether to format the JSON with indentation</param>
-    /// <returns>JSON string representation</returns>
+    /// <param name="value">The <see cref="BasicServiceRegistrationExample"/> instance to serialize.</param>
+    /// <param name="indented">Whether to format the JSON with indentation for human readability.</param>
+    /// <returns>A JSON string representation of the <see cref="BasicServiceRegistrationExample"/>.</returns>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="value"/> is <see langword="null"/>.</exception>
     public static string ToJson(this BasicServiceRegistrationExample value, bool indented = false)
     {
-        if (value is null)
-        {
-            throw new ArgumentNullException(nameof(value));
-        }
+        ArgumentNullException.ThrowIfNull(value);
 
-        var options = indented ? new JsonSerializerOptions(_jsonOptions)
-        {
-            WriteIndented = true
-        } : _jsonOptions;
+        var options = indented
+            ? new JsonSerializerOptions(_jsonOptions) { WriteIndented = true }
+            : _jsonOptions;
 
         return JsonSerializer.Serialize(value, options);
     }
 
     /// <summary>
-    /// Deserializes BasicServiceRegistrationExample from JSON string.
+    /// Deserializes a <see cref="BasicServiceRegistrationExample"/> instance from a JSON string.
     /// </summary>
-    /// <param name="json">JSON string to deserialize</param>
-    /// <returns>Deserialized BasicServiceRegistrationExample instance or null if JSON is invalid</returns>
-    public static BasicServiceRegistrationExample? FromJson(string json)
+    /// <param name="json">The JSON string to deserialize.</param>
+    /// <returns>
+    /// The deserialized <see cref="BasicServiceRegistrationExample"/> instance if successful;
+    /// <see langword="null"/> if <paramref name="json"/> is <see langword="null"/>, empty, or whitespace.
+    /// </returns>
+    public static BasicServiceRegistrationExample? FromJson(string? json)
     {
         if (string.IsNullOrWhiteSpace(json))
         {
@@ -60,12 +59,15 @@ public static class BasicServiceRegistrationExampleJsonExtensions
     }
 
     /// <summary>
-    /// Attempts to deserialize BasicServiceRegistrationExample from JSON string.
+    /// Attempts to deserialize a <see cref="BasicServiceRegistrationExample"/> instance from a JSON string.
     /// </summary>
-    /// <param name="json">JSON string to deserialize</param>
-    /// <param name="value">Output parameter for the deserialized value</param>
-    /// <returns>True if deserialization succeeded, false otherwise</returns>
-    public static bool TryFromJson(string json, out BasicServiceRegistrationExample? value)
+    /// <param name="json">The JSON string to deserialize.</param>
+    /// <param name="value">When this method returns, contains the deserialized value if successful, otherwise <see langword="null"/>.</param>
+    /// <returns>
+    /// <see langword="true"/> if deserialization succeeded;
+    /// <see langword="false"/> if <paramref name="json"/> is <see langword="null"/>, empty, whitespace, or invalid JSON.
+    /// </returns>
+    public static bool TryFromJson(string? json, out BasicServiceRegistrationExample? value)
     {
         value = null;
 
