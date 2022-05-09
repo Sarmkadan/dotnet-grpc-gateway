@@ -10,11 +10,11 @@ using System.Text.Json.Serialization;
 namespace DotNetGrpcGateway.Tests;
 
 /// <summary>
-/// Provides System.Text.Json serialization extensions for RequestMetricTests
+/// Provides System.Text.Json serialization extensions for <see cref="RequestMetricTests"/>.
 /// </summary>
 public static class RequestMetricTestsJsonExtensions
 {
-    private static readonly JsonSerializerOptions _jsonOptions = new JsonSerializerOptions
+    private static readonly JsonSerializerOptions _jsonSerializerOptions = new()
     {
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
         WriteIndented = false,
@@ -23,50 +23,45 @@ public static class RequestMetricTestsJsonExtensions
     };
 
     /// <summary>
-    /// Serializes the RequestMetricTests to a JSON string
+    /// Serializes the <see cref="RequestMetricTests"/> to a JSON string.
     /// </summary>
-    /// <param name="value">The RequestMetricTests to serialize</param>
-    /// <param name="indented">Whether to format the JSON with indentation</param>
-    /// <returns>JSON string representation of the RequestMetricTests</returns>
+    /// <param name="value">The <see cref="RequestMetricTests"/> to serialize.</param>
+    /// <param name="indented">Whether to format the JSON with indentation.</param>
+    /// <returns>JSON string representation of the <see cref="RequestMetricTests"/>.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="value"/> is <see langword="null"/>.</exception>
     public static string ToJson(this RequestMetricTests value, bool indented = false)
     {
-        if (value == null)
-        {
-            throw new ArgumentNullException(nameof(value));
-        }
+        ArgumentNullException.ThrowIfNull(value);
 
         var options = indented
-            ? new JsonSerializerOptions(_jsonOptions)
-            { WriteIndented = true }
-            : _jsonOptions;
+            ? new JsonSerializerOptions(_jsonSerializerOptions) { WriteIndented = true }
+            : _jsonSerializerOptions;
 
         return JsonSerializer.Serialize(value, options);
     }
 
     /// <summary>
-    /// Deserializes a RequestMetricTests from a JSON string
+    /// Deserializes a <see cref="RequestMetricTests"/> from a JSON string.
     /// </summary>
-    /// <param name="json">JSON string to deserialize</param>
-    /// <returns>The deserialized RequestMetricTests, or null if JSON is null or empty</returns>
-    public static RequestMetricTests? FromJson(string json)
-    {
-        if (string.IsNullOrWhiteSpace(json))
-        {
-            return null;
-        }
-
-        return JsonSerializer.Deserialize<RequestMetricTests>(json, _jsonOptions);
-    }
+    /// <param name="json">JSON string to deserialize. Can be <see langword="null"/> or whitespace.</param>
+    /// <returns>The deserialized <see cref="RequestMetricTests"/>, or <see langword="null"/> if <paramref name="json"/> is <see langword="null"/> or empty.</returns>
+    public static RequestMetricTests? FromJson(string json) =>
+        string.IsNullOrWhiteSpace(json)
+            ? null
+            : JsonSerializer.Deserialize<RequestMetricTests>(json, _jsonSerializerOptions);
 
     /// <summary>
-    /// Attempts to deserialize a RequestMetricTests from a JSON string
+    /// Attempts to deserialize a <see cref="RequestMetricTests"/> from a JSON string.
     /// </summary>
-    /// <param name="json">JSON string to deserialize</param>
-    /// <param name="value">Output parameter for the deserialized RequestMetricTests</param>
-    /// <returns>True if deserialization succeeded, false otherwise</returns>
+    /// <param name="json">JSON string to deserialize. Can be <see langword="null"/> or whitespace.</param>
+    /// <param name="value">Output parameter for the deserialized <see cref="RequestMetricTests"/>.</param>
+    /// <returns><see langword="true"/> if deserialization succeeded; otherwise, <see langword="false"/>.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="json"/> is <see langword="null"/>.</exception>
     public static bool TryFromJson(string json, out RequestMetricTests? value)
     {
         value = null;
+
+        ArgumentNullException.ThrowIfNull(json);
 
         if (string.IsNullOrWhiteSpace(json))
         {
@@ -75,7 +70,7 @@ public static class RequestMetricTestsJsonExtensions
 
         try
         {
-            value = JsonSerializer.Deserialize<RequestMetricTests>(json, _jsonOptions);
+            value = JsonSerializer.Deserialize<RequestMetricTests>(json, _jsonSerializerOptions);
             return true;
         }
         catch (JsonException)
