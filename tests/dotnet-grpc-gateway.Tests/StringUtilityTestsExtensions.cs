@@ -6,11 +6,14 @@
 // =============================================================================
 
 using System;
-using System.Text;
 using System.Text.RegularExpressions;
 
 namespace DotNetGrpcGateway.Tests;
 
+/// <summary>
+/// Extension methods for string manipulation and validation used in tests.
+/// Provides utility methods for common string operations during test scenarios.
+/// </summary>
 public static class StringUtilityTestsExtensions
 {
     /// <summary>
@@ -19,63 +22,67 @@ public static class StringUtilityTestsExtensions
     /// <param name="character">The character to repeat</param>
     /// <param name="count">Number of repetitions</param>
     /// <returns>A string with the specified character repeated</returns>
+    /// <exception cref="ArgumentOutOfRangeException">Thrown when <paramref name="count"/> is negative</exception>
     public static string Repeat(this char character, int count)
     {
-        if (count < 0)
-            throw new ArgumentOutOfRangeException(nameof(count), "Count must be non-negative");
-
+        ArgumentOutOfRangeException.ThrowIfNegative(count);
         return new string(character, count);
     }
 
     /// <summary>
-    /// Checks if a string contains only alphabetic characters (no numbers or special chars)
+    /// Checks if a string contains only alphabetic characters (no numbers or special characters).
     /// </summary>
     /// <param name="input">The string to check</param>
-    /// <returns>True if the string contains only letters A-Z or a-z</returns>
+    /// <returns>True if the string contains only letters A-Z or a-z; otherwise false</returns>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="input"/> is null</exception>
     public static bool IsAlphabetic(this string? input)
     {
-        if (string.IsNullOrEmpty(input))
+        ArgumentNullException.ThrowIfNull(input);
+        if (input.Length == 0)
             return false;
 
-        return Regex.IsMatch(input, "^[a-zA-Z]+", RegexOptions.Compiled);
+        return Regex.IsMatch(input, "^[a-zA-Z]+$");
     }
 
     /// <summary>
-    /// Checks if a string contains only numeric characters (no letters or special chars)
+    /// Checks if a string contains only numeric characters (no letters or special characters).
     /// </summary>
     /// <param name="input">The string to check</param>
-    /// <returns>True if the string contains only digits 0-9</returns>
+    /// <returns>True if the string contains only digits 0-9; otherwise false</returns>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="input"/> is null</exception>
     public static bool IsNumeric(this string? input)
     {
-        if (string.IsNullOrEmpty(input))
+        ArgumentNullException.ThrowIfNull(input);
+        if (input.Length == 0)
             return false;
 
-        return Regex.IsMatch(input, "^[0-9]+", RegexOptions.Compiled);
+        return Regex.IsMatch(input, "^[0-9]+$");
     }
 
     /// <summary>
-    /// Counts the number of lines in a string (splits by Environment.NewLine)
+    /// Counts the number of lines in a string using platform-appropriate line endings.
     /// </summary>
     /// <param name="input">The string to analyze</param>
-    /// <returns>Number of lines in the string</returns>
+    /// <returns>Number of lines in the string, or 0 for null/empty input</returns>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="input"/> is null</exception>
     public static int CountLines(this string? input)
     {
-        if (string.IsNullOrEmpty(input))
+        ArgumentNullException.ThrowIfNull(input);
+        if (input.Length == 0)
             return 0;
 
-        return input.Split(new[] { Environment.NewLine }, StringSplitOptions.None).Length;
+        return input.Split(new[] { '\n', '\r' }, StringSplitOptions.None).Length;
     }
 
     /// <summary>
-    /// Removes all whitespace characters from a string
+    /// Removes all whitespace characters from a string.
     /// </summary>
     /// <param name="input">The string to process</param>
-    /// <returns>A new string with all whitespace removed</returns>
+    /// <returns>A new string with all whitespace removed, or empty string for null input</returns>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="input"/> is null</exception>
     public static string RemoveWhitespace(this string? input)
     {
-        if (string.IsNullOrEmpty(input))
-            return string.Empty;
-
-        return Regex.Replace(input, @"\s+", "", RegexOptions.Compiled);
+        ArgumentNullException.ThrowIfNull(input);
+        return Regex.Replace(input, @"\s+", "");
     }
 }
