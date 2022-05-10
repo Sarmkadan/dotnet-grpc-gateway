@@ -15,7 +15,7 @@ using System.Threading.Tasks;
 namespace DotNetGrpcGateway.Examples;
 
 /// <summary>
-/// Extension methods for DynamicRouteConfigurationExample to provide additional
+/// Extension methods for <see cref="DynamicRouteConfigurationExample"/> to provide additional
 /// functionality for route management and analysis.
 /// </summary>
 public static class DynamicRouteConfigurationExampleExtensions
@@ -23,20 +23,19 @@ public static class DynamicRouteConfigurationExampleExtensions
     /// <summary>
     /// Creates multiple routes from a collection of route configurations.
     /// </summary>
-    /// <param name="example">The DynamicRouteConfigurationExample instance</param>
+    /// <param name="example">The <see cref="DynamicRouteConfigurationExample"/> instance</param>
     /// <param name="routes">Collection of route configurations</param>
-    /// <returns>Task representing the asynchronous operation</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="routes"/> is <see langword="null"/></exception>
     public static async Task CreateMultipleRoutesAsync(
         this DynamicRouteConfigurationExample example,
         IEnumerable<object> routes)
     {
-        if (routes == null)
-        {
-            throw new ArgumentNullException(nameof(routes));
-        }
+        ArgumentNullException.ThrowIfNull(example);
+        ArgumentNullException.ThrowIfNull(routes);
 
         foreach (var route in routes)
         {
+            ArgumentNullException.ThrowIfNull(route);
             await example.CreateRouteAsync(route);
         }
     }
@@ -44,20 +43,20 @@ public static class DynamicRouteConfigurationExampleExtensions
     /// <summary>
     /// Bulk updates existing routes with new configurations.
     /// </summary>
-    /// <param name="example">The DynamicRouteConfigurationExample instance</param>
+    /// <param name="example">The <see cref="DynamicRouteConfigurationExample"/> instance</param>
     /// <param name="updates">Collection of route updates</param>
-    /// <returns>Task representing the asynchronous operation</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="updates"/> is <see langword="null"/></exception>
     public static async Task UpdateMultipleRoutesAsync(
         this DynamicRouteConfigurationExample example,
         IEnumerable<object> updates)
     {
-        if (updates == null)
-        {
-            throw new ArgumentNullException(nameof(updates));
-        }
+        ArgumentNullException.ThrowIfNull(example);
+        ArgumentNullException.ThrowIfNull(updates);
 
         foreach (var update in updates)
         {
+            ArgumentNullException.ThrowIfNull(update);
+
             var content = new StringContent(
                 JsonSerializer.Serialize(update),
                 Encoding.UTF8,
@@ -81,17 +80,15 @@ public static class DynamicRouteConfigurationExampleExtensions
     /// <summary>
     /// Deletes multiple routes by their IDs.
     /// </summary>
-    /// <param name="example">The DynamicRouteConfigurationExample instance</param>
+    /// <param name="example">The <see cref="DynamicRouteConfigurationExample"/> instance</param>
     /// <param name="routeIds">Collection of route IDs to delete</param>
-    /// <returns>Task representing the asynchronous operation</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="routeIds"/> is <see langword="null"/></exception>
     public static async Task DeleteMultipleRoutesAsync(
         this DynamicRouteConfigurationExample example,
         IEnumerable<int> routeIds)
     {
-        if (routeIds == null)
-        {
-            throw new ArgumentNullException(nameof(routeIds));
-        }
+        ArgumentNullException.ThrowIfNull(example);
+        ArgumentNullException.ThrowIfNull(routeIds);
 
         foreach (var routeId in routeIds)
         {
@@ -111,13 +108,16 @@ public static class DynamicRouteConfigurationExampleExtensions
     /// <summary>
     /// Analyzes route performance metrics for all configured routes.
     /// </summary>
-    /// <param name="example">The DynamicRouteConfigurationExample instance</param>
+    /// <param name="example">The <see cref="DynamicRouteConfigurationExample"/> instance</param>
     /// <param name="durationMinutes">Duration in minutes to analyze</param>
     /// <returns>Dictionary mapping route IDs to performance metrics</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="example"/> is <see langword="null"/></exception>
     public static async Task<Dictionary<int, RoutePerformanceMetrics>> AnalyzeRoutePerformanceAsync(
         this DynamicRouteConfigurationExample example,
         int durationMinutes = 5)
     {
+        ArgumentNullException.ThrowIfNull(example);
+
         var metrics = new Dictionary<int, RoutePerformanceMetrics>();
 
         var response = await example._httpClient.GetAsync(
@@ -151,17 +151,19 @@ public static class DynamicRouteConfigurationExampleExtensions
     /// <summary>
     /// Gets the gateway URL used by the example.
     /// </summary>
-    /// <param name="example">The DynamicRouteConfigurationExample instance</param>
+    /// <param name="example">The <see cref="DynamicRouteConfigurationExample"/> instance</param>
     /// <returns>Gateway URL string</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="example"/> is <see langword="null"/></exception>
     public static string GetGatewayUrl(this DynamicRouteConfigurationExample example)
     {
+        ArgumentNullException.ThrowIfNull(example);
         return example._gatewayUrl;
     }
 
     /// <summary>
     /// Creates a route with additional metadata for better tracking.
     /// </summary>
-    /// <param name="example">The DynamicRouteConfigurationExample instance</param>
+    /// <param name="example">The <see cref="DynamicRouteConfigurationExample"/> instance</param>
     /// <param name="pattern">Route pattern</param>
     /// <param name="targetServiceId">Target service ID</param>
     /// <param name="priority">Route priority</param>
@@ -170,6 +172,10 @@ public static class DynamicRouteConfigurationExampleExtensions
     /// <param name="description">Route description</param>
     /// <param name="tags">Optional tags for categorization</param>
     /// <returns>Task representing the asynchronous operation</returns>
+    /// <exception cref="ArgumentNullException">
+    /// Thrown if <paramref name="pattern"/> is <see langword="null"/> or
+    /// <paramref name="example"/> is <see langword="null"/>
+    /// </exception>
     public static async Task CreateRouteWithMetadataAsync(
         this DynamicRouteConfigurationExample example,
         string pattern,
@@ -180,6 +186,9 @@ public static class DynamicRouteConfigurationExampleExtensions
         string? description = null,
         string[]? tags = null)
     {
+        ArgumentNullException.ThrowIfNull(example);
+        ArgumentException.ThrowIfNullOrEmpty(pattern, nameof(pattern));
+
         var route = new
         {
             pattern,
@@ -201,11 +210,30 @@ public static class DynamicRouteConfigurationExampleExtensions
 /// <summary>
 /// Represents performance metrics for a route.
 /// </summary>
-public class RoutePerformanceMetrics
+public sealed class RoutePerformanceMetrics
 {
+    /// <summary>
+    /// Gets or sets the total number of requests processed by the route.
+    /// </summary>
     public int RequestCount { get; set; }
+
+    /// <summary>
+    /// Gets or sets the average latency in milliseconds.
+    /// </summary>
     public double AverageLatencyMs { get; set; }
+
+    /// <summary>
+    /// Gets or sets the error rate as a percentage (0.0 to 1.0).
+    /// </summary>
     public double ErrorRate { get; set; }
+
+    /// <summary>
+    /// Gets or sets the cache hit rate as a percentage (0.0 to 1.0).
+    /// </summary>
     public double CacheHitRate { get; set; }
+
+    /// <summary>
+    /// Gets or sets the maximum number of concurrent requests observed.
+    /// </summary>
     public int MaxConcurrentRequests { get; set; }
 }
