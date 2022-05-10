@@ -49,9 +49,12 @@ public static class AuthenticationAndSecurityExampleJsonExtensions
     /// Deserializes AuthenticationAndSecurityExample from JSON string.
     /// </summary>
     /// <param name="json">JSON string to deserialize</param>
-    /// <returns>Deserialized AuthenticationAndSecurityExample instance or null if JSON is invalid</returns>
+    /// <returns>Deserialized AuthenticationAndSecurityExample instance or null if JSON is empty or whitespace</returns>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="json"/> is null</exception>
     public static AuthenticationAndSecurityExample? FromJson(string json)
     {
+        ArgumentNullException.ThrowIfNull(json);
+
         if (string.IsNullOrWhiteSpace(json))
         {
             return null;
@@ -67,22 +70,5 @@ public static class AuthenticationAndSecurityExampleJsonExtensions
     /// <param name="value">Output parameter for the deserialized value</param>
     /// <returns>True if deserialization succeeded, false otherwise</returns>
     public static bool TryFromJson(string json, out AuthenticationAndSecurityExample? value)
-    {
-        value = null;
-
-        if (string.IsNullOrWhiteSpace(json))
-        {
-            return false;
-        }
-
-        try
-        {
-            value = JsonSerializer.Deserialize<AuthenticationAndSecurityExample>(json, _jsonOptions);
-            return true;
-        }
-        catch (JsonException)
-        {
-            return false;
-        }
-    }
+        => (value = string.IsNullOrWhiteSpace(json) ? null : JsonSerializer.Deserialize<AuthenticationAndSecurityExample>(json, _jsonOptions)) is not null;
 }
