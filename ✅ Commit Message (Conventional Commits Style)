@@ -1,0 +1,6 @@
+feat(events): add GatewayEventExtensions with service filtering and summary helpers
+
+- Introduce `MaybeServiceRelated()` to filter service-related events
+- Add `GetServiceNameIfAvailable()` for service name extraction
+- Provide `ToEventSummary()` for audit-friendly event descriptions
+- All methods include null guards and XML documentation
