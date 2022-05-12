@@ -6,16 +6,22 @@ using System.Threading.Tasks;
 namespace dotnet_grpc_gateway.Benchmarks
 {
     /// <summary>
-    /// Provides extension methods for <see cref="GatewayBenchmarks"/> that encapsulate common benchmark scenarios.
-    /// These methods simplify benchmark execution by combining setup and execution steps.
+    /// Provides extension methods for <see cref="GatewayBenchmarks"/> that combine benchmark
+    /// setup with the execution of specific benchmark scenarios. These helpers allow a
+    /// concise way to run a scenario without manually invoking <c>Setup</c> each time.
     /// </summary>
     public static class GatewayBenchmarksExtensions
     {
         /// <summary>
-        /// Executes a benchmark scenario that tests exact route matching with no parameters.
+        /// Executes a benchmark that measures the performance of finding an exact route match
+        /// when no route parameters are supplied.
         /// </summary>
-        /// <param name="benchmarks">The benchmark instance to execute against. Cannot be null.</param>
-        /// <exception cref="ArgumentNullException">Thrown when <paramref name="benchmarks"/> is null.</exception>
+        /// <param name="benchmarks">
+        /// The <see cref="GatewayBenchmarks"/> instance on which to run the scenario. Cannot be <c>null</c>.
+        /// </param>
+        /// <exception cref="ArgumentNullException">
+        /// Thrown when <paramref name="benchmarks"/> is <c>null</c>.
+        /// </exception>
         [Benchmark]
         public static void FindMatchingRoute_WithNoParams(this GatewayBenchmarks benchmarks)
         {
@@ -25,12 +31,19 @@ namespace dotnet_grpc_gateway.Benchmarks
         }
 
         /// <summary>
-        /// Executes a benchmark scenario that tests cache operations with large data sets.
-        /// This includes a cache miss, followed by setting data in cache, then a cache hit.
+        /// Executes a benchmark that measures cache operations with a large data set.
+        /// The sequence performed is: a cache miss, then storing the data in the cache,
+        /// followed by a cache hit.
         /// </summary>
-        /// <param name="benchmarks">The benchmark instance to execute against. Cannot be null.</param>
-        /// <returns>A task representing the asynchronous operation.</returns>
-        /// <exception cref="ArgumentNullException">Thrown when <paramref name="benchmarks"/> is null.</exception>
+        /// <param name="benchmarks">
+        /// The <see cref="GatewayBenchmarks"/> instance on which to run the scenario. Cannot be <c>null</c>.
+        /// </param>
+        /// <returns>
+        /// A <see cref="Task"/> that completes when the entire cache benchmark sequence has finished.
+        /// </returns>
+        /// <exception cref="ArgumentNullException">
+        /// Thrown when <paramref name="benchmarks"/> is <c>null</c>.
+        /// </exception>
         [Benchmark]
         public static async Task GetFromCache_WithLargeData(this GatewayBenchmarks benchmarks)
         {
@@ -42,10 +55,14 @@ namespace dotnet_grpc_gateway.Benchmarks
         }
 
         /// <summary>
-        /// Executes a benchmark scenario that tests load balancer behavior with an empty endpoint list.
+        /// Executes a benchmark that measures load‑balancer behavior when the endpoint list is empty.
         /// </summary>
-        /// <param name="benchmarks">The benchmark instance to execute against. Cannot be null.</param>
-        /// <exception cref="ArgumentNullException">Thrown when <paramref name="benchmarks"/> is null.</exception>
+        /// <param name="benchmarks">
+        /// The <see cref="GatewayBenchmarks"/> instance on which to run the scenario. Cannot be <c>null</c>.
+        /// </param>
+        /// <exception cref="ArgumentNullException">
+        /// Thrown when <paramref name="benchmarks"/> is <c>null</c>.
+        /// </exception>
         [Benchmark]
         public static void GetNextEndpoint_WithEmptyList(this GatewayBenchmarks benchmarks)
         {
@@ -55,11 +72,17 @@ namespace dotnet_grpc_gateway.Benchmarks
         }
 
         /// <summary>
-        /// Executes a benchmark scenario that tests service registration with valid data.
+        /// Executes a benchmark that measures the performance of registering a service with valid data.
         /// </summary>
-        /// <param name="benchmarks">The benchmark instance to execute against. Cannot be null.</param>
-        /// <returns>A task representing the asynchronous operation.</returns>
-        /// <exception cref="ArgumentNullException">Thrown when <paramref name="benchmarks"/> is null.</exception>
+        /// <param name="benchmarks">
+        /// The <see cref="GatewayBenchmarks"/> instance on which to run the scenario. Cannot be <c>null</c>.
+        /// </param>
+        /// <returns>
+        /// A <see cref="Task"/> that completes when the service registration benchmark has finished.
+        /// </returns>
+        /// <exception cref="ArgumentNullException">
+        /// Thrown when <paramref name="benchmarks"/> is <c>null</c>.
+        /// </exception>
         [Benchmark]
         public static async Task RegisterService_WithValidData(this GatewayBenchmarks benchmarks)
         {
