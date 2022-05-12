@@ -4,7 +4,8 @@ using System.Collections.Generic;
 namespace DotNetGrpcGateway.Exceptions
 {
     /// <summary>
-    /// Provides extension methods for <see cref="GatewayException"/> and its derived types.
+    /// Provides extension methods for <see cref="GatewayException"/> and its derived types to facilitate
+    /// inspection and handling of exception details.
     /// </summary>
     public static class GatewayExceptionExtensions
     {
