@@ -1,5 +1,6 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using DotNetGrpcGateway.Controllers; // Add this using directive
 
 /// <summary>
 /// Provides extension methods for serializing and deserializing <see cref="ReflectionController"/> instances to and from JSON.
