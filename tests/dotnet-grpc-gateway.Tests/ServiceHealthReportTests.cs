@@ -10,8 +10,17 @@ using Xunit;
 
 namespace DotNetGrpcGateway.Tests;
 
+/// <summary>
+/// Unit tests for the <see cref="ServiceHealthReport"/> class.
+/// Contains tests for validation, health check recording, diagnostic messages,
+/// and various health status calculations.
+/// </summary>
 public class ServiceHealthReportTests
 {
+    /// <summary>
+    /// Tests that a valid <see cref="ServiceHealthReport"/> with all required properties set
+    /// does not throw validation exceptions.
+    /// </summary>
     [Fact]
     public void Validate_ValidReport_DoesNotThrow()
     {
@@ -32,6 +41,9 @@ public class ServiceHealthReportTests
         act.Should().NotThrow();
     }
 
+    /// <summary>
+    /// Tests that validation throws <see cref="InvalidOperationException"/> when ServiceId is 0 or negative.
+    /// </summary>
     [Fact]
     public void Validate_InvalidServiceId_ThrowsInvalidOperationException()
     {
@@ -45,9 +57,12 @@ public class ServiceHealthReportTests
         var act = () => report.Validate();
 
         act.Should().Throw<InvalidOperationException>()
-            .WithMessage("*Service ID must be valid*");
+        .WithMessage("*Service ID must be valid*");
     }
 
+    /// <summary>
+    /// Tests that validation throws <see cref="InvalidOperationException"/> when success rate is negative.
+    /// </summary>
     [Fact]
     public void Validate_NegativeSuccessRate_ThrowsInvalidOperationException()
     {
@@ -62,9 +77,12 @@ public class ServiceHealthReportTests
         var act = () => report.Validate();
 
         act.Should().Throw<InvalidOperationException>()
-            .WithMessage("*Success rate must be between 0 and 100*");
+        .WithMessage("*Success rate must be between 0 and 100*");
     }
 
+    /// <summary>
+    /// Tests that validation throws <see cref="InvalidOperationException"/> when success rate exceeds 100.
+    /// </summary>
     [Fact]
     public void Validate_SuccessRateAbove100_ThrowsInvalidOperationException()
     {
@@ -79,9 +97,12 @@ public class ServiceHealthReportTests
         var act = () => report.Validate();
 
         act.Should().Throw<InvalidOperationException>()
-            .WithMessage("*Success rate must be between 0 and 100*");
+        .WithMessage("*Success rate must be between 0 and 100*");
     }
 
+    /// <summary>
+    /// Tests that validation throws <see cref="InvalidOperationException"/> when HealthStatus is null.
+    /// </summary>
     [Fact]
     public void Validate_NullHealthStatus_ThrowsInvalidOperationException()
     {
@@ -94,9 +115,12 @@ public class ServiceHealthReportTests
         var act = () => report.Validate();
 
         act.Should().Throw<InvalidOperationException>()
-            .WithMessage("*Health status is required*");
+        .WithMessage("*Health status is required*");
     }
 
+    /// <summary>
+    /// Tests that validation throws <see cref="InvalidOperationException"/> when ResponseTimeMs is negative.
+    /// </summary>
     [Fact]
     public void Validate_NegativeResponseTime_ThrowsInvalidOperationException()
     {
@@ -109,9 +133,13 @@ public class ServiceHealthReportTests
         var act = () => report.Validate();
 
         act.Should().Throw<InvalidOperationException>()
-            .WithMessage("*Response time cannot be negative*");
+        .WithMessage("*Response time cannot be negative*");
     }
 
+    /// <summary>
+    /// Tests that <see cref="ServiceHealthReport.RecordCheckResult"/> increments success counters correctly
+    /// when a health check succeeds, updates health status to "Healthy", and resets failure counters.
+    /// </summary>
     [Fact]
     public void RecordCheckResult_SuccessfulCheck_IncrementsSuccessCounters()
     {
@@ -137,6 +165,10 @@ public class ServiceHealthReportTests
         report.StackTrace.Should().BeNull();
     }
 
+    /// <summary>
+    /// Tests that <see cref="ServiceHealthReport.RecordCheckResult"/> increments failure counters correctly
+    /// when a health check fails, updates health status to "Degraded", and resets success counters.
+    /// </summary>
     [Fact]
     public void RecordCheckResult_FailedCheck_IncrementsFailureCounters()
     {
@@ -162,6 +194,10 @@ public class ServiceHealthReportTests
         report.ErrorMessage.Should().Be("Connection refused");
     }
 
+    /// <summary>
+    /// Tests that <see cref="ServiceHealthReport.RecordCheckResult"/> eventually marks a service as unhealthy
+    /// after multiple consecutive failures.
+    /// </summary>
     [Fact]
     public void RecordCheckResult_MultipleFailures_EventuallyMarksUnhealthy()
     {
@@ -177,6 +213,10 @@ public class ServiceHealthReportTests
         report.HealthStatus.Should().Be("Unhealthy");
     }
 
+    /// <summary>
+    /// Tests that <see cref="ServiceHealthReport.RecordCheckResult"/> correctly calculates success rate
+    /// after recording a successful health check.
+    /// </summary>
     [Fact]
     public void RecordCheckResult_CalculatesSuccessRateCorrectly()
     {
@@ -192,6 +232,9 @@ public class ServiceHealthReportTests
         report.HealthCheckSuccessRate.Should().BeApproximately(72.73, 0.01);
     }
 
+    /// <summary>
+    /// Tests that <see cref="ServiceHealthReport.AddDiagnosticMessage"/> adds messages to the diagnostic messages list.
+    /// </summary>
     [Fact]
     public void AddDiagnosticMessage_AddsMessageToList()
     {
@@ -208,6 +251,10 @@ public class ServiceHealthReportTests
         report.DiagnosticMessages[1].Should().Contain("Test message 2");
     }
 
+    /// <summary>
+    /// Tests that <see cref="ServiceHealthReport.AddDiagnosticMessage"/> maintains a maximum of 10 messages
+    /// by removing the oldest message when more than 10 are added.
+    /// </summary>
     [Fact]
     public void AddDiagnosticMessage_MoreThan10Messages_RemovesOldest()
     {
@@ -226,6 +273,10 @@ public class ServiceHealthReportTests
         report.DiagnosticMessages.Should().Contain("Message 14");
     }
 
+    /// <summary>
+    /// Tests that <see cref="ServiceHealthReport.ShouldBeMarkedUnhealthy"/> returns true
+    /// when FailedChecksInARow is 3 or more.
+    /// </summary>
     [Fact]
     public void ShouldBeMarkedUnhealthy_AfterThreeFailures_ReturnsTrue()
     {
@@ -238,6 +289,10 @@ public class ServiceHealthReportTests
         report.ShouldBeMarkedUnhealthy.Should().BeTrue();
     }
 
+    /// <summary>
+    /// Tests that <see cref="ServiceHealthReport.ShouldBeMarkedUnhealthy"/> returns false
+    /// when FailedChecksInARow is less than 3.
+    /// </summary>
     [Fact]
     public void ShouldBeMarkedUnhealthy_BeforeThreeFailures_ReturnsFalse()
     {
@@ -250,6 +305,10 @@ public class ServiceHealthReportTests
         report.ShouldBeMarkedUnhealthy.Should().BeFalse();
     }
 
+    /// <summary>
+    /// Tests that <see cref="ServiceHealthReport.GetAvailabilityPercentage"/> returns the correct availability percentage
+    /// based on TotalHealthChecks and SuccessfulHealthChecks.
+    /// </summary>
     [Fact]
     public void GetAvailabilityPercentage_ReturnsCorrectPercentage()
     {
@@ -263,6 +322,9 @@ public class ServiceHealthReportTests
         report.GetAvailabilityPercentage.Should().BeApproximately(75.0, 0.01);
     }
 
+    /// <summary>
+    /// Tests that the default constructor sets appropriate default values for all properties.
+    /// </summary>
     [Fact]
     public void DefaultConstructor_SetsDefaultValues()
     {
@@ -287,6 +349,10 @@ public class ServiceHealthReportTests
         report.DiagnosticMessages.Should().BeEmpty();
     }
 
+    /// <summary>
+    /// Tests that a valid <see cref="ServiceHealthReport"/> with all properties set correctly
+    /// does not throw validation exceptions.
+    /// </summary>
     [Fact]
     public void Validate_ValidReportWithAllProperties_SetCorrectly()
     {
