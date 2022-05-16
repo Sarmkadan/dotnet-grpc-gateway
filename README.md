@@ -165,6 +165,27 @@ The gateway is configured via `appsettings.json` (see `appsettings.example.json`
 
 ## API Reference
 
+### GatewayConfigurationExtensions
+
+The `GatewayConfigurationExtensions` class provides utility methods for working with `GatewayConfiguration` objects, offering convenient access to common configuration properties and operations. These extension methods simplify configuration management, endpoint generation, and monitoring setup.
+
+```csharp
+// Example usage:
+var config = GatewayConfigurationExtensions.CreateDefault("Production");
+var endpointUrl = config.GetEndpointUrl();
+var timeout = config.GetRequestTimeout();
+var clone = config.Clone();
+```
+
+- `string GetEndpointUrl(this GatewayConfiguration configuration)` - Gets the full endpoint URL for the gateway configuration
+- `bool EnableSsl(this GatewayConfiguration configuration)` - Determines whether SSL/TLS should be enabled
+- `long GetMaxRequestSizeBytes(this GatewayConfiguration configuration)` - Gets the maximum allowed request size in bytes
+- `TimeSpan GetRequestTimeout(this GatewayConfiguration configuration)` - Gets the request timeout as a TimeSpan
+- `GatewayConfiguration CreateDefault(string name)` - Creates a new GatewayConfiguration with default values
+- `GatewayConfiguration Clone(this GatewayConfiguration configuration)` - Creates a clone of the current GatewayConfiguration
+- `bool ListensOnIp(this GatewayConfiguration configuration, string ipAddress)` - Determines if the gateway listens on a specific IP
+- `string GetMonitoringConnectionString(this GatewayConfiguration configuration)` - Gets the formatted connection string for monitoring
+
 ### Service Management
 - `GET /api/gateway/services` - List all services
 - `POST /api/gateway/services` - Register new service
