@@ -1,44 +1,37 @@
 // ... (rest of the file remains the same)
 
-## GrpcServiceExtensions
+## RequestLogEntryExtensions
 
-The `GrpcServiceExtensions` class provides utility methods for working with `GrpcService` objects, offering convenient access to common service operations such as health checks, request tracking, and summarization. These extension methods simplify service management and monitoring.
+The `RequestLogEntryExtensions` class provides utility methods for analyzing HTTP request log entries, offering insights into cache usage, request success status, duration, size, and error details. These extensions simplify log analysis and reporting by encapsulating common operations into reusable methods.
 
 ### Example Usage:
 
 ```csharp
-var grpcService = new GrpcService
+var entry = new RequestLogEntry
 {
-    Id = 1,
-    Name = "ExampleService",
-    ServiceFullName = "example.ExampleService",
-    Host = "localhost",
-    Port = 5001,
-    UseTls = false,
-    HealthCheckIntervalSeconds = 30
+    CacheHit = true,
+    IsSuccessful = false,
+    DurationMs = 1500,
+    RequestSizeBytes = 1024,
+    ResponseSizeBytes = 2048,
+    HttpStatusCode = 404,
+    Timestamp = DateTime.UtcNow,
+    Method = "GET",
+    Path = "/api/data",
+    UpstreamAddress = "192.168.1.1",
+    ClientIp = "192.168.1.2",
+    ErrorMessage = "Resource not found"
 };
 
-// Check if a health check is due
-if (grpcService.IsHealthCheckDue())
-{
-    Console.WriteLine("Health check is due.");
-}
-
-// Get the health check URI
-var healthCheckUri = grpcService.GetHealthCheckUri();
-Console.WriteLine($"Health check URI: {healthCheckUri}");
-
-// Simulate a successful request
-grpcService.RecordSuccessfulRequest(50);
-
-// Simulate a failed request
-grpcService.RecordFailedRequest("Test error message");
-
-// Get a summary of the service
-var summary = grpcService.GetSummary();
-Console.WriteLine(summary);
+Console.WriteLine(entry.GetSummary()); // [2024-03-20 12:34:56] ✗ GET /api/data - 404 (4xx) - 1.5s - 3.0KB
+Console.WriteLine($"Cache Hit: {entry.WasCacheHit()}"); // True
+Console.WriteLine($"Duration: {entry.FormattedDuration()}"); // 1.5s
+Console.WriteLine($"Total Size: {entry.FormattedSize()}"); // 3.0KB
+Console.WriteLine($"Status Category: {entry.StatusCodeCategory()}"); // 4xx
+Console.WriteLine($"Is Client Error: {entry.IsClientError()}"); // True
+Console.WriteLine($"Error Details: {entry.GetErrorDetails()}"); // Resource not found
 ```
 
-These methods enable easy integration of gRPC services with the gateway's monitoring and logging capabilities, making it simpler to manage and troubleshoot services.
+These methods enable consistent analysis of request logs for performance monitoring, debugging, and reporting across the gateway's infrastructure.
 
 // ... (rest of the file remains the same)
