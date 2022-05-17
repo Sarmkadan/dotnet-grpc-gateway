@@ -12,6 +12,9 @@ using Xunit;
 
 namespace DotNetGrpcGateway.Tests;
 
+/// <summary>
+/// Tests for the <see cref="CircuitBreaker"/> class.
+/// </summary>
 public class CircuitBreakerTests
 {
     private readonly Mock<ILogger<CircuitBreaker>> _logger = new();
@@ -27,6 +30,9 @@ public class CircuitBreakerTests
             },
             _logger.Object);
 
+    /// <summary>
+    /// Verifies that the initial state of the circuit breaker is closed.
+    /// </summary>
     [Fact]
     public void InitialState_IsClosed()
     {
@@ -36,6 +42,9 @@ public class CircuitBreakerTests
         sut.AllowRequest().Should().BeTrue();
     }
 
+    /// <summary>
+    /// Ensures that recording failures below the threshold keeps the circuit closed and allows requests.
+    /// </summary>
     [Fact]
     public void RecordFailure_BelowThreshold_RemainsClosedAndAllowsRequests()
     {
@@ -47,6 +56,9 @@ public class CircuitBreakerTests
         sut.AllowRequest().Should().BeTrue();
     }
 
+    /// <summary>
+    /// Confirms that recording failures up to the threshold opens the circuit.
+    /// </summary>
     [Fact]
     public void RecordFailure_ReachesThreshold_OpensCircuit()
     {
@@ -59,6 +71,9 @@ public class CircuitBreakerTests
         sut.AllowRequest().Should().BeFalse();
     }
 
+    /// <summary>
+    /// Tests that a half‑open circuit closes after the configured number of successful requests.
+    /// </summary>
     [Fact]
     public void RecordSuccess_WhenHalfOpen_ClosesCircuitAfterThreshold()
     {
@@ -74,6 +89,9 @@ public class CircuitBreakerTests
         sut.State.Should().Be(CircuitBreakerState.Closed);
     }
 
+    /// <summary>
+    /// Verifies that a failure during a half‑open state re‑opens the circuit.
+    /// </summary>
     [Fact]
     public void RecordFailure_WhenHalfOpen_ReOpensCircuit()
     {
@@ -86,6 +104,9 @@ public class CircuitBreakerTests
         sut.State.Should().Be(CircuitBreakerState.Open);
     }
 
+    /// <summary>
+    /// Ensures that resetting an open circuit closes it and clears counters.
+    /// </summary>
     [Fact]
     public void Reset_OpenCircuit_ClosesAndClearsCounters()
     {
