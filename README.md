@@ -1,28 +1,29 @@
 // ... (rest of the file remains the same)
 
-## GatewayRouteExtensions
+## RouteChannelOptionsExtensions
 
-The `GatewayRouteExtensions` class provides utility methods for working with `GatewayRoute` instances, offering functionality for determining whether a route should handle a request, getting the effective rate limit and cache duration, and generating a diagnostic string.
+The `RouteChannelOptionsExtensions` class provides utility methods for configuring gRPC channel options. It allows you to set call timeout, maximum receive and send message sizes, add headers, and configure TLS settings.
 
 ### Example Usage:
 
 ```csharp
-var route = new GatewayRoute
+var options = new RouteChannelOptions();
+
+options
+    .WithCallTimeoutMs(5000)
+    .WithMaxReceiveMessageSize(1024 * 1024)
+    .WithMaxSendMessageSize(1024 * 1024)
+    .WithHeader("Authorization", "Bearer token")
+    .WithTlsTargetName("example.com")
+    .WithSkipTlsVerification();
+
+var otherOptions = new RouteChannelOptions
 {
-    Id = "my-route",
-    Pattern = "/api/data",
-    TargetServiceId = "my-service",
-    RateLimitPerMinute = 500,
-    CacheDurationSeconds = 30,
-    EnableCaching = true,
-    EnableCompression = false
+    CallTimeout = TimeSpan.FromSeconds(10),
+    MaxReceiveMessageSize = 2048,
 };
 
-Console.WriteLine(route.ShouldHandleRequest("my-service", "GetData")); // True
-Console.WriteLine(route.GetEffectiveRateLimit()); // 500
-Console.WriteLine(route.GetEffectiveCacheDuration()); // 30
-Console.WriteLine(route.ToDiagnosticString()); // ... diagnostic string ...
-Console.WriteLine(route.RequiresAuth()); // False
-```
+options.UpdateFrom(otherOptions);
+``` 
 
 // ... (rest of the file remains the same)
