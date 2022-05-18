@@ -26,4 +26,3 @@ Console.WriteLine(route.RequiresAuth()); // False
 ```
 
 // ... (rest of the file remains the same)
-```
