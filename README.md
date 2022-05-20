@@ -102,11 +102,37 @@ The `GatewayBenchmarks` class includes benchmarks categorized into the following
 
 Each benchmark provides insights into the performance characteristics of the gRPC gateway under various scenarios.
 
-## StringUtilityTestsExtensions
+## RequestMetricTestsExtensions
 
-The `StringUtilityTestsExtensions` class provides extension methods for string manipulation and validation commonly used in unit tests. These methods simplify common string operations like repetition, character validation, line counting, and whitespace removal, making test code more readable and maintainable.
+The `RequestMetricTestsExtensions` class provides extension methods for creating test instances of `RequestMetric` for unit testing scenarios. These methods simplify the creation of various metric types including valid metrics, error scenarios, slow requests, retry tracking, and performance sequences, making test code more readable and maintainable.
 
 ### Example Usage:
+
+```csharp
+using DotNetGrpcGateway.Tests;
+using DotNetGrpcGateway.Domain;
+
+// Create a valid metric with default values
+var validMetric = RequestMetricTestsExtensions.CreateValidMetric(null, "UserService", "GetUserById", "192.168.1.100");
+
+// Create a collection of metrics with varying durations for performance testing
+var durationSequence = RequestMetricTestsExtensions.CreateDurationSequence(null, 5, 0, 100).ToList();
+
+// Create a slow request metric for SLA testing
+var slowMetric = RequestMetricTestsExtensions.CreateSlowRequest(null, 1500);
+
+// Create an error metric for testing error handling
+var errorMetric = RequestMetricTestsExtensions.CreateErrorMetric(null, "Database connection failed");
+
+// Create a metric with retry tracking for circuit breaker testing
+var retryMetric = RequestMetricTestsExtensions.CreateRetryMetric(null, 3);
+
+// Create a metric with negative duration for validation testing
+var negativeDurationMetric = RequestMetricTestsExtensions.CreateNegativeDurationMetric(null, -50);
+
+// Create an invalid metric with empty service name for validation testing
+var invalidServiceMetric = RequestMetricTestsExtensions.CreateInvalidServiceNameMetric(null);
+```
 
 ```csharp
 using DotNetGrpcGateway.Tests;
