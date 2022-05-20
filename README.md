@@ -156,3 +156,47 @@ public class RepositoryDemo
 ```
 
 This example demonstrates typical usage of the repository interface, including creation, retrieval, update, deletion, and counting of gateway configurations. The repository can be injected via dependency injection in an ASP.NET Core application.
+
+## ICircuitBreaker
+
+The `ICircuitBreaker` interface defines a contract for a circuit breaker that prevents cascading failures by rejecting calls when a service is known to be unhealthy. It provides methods for recording successes and failures, allowing or rejecting requests, and resetting the circuit.
+
+### Example Usage:
+
+```csharp
+public class Service
+{
+    private readonly ICircuitBreaker _circuitBreaker;
+
+    public Service(ICircuitBreaker circuitBreaker)
+    {
+        _circuitBreaker = circuitBreaker;
+    }
+
+    public async Task CallServiceAsync()
+    {
+        if (_circuitBreaker.AllowRequest())
+        {
+            try
+            {
+                // Call the service
+                await CallService();
+                _circuitBreaker.RecordSuccess();
+            }
+            catch (Exception ex)
+            {
+                _circuitBreaker.RecordFailure();
+                throw;
+            }
+        }
+        else
+        {
+            // Reject the request
+            throw new CircuitBreakerException("Service is currently unavailable");
+        }
+    }
+}
+```
+
+This example demonstrates how to use the `ICircuitBreaker` interface to prevent cascading failures by rejecting calls when a service is known to be unhealthy. The circuit breaker can be injected via dependency injection in an ASP.NET Core application.
+```
