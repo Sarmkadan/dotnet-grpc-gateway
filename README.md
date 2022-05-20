@@ -101,3 +101,58 @@ The `GatewayBenchmarks` class includes benchmarks categorized into the following
 * Throughput
 
 Each benchmark provides insights into the performance characteristics of the gRPC gateway under various scenarios.
+
+## IGatewayRepository
+
+The `IGatewayRepository` interface defines a contract for persisting and retrieving `GatewayConfiguration` entities. It supports CRUD operations, querying all or active configurations, and counting the total number of configurations. The concrete implementation, `GatewayRepository`, uses an in-memory store but can be swapped for a database‑backed implementation.
+
+### Example Usage
+
+```csharp
+using DotNetGrpcGateway.Domain;
+using DotNetGrpcGateway.Infrastructure;
+using System.Collections.Generic;
+using System.Threading.Tasks;
+
+public class RepositoryDemo
+{
+    private readonly IGatewayRepository _repo;
+
+    public RepositoryDemo(IGatewayRepository repo)
+    {
+        _repo = repo;
+    }
+
+    public async Task DemoAsync()
+    {
+        // Create a new configuration
+        var config = new GatewayConfiguration
+        {
+            Name = "MyGateway",
+            IsActive = true
+        };
+        var created = await _repo.CreateAsync(config);
+
+        // Retrieve by ID
+        var byId = await _repo.GetByIdAsync(created.Id);
+
+        // Get all configurations
+        List<GatewayConfiguration> all = await _repo.GetAllAsync();
+
+        // Get active configurations
+        List<GatewayConfiguration> active = await _repo.GetActiveAsync();
+
+        // Update configuration
+        byId.IsActive = false;
+        await _repo.UpdateAsync(byId);
+
+        // Count configurations
+        int count = await _repo.CountAsync();
+
+        // Delete configuration
+        await _repo.DeleteAsync(byId.Id);
+    }
+}
+```
+
+This example demonstrates typical usage of the repository interface, including creation, retrieval, update, deletion, and counting of gateway configurations. The repository can be injected via dependency injection in an ASP.NET Core application.
