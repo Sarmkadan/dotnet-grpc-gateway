@@ -28,23 +28,23 @@ var controller = new MetricsController();
 
 // Get performance metrics with latency histogram
 var performanceMetrics = await controller.GetPerformanceMetricsWithDetails(
-    includeHistogram: true,
-    histogramBucketSize: 50);
+  includeHistogram: true,
+  histogramBucketSize: 50);
 
 // Get endpoint-specific performance metrics with percentiles
 var endpointMetrics = await controller.GetEndpointPerformanceMetrics(
-    endpointName: "/api/users",
-    includePercentiles: true);
+  endpointName: "/api/users",
+  includePercentiles: true);
 
 // Get error metrics from the last 14 days with top 20 error codes
 var errorMetrics = await controller.GetErrorMetricsWithContext(
-    daysBack: 14,
-    topN: 20);
+  daysBack: 14,
+  topN: 20);
 
 // Get request metrics with health indicators from the last 30 days
 var requestMetrics = await controller.GetRequestMetricsWithHealth(
-    daysBack: 30,
-    healthyThreshold: 1500);
+  daysBack: 30,
+  healthyThreshold: 1500);
 ```
 
 ### LatencyBucket Properties
@@ -53,7 +53,7 @@ The `LatencyBucket` class returned by `GetPerformanceMetricsWithDetails` contain
 
 - **Range**: `string` - The label describing the bucket range (e.g., "0-50ms", "50-100ms")
 - **BucketStart**: `int` - The start value of the bucket in milliseconds
-- **BucketEnd**: `int` - The end value of the bucket in milliseconds  
+- **BucketEnd**: `int` - The end value of the bucket in milliseconds
 - **Count**: `int` - The number of requests in this bucket
 - **Percentage**: `double` - The percentage of total requests in this bucket
 
@@ -66,21 +66,21 @@ The `GatewayBenchmarks` class provides a suite of benchmarks for testing the per
 ```csharp
 public class Program
 {
-    public static void Main(string[] args)
-    {
-        var benchmarks = new GatewayBenchmarks();
-        benchmarks.Setup();
+  public static void Main(string[] args)
+  {
+    var benchmarks = new GatewayBenchmarks();
+    benchmarks.Setup();
 
-        // Run individual benchmarks
-        benchmarks.FindMatchingRoute_ExactMatch();
-        benchmarks.GetNextEndpoint();
-        benchmarks.RegisterEndpoint();
+    // Run individual benchmarks
+    benchmarks.FindMatchingRoute_ExactMatch();
+    benchmarks.GetNextEndpoint();
+    benchmarks.RegisterEndpoint();
 
-        // Run async benchmarks
-        benchmarks.GetFromCache_Miss().Wait();
-        benchmarks.GetAllRoutes().Wait();
-        benchmarks.RegisterService().Wait();
-    }
+    // Run async benchmarks
+    benchmarks.GetFromCache_Miss().Wait();
+    benchmarks.GetAllRoutes().Wait();
+    benchmarks.RegisterService().Wait();
+  }
 }
 ```
 
@@ -102,6 +102,34 @@ The `GatewayBenchmarks` class includes benchmarks categorized into the following
 
 Each benchmark provides insights into the performance characteristics of the gRPC gateway under various scenarios.
 
+## StringUtilityTestsExtensions
+
+The `StringUtilityTestsExtensions` class provides extension methods for string manipulation and validation commonly used in unit tests. These methods simplify common string operations like repetition, character validation, line counting, and whitespace removal, making test code more readable and maintainable.
+
+### Example Usage:
+
+```csharp
+using DotNetGrpcGateway.Tests;
+
+// Repeat a character multiple times
+string repeatedChars = 'x'.Repeat(5); // "xxxxx"
+
+
+// Check if a string contains only alphabetic characters
+bool isAlphabetic = "HelloWorld".IsAlphabetic(); // true
+bool isNotAlphabetic = "Hello123".IsAlphabetic(); // false
+
+// Check if a string contains only numeric characters
+bool isNumeric = "12345".IsNumeric(); // true
+bool isNotNumeric = "123abc".IsNumeric(); // false
+
+// Count lines in a multi-line string
+int lineCount = "Line1\nLine2\nLine3".CountLines(); // 3
+
+// Remove all whitespace from a string
+string noWhitespace = "  Hello   World  ".RemoveWhitespace(); // "HelloWorld"
+```
+
 ## IGatewayRepository
 
 The `IGatewayRepository` interface defines a contract for persisting and retrieving `GatewayConfiguration` entities. It supports CRUD operations, querying all or active configurations, and counting the total number of configurations. The concrete implementation, `GatewayRepository`, uses an in-memory store but can be swapped for a database‑backed implementation.
@@ -116,42 +144,42 @@ using System.Threading.Tasks;
 
 public class RepositoryDemo
 {
-    private readonly IGatewayRepository _repo;
+  private readonly IGatewayRepository _repo;
 
-    public RepositoryDemo(IGatewayRepository repo)
+  public RepositoryDemo(IGatewayRepository repo)
+  {
+    _repo = repo;
+  }
+
+  public async Task DemoAsync()
+  {
+    // Create a new configuration
+    var config = new GatewayConfiguration
     {
-        _repo = repo;
-    }
+      Name = "MyGateway",
+      IsActive = true
+    };
+    var created = await _repo.CreateAsync(config);
 
-    public async Task DemoAsync()
-    {
-        // Create a new configuration
-        var config = new GatewayConfiguration
-        {
-            Name = "MyGateway",
-            IsActive = true
-        };
-        var created = await _repo.CreateAsync(config);
+    // Retrieve by ID
+    var byId = await _repo.GetByIdAsync(created.Id);
 
-        // Retrieve by ID
-        var byId = await _repo.GetByIdAsync(created.Id);
+    // Get all configurations
+    List<GatewayConfiguration> all = await _repo.GetAllAsync();
 
-        // Get all configurations
-        List<GatewayConfiguration> all = await _repo.GetAllAsync();
+    // Get active configurations
+    List<GatewayConfiguration> active = await _repo.GetActiveAsync();
 
-        // Get active configurations
-        List<GatewayConfiguration> active = await _repo.GetActiveAsync();
+    // Update configuration
+    byId.IsActive = false;
+    await _repo.UpdateAsync(byId);
 
-        // Update configuration
-        byId.IsActive = false;
-        await _repo.UpdateAsync(byId);
+    // Count configurations
+    int count = await _repo.CountAsync();
 
-        // Count configurations
-        int count = await _repo.CountAsync();
-
-        // Delete configuration
-        await _repo.DeleteAsync(byId.Id);
-    }
+    // Delete configuration
+    await _repo.DeleteAsync(byId.Id);
+  }
 }
 ```
 
@@ -166,37 +194,36 @@ The `ICircuitBreaker` interface defines a contract for a circuit breaker that pr
 ```csharp
 public class Service
 {
-    private readonly ICircuitBreaker _circuitBreaker;
+  private readonly ICircuitBreaker _circuitBreaker;
 
-    public Service(ICircuitBreaker circuitBreaker)
-    {
-        _circuitBreaker = circuitBreaker;
-    }
+  public Service(ICircuitBreaker circuitBreaker)
+  {
+    _circuitBreaker = circuitBreaker;
+  }
 
-    public async Task CallServiceAsync()
+  public async Task CallServiceAsync()
+  {
+    if (_circuitBreaker.AllowRequest())
     {
-        if (_circuitBreaker.AllowRequest())
-        {
-            try
-            {
-                // Call the service
-                await CallService();
-                _circuitBreaker.RecordSuccess();
-            }
-            catch (Exception ex)
-            {
-                _circuitBreaker.RecordFailure();
-                throw;
-            }
-        }
-        else
-        {
-            // Reject the request
-            throw new CircuitBreakerException("Service is currently unavailable");
-        }
+      try
+      {
+        // Call the service
+        await CallService();
+        _circuitBreaker.RecordSuccess();
+      }
+      catch (Exception ex)
+      {
+        _circuitBreaker.RecordFailure();
+        throw;
+      }
     }
+    else
+    {
+      // Reject the request
+      throw new CircuitBreakerException("Service is currently unavailable");
+    }
+  }
 }
 ```
 
 This example demonstrates how to use the `ICircuitBreaker` interface to prevent cascading failures by rejecting calls when a service is known to be unhealthy. The circuit breaker can be injected via dependency injection in an ASP.NET Core application.
-```
