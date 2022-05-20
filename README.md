@@ -56,3 +56,48 @@ The `LatencyBucket` class returned by `GetPerformanceMetricsWithDetails` contain
 - **BucketEnd**: `int` - The end value of the bucket in milliseconds  
 - **Count**: `int` - The number of requests in this bucket
 - **Percentage**: `double` - The percentage of total requests in this bucket
+
+## GatewayBenchmarks
+
+The `GatewayBenchmarks` class provides a suite of benchmarks for testing the performance and throughput of the gRPC gateway services. It measures various operations including route resolution, load balancing, caching, service management, and performance monitoring.
+
+### Example Usage:
+
+```csharp
+public class Program
+{
+    public static void Main(string[] args)
+    {
+        var benchmarks = new GatewayBenchmarks();
+        benchmarks.Setup();
+
+        // Run individual benchmarks
+        benchmarks.FindMatchingRoute_ExactMatch();
+        benchmarks.GetNextEndpoint();
+        benchmarks.RegisterEndpoint();
+
+        // Run async benchmarks
+        benchmarks.GetFromCache_Miss().Wait();
+        benchmarks.GetAllRoutes().Wait();
+        benchmarks.RegisterService().Wait();
+    }
+}
+```
+
+This example demonstrates how to create an instance of `GatewayBenchmarks`, perform setup, and run individual benchmarks. You can execute the benchmarks using the `BenchmarkRunner` class provided by BenchmarkDotNet.
+
+### Benchmark Categories
+
+The `GatewayBenchmarks` class includes benchmarks categorized into the following areas:
+
+* RouteResolution
+* LoadBalancing
+* Caching
+* PerformanceMonitor
+* RouteManagement
+* ServiceManagement
+* ServiceDiscovery
+* GrpcClient
+* Throughput
+
+Each benchmark provides insights into the performance characteristics of the gRPC gateway under various scenarios.
