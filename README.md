@@ -40,9 +40,8 @@ public class Program
     Console.WriteLine($"Service {serviceHealth.ServiceId} Health: {(serviceHealth.IsHealthy ? "Healthy" : "Unhealthy")}");
   }
 }
-```
 
-The types `HealthStatus` and `ServiceHealth` used in the example have the following properties:
+// The types `HealthStatus` and `ServiceHealth` used in the example have the following properties:
 
 * `HealthStatus`:
   - `Status`
@@ -50,6 +49,7 @@ The types `HealthStatus` and `ServiceHealth` used in the example have the follow
   - `RequestsProcessed`
   - `ActiveConnections`
   - `CacheHitRate`
+
 * `ServiceHealth`:
   - `ServiceId`
   - `ServiceName`
@@ -58,4 +58,3 @@ The types `HealthStatus` and `ServiceHealth` used in the example have the follow
   - `LastCheckAt`
   - `ConsecutiveFailures`
   - `FailureThreshold`
-```
