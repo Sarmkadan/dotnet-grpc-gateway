@@ -58,3 +58,72 @@ public class Program
   - `LastCheckAt`
   - `ConsecutiveFailures`
   - `FailureThreshold`
+```
+
+## DynamicRouteConfigurationExampleExtensions
+
+`DynamicRouteConfigurationExampleExtensions` adds a set of helper methods to the `DynamicRouteConfigurationExample` class for bulk route management and performance analysis. It lets you create, update, and delete multiple routes in one call, retrieve the gateway URL, create a route with rich metadata, and fetch per‑route performance metrics encapsulated in `RoutePerformanceMetrics`.
+
+### Example Usage
+
+```csharp
+using System;
+using System.Collections.Generic;
+using System.Threading.Tasks;
+using DotNetGrpcGateway.Examples;
+
+public class Program
+{
+    public static async Task Main(string[] args)
+    {
+        var example = new DynamicRouteConfigurationExample();
+
+        // Create multiple routes
+        var routes = new[]
+        {
+            new { pattern = "/api/v1/users", targetServiceId = 1 },
+            new { pattern = "/api/v1/orders", targetServiceId = 2 }
+        };
+        await example.CreateMultipleRoutesAsync(routes);
+
+        // Update multiple routes
+        var updates = new[]
+        {
+            new { pattern = "/api/v1/users", targetServiceId = 1, priority = 10 },
+            new { pattern = "/api/v1/orders", targetServiceId = 2, priority = 20 }
+        };
+        await example.UpdateMultipleRoutesAsync(updates);
+
+        // Delete routes by IDs
+        await example.DeleteMultipleRoutesAsync(new[] { 3, 4 });
+
+        // Create a route with additional metadata
+        await example.CreateRouteWithMetadataAsync(
+            pattern: "/api/v1/products",
+            targetServiceId: 3,
+            priority: 5,
+            rateLimitPerMinute: 500,
+            enableCaching: true,
+            description: "Products endpoint",
+            tags: new[] { "product", "v1" });
+
+        // Analyze performance of all routes
+        var metrics = await example.AnalyzeRoutePerformanceAsync(durationMinutes: 10);
+        foreach (var kvp in metrics)
+        {
+            var m = kvp.Value;
+            Console.WriteLine(
+                $"Route {kvp.Key}: " +
+                $"Requests={m.RequestCount}, " +
+                $"AvgLatency={m.AverageLatencyMs}ms, " +
+                $"ErrorRate={m.ErrorRate:P}, " +
+                $"CacheHitRate={m.CacheHitRate:P}, " +
+                $"MaxConcurrent={m.MaxConcurrentRequests}");
+        }
+
+        // Retrieve the gateway URL
+        var gatewayUrl = example.GetGatewayUrl();
+        Console.WriteLine($"Gateway URL: {gatewayUrl}");
+    }
+}
+```
