@@ -1,8 +1,8 @@
 // ... (rest of the file remains the same)
 
-## ErrorHandlingMiddleware
+## IRouteRepository
 
-The `ErrorHandlingMiddleware` class is responsible for handling and logging errors with structured responses. It catches exceptions thrown by the application and returns a JSON error response with details about the error.
+The `IRouteRepository` interface defines a contract for managing GatewayRoute entities. It provides methods for retrieving, creating, updating, and deleting routes, as well as filtering routes by service ID or pattern.
 
 ### Example Usage:
 
@@ -11,26 +11,30 @@ public class Program
 {
   public static async Task Main(string[] args)
   {
-    var middleware = new ErrorHandlingMiddleware(next: null, logger: null);
+    var repository = new RouteRepository(new InMemoryConnectionStringProvider());
 
-    var context = new HttpContext();
-    context.TraceIdentifier = "1234567890";
-
-    try
+    var route = await repository.CreateAsync(new GatewayRoute
     {
-      await middleware.InvokeAsync(context);
-    }
-    catch (Exception ex)
-    {
-      await middleware.HandleExceptionAsync(context, ex, context.TraceIdentifier);
-    }
+      Pattern = "/api/users",
+      TargetServiceId = 1,
+      IsActive = true,
+      Priority = 1
+    });
 
-    Console.WriteLine($"RequestId: {context.TraceIdentifier}");
-    Console.WriteLine($"Timestamp: {middleware.Timestamp}");
-    Console.WriteLine($"Message: {middleware.Message}");
-    Console.WriteLine($"ErrorCode: {middleware.ErrorCode}");
-    Console.WriteLine($"Details: {JsonSerializer.Serialize(middleware.Details)}");
+    var activeRoutes = await repository.GetActiveAsync();
+    Console.WriteLine($"Active routes: {activeRoutes.Count}");
+
+    var routeById = await repository.GetByIdAsync(route.Id);
+    Console.WriteLine($"Route by ID: {routeById.Pattern}");
+
+    var routesByServiceId = await repository.GetByServiceIdAsync(1);
+    Console.WriteLine($"Routes by service ID: {routesByServiceId.Count}");
+
+    var routesByPattern = await repository.GetByPatternAsync("/api/users");
+    Console.WriteLine($"Routes by pattern: {routesByPattern.Count}");
+
+    await repository.UpdateAsync(route);
+    await repository.DeleteAsync(route.Id);
   }
 }
-```
 ```
