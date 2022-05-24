@@ -134,6 +134,63 @@ public class Program
 }
 ```
 
+## IServiceRegistry
+
+The `IServiceRegistry` interface defines a contract for managing gRPC services within the gateway. It provides methods for registering, retrieving, updating, and unregistering services, as well as filtering services by various criteria. The service registry acts as the central repository for all available gRPC services that the gateway can route requests to.
+
+### Example Usage:
+
+```csharp
+public class Program
+{
+    public static async Task Main(string[] args)
+    {
+        // Create service registry (typically injected via DI)
+        var serviceRegistry = new ServiceRegistry(new InMemoryConnectionStringProvider());
+
+        // Register a new service
+        var userService = await serviceRegistry.RegisterAsync(new GrpcService
+        {
+            Name = "user-service",
+            ServiceFullName = "UserService.UserService",
+            Host = "user-service.example.com",
+            Endpoint = "https://user-service.example.com:5001",
+            HealthCheckEndpoint = "/health",
+            IsActive = true,
+            Priority = 1
+        });
+
+        Console.WriteLine($"Registered service: {userService.Name} with ID: {userService.Id}");
+
+        // Retrieve services by different criteria
+        var allServices = await serviceRegistry.GetAllAsync();
+        Console.WriteLine($"Total services: {allServices.Count}");
+
+        var activeServices = await serviceRegistry.GetActiveAsync();
+        Console.WriteLine($"Active services: {activeServices.Count}");
+
+        var serviceById = await serviceRegistry.GetByIdAsync(userService.Id);
+        Console.WriteLine($"Service by ID: {serviceById.Name}");
+
+        var serviceByName = await serviceRegistry.GetByNameAsync("user-service");
+        Console.WriteLine($"Service by name: {serviceByName?.Name}");
+
+        var serviceByFullName = await serviceRegistry.GetByFullNameAsync("UserService.UserService");
+        Console.WriteLine($"Service by full name: {serviceByFullName?.Name}");
+
+        var servicesByHost = await serviceRegistry.FindByHostAsync("user-service.example.com");
+        Console.WriteLine($"Services by host: {servicesByHost.Count}");
+
+        // Update service
+        userService.IsActive = false;
+        await serviceRegistry.UpdateAsync(userService);
+
+        // Unregister service
+        await serviceRegistry.UnregisterAsync(userService.Id);
+    }
+}
+```
+
 ## IUnitOfWork
 
 The `IUnitOfWork` interface defines a contract for transaction management in the gRPC gateway. It provides methods for executing operations within transactions, committing or rolling back changes, and accessing gateway repositories through a unified interface. The Unit of Work pattern ensures that all operations either complete successfully together or fail together, maintaining data consistency.
