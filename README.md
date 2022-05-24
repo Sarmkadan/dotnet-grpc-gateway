@@ -203,3 +203,60 @@ public class Program
   }
 }
 ```
+
+## IMetricsRepository
+
+The `IMetricsRepository` interface provides methods for recording, retrieving, and analyzing request metrics and gateway statistics. It enables tracking of request durations, service performance, and overall gateway health through various query methods that support monitoring, analytics, and slow request detection.
+
+### Example Usage:
+
+```csharp
+public class Program
+{
+  public static async Task Main(string[] args)
+  {
+    // Create metrics repository (typically injected via DI)
+    var metricsRepository = new MetricsRepository(new InMemoryConnectionStringProvider());
+
+    // Record a new request metric
+    var metric = await metricsRepository.RecordRequestAsync(new RequestMetric
+    {
+      RouteId = 1,
+      ServiceName = "user-service",
+      Path = "/api/users/get",
+      DurationMs = 45.2,
+      StatusCode = 200,
+      RequestSizeBytes = 1024,
+      ResponseSizeBytes = 2048,
+      Timestamp = DateTime.UtcNow
+    });
+
+    Console.WriteLine($"Recorded metric ID: {metric.Id}");
+
+    // Retrieve metrics for a specific time range
+    var recentMetrics = await metricsRepository.GetMetricsAsync(
+      DateTime.UtcNow.AddHours(-1),
+      DateTime.UtcNow
+    );
+    Console.WriteLine($"Recent metrics count: {recentMetrics.Count}");
+
+    // Get metrics for a specific service
+    var serviceMetrics = await metricsRepository.GetServiceMetricsAsync(1, take: 50);
+    Console.WriteLine($"Service metrics count: {serviceMetrics.Count}");
+
+    // Get gateway statistics for a specific date
+    var stats = await metricsRepository.GetStatisticsAsync(DateTime.UtcNow.Date);
+    Console.WriteLine($"Total requests: {stats.TotalRequests}");
+    Console.WriteLine($"Average duration: {stats.AverageDurationMs:F2} ms");
+
+    // Update gateway statistics
+    stats.TotalRequests = 1000;
+    stats.AverageDurationMs = 35.5;
+    await metricsRepository.UpdateStatisticsAsync(stats);
+
+    // Get slow requests (threshold in milliseconds)
+    var slowRequests = await metricsRepository.GetSlowRequestsAsync(thresholdMs: 1000);
+    Console.WriteLine($"Slow requests count: {slowRequests.Count}");
+  }
+}
+```
