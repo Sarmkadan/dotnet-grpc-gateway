@@ -317,3 +317,73 @@ public class Program
   }
 }
 ```
+
+## RequestContext
+
+The `RequestContext` class provides a request-scoped context that flows through the entire gRPC gateway pipeline. It captures essential request metadata including correlation IDs, client information, authentication details, and custom properties for logging, tracing, and monitoring across distributed systems.
+
+### Example Usage:
+
+```csharp
+public class Program
+{
+  public static void Main(string[] args)
+  {
+    // Create a new request context (typically created by middleware)
+    var context = new RequestContext
+    {
+      CorrelationId = Guid.NewGuid().ToString(),
+      ClientIp = "192.168.1.100",
+      UserId = "user-123",
+      Path = "/api/users/profile",
+      Method = "GET"
+    };
+
+    // Access built-in properties
+    Console.WriteLine($"Request ID: {context.RequestId}");
+    Console.WriteLine($"Correlation ID: {context.CorrelationId}");
+    Console.WriteLine($"Client IP: {context.ClientIp}");
+    Console.WriteLine($"User ID: {context.UserId}");
+    Console.WriteLine($"Path: {context.Path}");
+    Console.WriteLine($"Method: {context.Method}");
+    Console.WriteLine($"Start Time: {context.StartTime:O}");
+    Console.WriteLine($"Elapsed: {context.Elapsed.TotalMilliseconds:F2} ms");
+
+    // Store and retrieve custom properties
+    context.SetProperty("user-agent", "Mozilla/5.0");
+    context.SetProperty("request-size", 1024);
+    
+    var userAgent = context.GetProperty<string>("user-agent");
+    var requestSize = context.GetProperty<int?>("request-size");
+    
+    Console.WriteLine($"User Agent: {userAgent}");
+    Console.WriteLine($"Request Size: {requestSize}");
+
+    // Use in dependency injection scenario
+    var service = new RequestTrackingService(context);
+    service.ProcessRequest();
+  }
+}
+
+public class RequestTrackingService
+{
+  private readonly RequestContext _context;
+  
+  public RequestTrackingService(RequestContext context)
+  {
+    _context = context;
+  }
+  
+  public void ProcessRequest()
+  {
+    // Access context properties throughout the service
+    Console.WriteLine($"Processing request {_context.RequestId} for user {_context.UserId}");
+    
+    // Add custom tracking data
+    _context.SetProperty("service-called", "user-service");
+    _context.SetProperty("processing-start", DateTime.UtcNow);
+    
+    // Business logic here...
+  }
+}
+```
