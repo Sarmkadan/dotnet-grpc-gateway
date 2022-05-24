@@ -1,45 +1,27 @@
 // ... (rest of the file remains the same)
 
-## StructuredLogger
+## GatewayException
 
-The `StructuredLogger` class provides a set of static methods for logging structured data across the gRPC gateway. It enables consistent and standardized logging of important events, errors, and performance metrics, making it easier to monitor and diagnose issues within the system.
+The `GatewayException` class represents a base exception for all gateway-related errors. It provides a standardized way to handle and log errors across the gRPC gateway.
 
 ### Example Usage:
 
 ```csharp
 public class Program
 {
-    private static readonly ILogger _logger = // obtain logger instance from DI or elsewhere
-
     public static void Main(string[] args)
     {
-        // Log request start
-        StructuredLogger.LogRequestStart(_logger, "12345", "/api/users", "GET", "192.168.1.100");
-
-        // Log request completion
-        StructuredLogger.LogRequestComplete(_logger, "12345", "/api/users", 200, 45);
-
-        // Log service discovery
-        StructuredLogger.LogServiceDiscovery(_logger, 1, "user-service", true);
-
-        // Log cache operation
-        StructuredLogger.LogCacheOperation(_logger, "get", "user:123", true);
-
-        // Log route resolution
-        StructuredLogger.LogRouteResolution(_logger, "/api/users", "/api/{service}/**", 1);
-
-        // Log rate limit
-        StructuredLogger.LogRateLimit(_logger, "192.168.1.100", "/api/users", 10);
-
-        // Log authentication
-        StructuredLogger.LogAuthentication(_logger, "user-123", true);
-
-        // Log critical error
-        var ex = new Exception("Something went wrong");
-        StructuredLogger.LogCriticalError(_logger, ex, "User registration failed");
-
-        // Log performance metrics
-        StructuredLogger.LogPerformanceMetrics(_logger, "database query", 12);
+        try
+        {
+            // Simulate an error
+            throw new GatewayException("Something went wrong", "GATEWAY_ERROR", 500);
+        }
+        catch (GatewayException ex)
+        {
+            Console.WriteLine($"Error code: {ex.ErrorCode}");
+            Console.WriteLine($"HTTP status code: {ex.HttpStatusCode}");
+            Console.WriteLine($"Details: {string.Join(", ", ex.Details?.Select(x => $"{x.Key}: {x.Value}"))}");
+        }
     }
 }
 ```
