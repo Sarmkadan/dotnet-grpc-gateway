@@ -66,33 +66,33 @@ The `IRouteRepository` interface defines a contract for managing GatewayRoute en
 ```csharp
 public class Program
 {
-    public static async Task Main(string[] args)
+  public static async Task Main(string[] args)
+  {
+    var repository = new RouteRepository(new InMemoryConnectionStringProvider());
+
+    var route = await repository.CreateAsync(new GatewayRoute
     {
-        var repository = new RouteRepository(new InMemoryConnectionStringProvider());
+      Pattern = "/api/users",
+      TargetServiceId = 1,
+      IsActive = true,
+      Priority = 1
+    });
 
-        var route = await repository.CreateAsync(new GatewayRoute
-        {
-            Pattern = "/api/users",
-            TargetServiceId = 1,
-            IsActive = true,
-            Priority = 1
-        });
+    var activeRoutes = await repository.GetActiveAsync();
+    Console.WriteLine($"Active routes: {activeRoutes.Count}");
 
-        var activeRoutes = await repository.GetActiveAsync();
-        Console.WriteLine($"Active routes: {activeRoutes.Count}");
+    var routeById = await repository.GetByIdAsync(route.Id);
+    Console.WriteLine($"Route by ID: {routeById.Pattern}");
 
-        var routeById = await repository.GetByIdAsync(route.Id);
-        Console.WriteLine($"Route by ID: {routeById.Pattern}");
+    var routesByServiceId = await repository.GetByServiceIdAsync(1);
+    Console.WriteLine($"Routes by service ID: {routesByServiceId.Count}");
 
-        var routesByServiceId = await repository.GetByServiceIdAsync(1);
-        Console.WriteLine($"Routes by service ID: {routesByServiceId.Count}");
+    var routesByPattern = await repository.GetByPatternAsync("/api/users");
+    Console.WriteLine($"Routes by pattern: {routesByPattern.Count}");
 
-        var routesByPattern = await repository.GetByPatternAsync("/api/users");
-        Console.WriteLine($"Routes by pattern: {routesByPattern.Count}");
-
-        await repository.UpdateAsync(route);
-        await repository.DeleteAsync(route.Id);
-    }
+    await repository.UpdateAsync(route);
+    await repository.DeleteAsync(route.Id);
+  }
 }
 ```
 
@@ -105,31 +105,101 @@ The `IPerformanceMonitor` interface provides real-time performance tracking for 
 ```csharp
 public class Program
 {
-    public static async Task Main(string[] args)
+  public static async Task Main(string[] args)
+  {
+    // Create performance monitor (typically injected via DI)
+    var performanceMonitor = new PerformanceMonitor();
+
+    // Record request durations for different endpoints
+    performanceMonitor.RecordRequestDuration("/api/users", 45);
+    performanceMonitor.RecordRequestDuration("/api/products", 78);
+    performanceMonitor.RecordRequestDuration("/api/users", 32);
+    performanceMonitor.RecordRequestDuration("/api/products", 92);
+
+    // Retrieve current performance metrics
+    var metrics = await performanceMonitor.GetMetricsAsync();
+
+    Console.WriteLine($"Total requests: {metrics.TotalRequests}");
+    Console.WriteLine($"Average duration: {metrics.AverageDurationMs:F2} ms");
+    Console.WriteLine($"P50 (median): {metrics.P50DurationMs:F2} ms");
+    Console.WriteLine($"P95: {metrics.P95DurationMs:F2} ms");
+    Console.WriteLine($"P99: {metrics.P99DurationMs:F2} ms");
+    Console.WriteLine($"Requests per second: {metrics.RequestsPerSecond:F2}");
+    Console.WriteLine($"Min duration: {metrics.MinDurationMs} ms");
+    Console.WriteLine($"Max duration: {metrics.MaxDurationMs} ms");
+
+    // Reset metrics for a fresh monitoring cycle
+    await performanceMonitor.ResetAsync();
+  }
+}
+```
+
+## IUnitOfWork
+
+The `IUnitOfWork` interface defines a contract for transaction management in the gRPC gateway. It provides methods for executing operations within transactions, committing or rolling back changes, and accessing gateway repositories through a unified interface. The Unit of Work pattern ensures that all operations either complete successfully together or fail together, maintaining data consistency.
+
+### Example Usage:
+
+```csharp
+public class Program
+{
+  public static async Task Main(string[] args)
+  {
+    // Create repositories (typically injected via DI)
+    var gateways = new GatewayRepository(new InMemoryConnectionStringProvider());
+    var services = new ServiceRegistry();
+    var routes = new RouteRepository(new InMemoryConnectionStringProvider());
+    var metrics = new MetricsRepository();
+
+    // Create unit of work (typically injected via DI)
+    var unitOfWork = new UnitOfWork(gateways, services, routes, metrics);
+
+    // Execute operations within a transaction
+    var gatewayCount = await unitOfWork.ExecuteInTransactionAsync(async () =>
     {
-        // Create performance monitor (typically injected via DI)
-        var performanceMonitor = new PerformanceMonitor();
+      // Add a new gateway
+      var gateway = await gateways.CreateAsync(new Gateway
+      {
+        Name = "Production Gateway",
+        Address = "https://gateway.example.com",
+        IsActive = true,
+        Priority = 1
+      });
 
-        // Record request durations for different endpoints
-        performanceMonitor.RecordRequestDuration("/api/users", 45);
-        performanceMonitor.RecordRequestDuration("/api/products", 78);
-        performanceMonitor.RecordRequestDuration("/api/users", 32);
-        performanceMonitor.RecordRequestDuration("/api/products", 92);
+      // Add a service
+      var service = await services.RegisterServiceAsync(new ServiceRegistration
+      {
+        ServiceId = "user-service",
+        Endpoint = "https://user-service.example.com:5001",
+        HealthCheckEndpoint = "/health",
+        IsActive = true
+      });
 
-        // Retrieve current performance metrics
-        var metrics = await performanceMonitor.GetMetricsAsync();
+      return await gateways.CountAsync();
+    });
 
-        Console.WriteLine($"Total requests: {metrics.TotalRequests}");
-        Console.WriteLine($"Average duration: {metrics.AverageDurationMs:F2} ms");
-        Console.WriteLine($"P50 (median): {metrics.P50DurationMs:F2} ms");
-        Console.WriteLine($"P95: {metrics.P95DurationMs:F2} ms");
-        Console.WriteLine($"P99: {metrics.P99DurationMs:F2} ms");
-        Console.WriteLine($"Requests per second: {metrics.RequestsPerSecond:F2}");
-        Console.WriteLine($"Min duration: {metrics.MinDurationMs} ms");
-        Console.WriteLine($"Max duration: {metrics.MaxDurationMs} ms");
+    Console.WriteLine($"Gateway count after transaction: {gatewayCount}");
 
-        // Reset metrics for a fresh monitoring cycle
-        await performanceMonitor.ResetAsync();
-    }
+    // Execute multiple operations in a single transaction
+    await unitOfWork.ExecuteInTransactionAsync(async () =>
+    {
+      var route = await routes.CreateAsync(new GatewayRoute
+      {
+        Pattern = "/api/users",
+        TargetServiceId = "user-service",
+        IsActive = true,
+        Priority = 1
+      });
+
+      // Multiple operations that should succeed or fail together
+      await routes.UpdateAsync(route);
+    });
+
+    // Manually commit a transaction
+    await unitOfWork.CommitAsync();
+
+    // Manually rollback if needed
+    // await unitOfWork.RollbackAsync();
+  }
 }
 ```
