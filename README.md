@@ -122,6 +122,48 @@ public class NullLogger<T> : ILogger<T>
 
 `IWebhookService` is responsible for sending webhooks to external endpoints, handling retries, timeout management, and failure tracking.
 
+## StringExtensions
+
+`StringExtensions` provides a set of useful extension methods for string manipulation and validation. It includes methods for generating SHA256 hashes, creating URL-safe slugs, truncating strings, validating IP addresses, and pattern matching with wildcards.
+
+### Example Usage
+
+```csharp
+using System;
+using DotNetGrpcGateway.Extensions;
+
+class Program
+{
+    static void Main()
+    {
+        string text = "Hello World 123!";
+        
+        // Generate SHA256 hash
+        string hash = text.ToSha256Hash();
+        Console.WriteLine($"SHA256 Hash: {hash}");
+        
+        // Convert to URL-safe slug
+        string slug = text.ToSlug();
+        Console.WriteLine($"Slug: {slug}");
+        
+        // Truncate string
+        string truncated = text.Truncate(10);
+        Console.WriteLine($"Truncated: {truncated}");
+        
+        // Validate IP address
+        string ipAddress = "192.168.1.1";
+        bool isValidIp = ipAddress.IsValidIpAddress();
+        Console.WriteLine($"Is valid IP: {isValidIp}");
+        
+        // Match pattern with wildcards
+        string pattern = "test-*";
+        string testValue = "test-123";
+        bool matches = testValue.MatchesPattern(pattern);
+        Console.WriteLine($"Matches pattern: {matches}");
+    }
+}
+```
+
 ### Example Usage
 
 ```csharp
