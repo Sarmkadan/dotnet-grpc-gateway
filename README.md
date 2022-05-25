@@ -122,6 +122,56 @@ public class NullLogger<T> : ILogger<T>
 
 `IWebhookService` is responsible for sending webhooks to external endpoints, handling retries, timeout management, and failure tracking.
 
+## HttpContextExtensions
+
+`HttpContextExtensions` provides extension methods for `HttpContext` that simplify common HTTP request operations including IP address extraction, header access, authorization token parsing, request identification, and gRPC request detection.
+
+### Example Usage:
+
+```csharp
+using System;
+using Microsoft.AspNetCore.Http;
+using DotNetGrpcGateway.Extensions;
+
+class Program
+{
+    static void Main()
+    {
+        // Create a mock HttpContext
+        var context = new DefaultHttpContext();
+        context.Request.Headers["X-Forwarded-For"] = "192.168.1.100, 10.0.0.1";
+        context.Request.Headers["Authorization"] = "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...";
+        context.Request.Headers["X-Request-ID"] = "abc-123-def";
+        context.Request.ContentType = "application/grpc";
+        context.Connection.RemoteIpAddress = System.Net.IPAddress.Parse("192.168.1.100");
+        
+        // Get client IP address (handles proxies via X-Forwarded-For)
+        string clientIp = context.GetClientIpAddress();
+        Console.WriteLine($"Client IP: {clientIp}"); // Output: "192.168.1.100"
+        
+        // Get a specific header
+        string? userAgent = context.GetHeader("User-Agent");
+        Console.WriteLine($"User-Agent: {userAgent}");
+        
+        // Get authorization token
+        string? token = context.GetAuthorizationToken();
+        Console.WriteLine($"Token: {token}"); // Output: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+        
+        // Get request ID
+        string requestId = context.GetRequestId();
+        Console.WriteLine($"Request ID: {requestId}"); // Output: "abc-123-def"
+        
+        // Check if it's a gRPC request
+        bool isGrpc = context.IsGrpcRequest();
+        Console.WriteLine($"Is gRPC request: {isGrpc}"); // Output: True
+        
+        // Check if it's a gRPC-Web request
+        bool isGrpcWeb = context.IsGrpcWebRequest();
+        Console.WriteLine($"Is gRPC-Web request: {isGrpcWeb}"); // Output: False
+    }
+}
+```
+
 ## StringExtensions
 
 `StringExtensions` provides a set of useful extension methods for string manipulation and validation. It includes methods for generating SHA256 hashes, creating URL-safe slugs, truncating strings, validating IP addresses, and pattern matching with wildcards.
