@@ -117,3 +117,37 @@ public class NullLogger<T> : ILogger<T>
     public IDisposable BeginScope<TState>(TState state) => null!;
 }
 ```
+
+## IWebhookService
+
+`IWebhookService` is responsible for sending webhooks to external endpoints, handling retries, timeout management, and failure tracking.
+
+### Example Usage
+
+```csharp
+using System;
+using System.Threading.Tasks;
+using DotNetGrpcGateway.Integration;
+
+class Program
+{
+    static async Task Main()
+    {
+        var webhookService = new WebhookService(new HttpClient(), new Logger<WebhookService>());
+        var result = await webhookService.SendWebhookAsync("https://example.com/webhook", new { foo = "bar" });
+        Console.WriteLine($"Webhook sent successfully: {result.Success}");
+        Console.WriteLine($"Status code: {result.StatusCode}");
+        Console.WriteLine($"Message: {result.Message}");
+
+        var history = await webhookService.GetDeliveryHistoryAsync("https://example.com/webhook");
+        foreach (var delivery in history)
+        {
+            Console.WriteLine($"Delivery at: {delivery.DeliveredAt}");
+            Console.WriteLine($"Success: {delivery.Success}");
+            Console.WriteLine($"Status code: {delivery.StatusCode}");
+            Console.WriteLine($"Error message: {delivery.ErrorMessage}");
+        }
+    }
+}
+```
+```
