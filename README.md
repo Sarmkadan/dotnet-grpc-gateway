@@ -25,3 +25,39 @@ public class Program
     }
 }
 ```
+
+## GatewayEvent
+
+`GatewayEvent` is the abstract base class for all events emitted by the gateway. It supplies immutable identifiers (`EventId`), a timestamp (`OccurredAt`), and optional correlation information (`CorrelationId`, `CausedBy`). Specific event types such as `ServiceRegisteredEvent`, `ServiceUnregisteredEvent`, and `RouteAddedEvent` inherit these members and add their own payload data.
+
+### Example Usage
+
+```csharp
+using System;
+using DotNetGrpcGateway.Events;
+
+class Program
+{
+    static void Main()
+    {
+        // Create a service‑registered event
+        var ev = new ServiceRegisteredEvent(
+            serviceId: 42,
+            serviceName: "UserService",
+            serviceFullName: "MyApp.Services.UserService",
+            host: "localhost",
+            port: 5001);
+
+        // Access base members
+        Console.WriteLine($"EventId: {ev.EventId}");
+        Console.WriteLine($"OccurredAt (UTC): {ev.OccurredAt:u}");
+
+        // Access derived members
+        Console.WriteLine($"ServiceId: {ev.ServiceId}");
+        Console.WriteLine($"ServiceName: {ev.ServiceName}");
+        Console.WriteLine($"ServiceFullName: {ev.ServiceFullName}");
+        Console.WriteLine($"Host: {ev.Host}");
+        Console.WriteLine($"Port: {ev.Port}");
+    }
+}
+```
