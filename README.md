@@ -244,6 +244,82 @@ class Program
 }
 ```
 
+## RequestLogEntry
+
+`RequestLogEntry` represents a single recorded request/response log entry captured by the gRPC gateway. It contains comprehensive request and response metadata including timing, status codes, sizes, headers, and error information. The class automatically computes log levels and descriptive messages based on the request outcome and performance characteristics.
+
+
+
+
+### Example Usage
+
+```csharp
+using System;
+using System.Collections.Generic;
+using DotNetGrpcGateway.Domain;
+
+class Program
+{
+    static void Main()
+    {
+        // Create a log entry for a successful gRPC request
+        var logEntry = new RequestLogEntry
+        {
+            Method = "POST",
+            Path = "/package.UserService/GetUser",
+            GrpcMethod = "UserService.GetUser",
+            ServiceName = "UserService",
+            MethodName = "GetUser",
+            HttpStatusCode = 200,
+            DurationMs = 45,
+            RequestSizeBytes = 128,
+            ResponseSizeBytes = 2048,
+            ClientIp = "192.168.1.100",
+            UpstreamAddress = "10.0.0.5:5001",
+            RequestHeaders = new Dictionary<string, string>
+            {
+                {"Content-Type", "application/grpc"},
+                {"Authorization", "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."},
+                {"X-Request-ID", "req-12345"}
+            },
+            RequestId = "req-12345",
+            IsSuccessful = true,
+            CacheHit = false
+        };
+
+        // Access computed properties
+        Console.WriteLine($"Log Entry ID: {logEntry.Id}");
+        Console.WriteLine($"Timestamp: {logEntry.Timestamp:u}");
+        Console.WriteLine($"Log Level: {logEntry.LogLevel}"); // Automatically computed as "INFO"
+        Console.WriteLine($"Message: {logEntry.Message}"); // Automatically composed
+        Console.WriteLine($"Duration: {logEntry.DurationMs}ms");
+        Console.WriteLine($"Status: {logEntry.HttpStatusCode}");
+        Console.WriteLine($"Successful: {logEntry.IsSuccessful}");
+        Console.WriteLine($"Cache Hit: {logEntry.CacheHit}");
+
+        // Create a log entry for a failed request
+        var failedEntry = new RequestLogEntry
+        {
+            Method = "POST",
+            Path = "/package.OrderService/CreateOrder",
+            GrpcMethod = "OrderService.CreateOrder",
+            ServiceName = "OrderService",
+            MethodName = "CreateOrder",
+            HttpStatusCode = 400,
+            DurationMs = 1500,
+            RequestSizeBytes = 2048,
+            ResponseSizeBytes = 512,
+            ErrorMessage = "Validation failed: Order amount exceeds limit",
+            IsSuccessful = false,
+            CacheHit = false
+        };
+
+        Console.WriteLine($"\nFailed Request - Log Level: {failedEntry.LogLevel}"); // Automatically computed as "ERROR"
+        Console.WriteLine($"Message: {failedEntry.Message}");
+    }
+}
+```
+
 ## StringExtensions
 
 `StringExtensions` provides a set of useful extension methods for string manipulation and validation. It includes methods for generating SHA256 hashes, creating URL-safe slugs, truncating strings, validating IP addresses, and pattern matching with wildcards.
