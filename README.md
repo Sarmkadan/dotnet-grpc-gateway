@@ -532,4 +532,57 @@ class Program
     }
 }
 ```
+
+## GatewayConfiguration
+
+`GatewayConfiguration` defines the runtime configuration for the gRPC gateway instance. It controls server behavior, connection limits, request handling, security settings, and operational parameters. This type centralizes all gateway configuration into a single object that can be loaded from configuration files or environment variables.
+
+### Example Usage
+
+```csharp
+using System;
+using DotNetGrpcGateway.Domain;
+
+class Program
+{
+    static void Main()
+    {
+        // Create a gateway configuration for a production deployment
+        var config = new GatewayConfiguration
+        {
+            Id = 1,
+            Name = "Production Gateway",
+            Description = "Primary gRPC gateway serving production traffic",
+            ListenAddress = "0.0.0.0",
+            Port = 5000,
+            EnableReflection = true,
+            EnableMetrics = true,
+            EnableWebSocketSupport = true,
+            MaxConcurrentConnections = 1000,
+            RequestTimeoutMs = 30000,
+            MaxMessageSize = 10485760, // 10MB
+            EnableCorsPolicy = true,
+            CorsOrigins = "https://app.example.com,https://api.example.com",
+            EnableCompressionByDefault = true,
+            CompressionAlgorithm = "gzip",
+            ValidateSslCertificates = true,
+            LogLevel = "Information",
+            IsActive = true
+        };
+
+        // Access configuration properties
+        Console.WriteLine($"Gateway: {config.Name} ({config.Id})");
+        Console.WriteLine($"Listening on: {config.ListenAddress}:{config.Port}");
+        Console.WriteLine($"Max connections: {config.MaxConcurrentConnections}");
+        Console.WriteLine($"Request timeout: {config.RequestTimeoutMs}ms");
+        Console.WriteLine($"CORS origins: {config.CorsOrigins}");
+        Console.WriteLine($"Compression enabled: {config.EnableCompressionByDefault}");
+        Console.WriteLine($"SSL validation: {config.ValidateSslCertificates}");
+        Console.WriteLine($"Active: {config.IsActive}");
+        
+        // Configuration can be used to initialize the gateway
+        // var gateway = new GrpcGateway(config);
+    }
+}
+```
 ```
