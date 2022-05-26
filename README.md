@@ -585,4 +585,57 @@ class Program
     }
 }
 ```
+
+## GatewayRoute
+
+The `GatewayRoute` class defines a routing rule that maps incoming requests to a target gRPC service. It provides extensive configuration for path matching, request transformation, authentication, and performance management.
+
+### Example Usage:
+
+```csharp
+using System;
+using System.Collections.Generic;
+using DotNetGrpcGateway.Domain;
+
+class Program
+{
+    static void Main()
+    {
+        var route = new GatewayRoute
+        {
+            Id = 1,
+            Pattern = "UserService.GetUser",
+            TargetServiceId = 10,
+            Priority = 50,
+            MatchType = RouteMatchType.ExactMatch,
+            Description = "Route to user details service",
+            Headers = new Dictionary<string, string> { { "X-Gateway-Route", "true" } },
+            Metadata = new Dictionary<string, string> { { "Environment", "Prod" } },
+            RequiresAuthentication = true,
+            AuthorizationPolicy = "UserPolicy",
+            RateLimitPerMinute = 500,
+            EnableCaching = true,
+            CacheDurationSeconds = 300,
+            RequestTransformationScript = "request.headers['X-Internal'] = 'true';",
+            ResponseTransformationScript = "return response;",
+            EnableCompression = true,
+            ChannelOptions = new RouteChannelOptions
+            {
+                CallTimeout = TimeSpan.FromSeconds(5),
+                MaxReceiveMessageSize = 1024 * 1024,
+                MaxSendMessageSize = 1024 * 1024,
+                SkipTlsVerification = false
+            },
+            CreatedAt = DateTime.UtcNow,
+            ModifiedAt = DateTime.UtcNow,
+            IsActive = true
+        };
+
+        // Validate route
+        route.Validate();
+        Console.WriteLine($"Route {route.Id} configured for {route.Pattern}");
+    }
+}
+```
+
 ```
