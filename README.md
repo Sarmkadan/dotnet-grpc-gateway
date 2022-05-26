@@ -391,6 +391,79 @@ class Program
 }
 ```
 
+## AuthenticationToken
+
+`AuthenticationToken` represents an API authentication token for accessing the gRPC gateway. It manages client authentication, service access control, token lifecycle, and usage tracking. The class provides validation, expiration checks, service access control, IP whitelisting, and usage recording functionality.
+
+### Example Usage
+
+```csharp
+using System;
+using System.Collections.Generic;
+using DotNetGrpcGateway.Domain;
+
+class Program
+{
+    static void Main()
+    {
+        // Create an authentication token for a client application
+        var token = new AuthenticationToken
+        {
+            Id = 1,
+            TokenHash = "a1b2c3d4e5f6...", // Actual hashed token value
+            ClientName = "Mobile App Client",
+            ClientId = "mobile-app-v1",
+            ClientSecret = "secret-key-123",
+            TokenType = "Bearer",
+            Scopes = new List<string> { "read:users", "write:orders" },
+            AllowedServiceIds = new List<int> { 1, 2, 3 },
+            AllowAllServices = false,
+            ExpiresAt = DateTime.UtcNow.AddDays(90),
+            IpWhitelistCsv = "192.168.1.100,10.0.0.50",
+            IsActive = true
+        };
+
+        // Validate token configuration
+        try
+        {
+            token.Validate();
+            Console.WriteLine("Token configuration is valid");
+        }
+        catch (InvalidOperationException ex)
+        {
+            Console.WriteLine($"Validation error: {ex.Message}");
+        }
+
+        // Check token status
+        Console.WriteLine($"Token is active: {token.IsActive}");
+        Console.WriteLine($"Token is valid: {token.IsValid}");
+        Console.WriteLine($"Token is expired: {token.IsExpired}");
+
+        // Check service access
+        bool canAccessService1 = token.CanAccessService(1);
+        bool canAccessService4 = token.CanAccessService(4);
+        Console.WriteLine($"Can access service 1: {canAccessService1}"); // True
+        Console.WriteLine($"Can access service 4: {canAccessService4}"); // False
+
+        // Record token usage
+        token.RecordUsage("Mobile App v1.2.3");
+        Console.WriteLine($"Usage count: {token.UsageCount}");
+        Console.WriteLine($"Last used: {token.LastUsedAt}");
+
+        // Check IP restrictions
+        bool isIpAllowed = token.IsIpAllowed("192.168.1.100");
+        bool isIpBlocked = token.IsIpAllowed("8.8.8.8");
+        Console.WriteLine($"IP 192.168.1.100 allowed: {isIpAllowed}"); // True
+        Console.WriteLine($"IP 8.8.8.8 allowed: {isIpBlocked}"); // False
+
+        // Revoke token
+        token.Revoke("Compromised credentials");
+        Console.WriteLine($"Token revoked: {token.IsRevoked}");
+        Console.WriteLine($"Revocation reason: {token.RevokedReason}");
+    }
+}
+```
+
 ## GrpcService
 
 `GrpcService` represents a gRPC service that can be routed through the gateway. It contains configuration properties for service identification, connection details, health monitoring, and request tracking. The class provides methods for generating endpoint URIs, validating service configuration, updating health status, and recording request metrics.
