@@ -390,4 +390,73 @@ class Program
     }
 }
 ```
+
+## GrpcService
+
+`GrpcService` represents a gRPC service that can be routed through the gateway. It contains configuration properties for service identification, connection details, health monitoring, and request tracking. The class provides methods for generating endpoint URIs, validating service configuration, updating health status, and recording request metrics.
+
+### Example Usage
+
+```csharp
+using System;
+using DotNetGrpcGateway.Domain;
+
+class Program
+{
+    static void Main()
+    {
+        // Create a gRPC service configuration
+        var userService = new GrpcService
+        {
+            Id = 1,
+            Name = "UserService",
+            ServiceFullName = "MyApp.Services.UserService",
+            Host = "localhost",
+            Port = 5001,
+            UseTls = false,
+            Description = "User authentication and profile management service",
+            ProtoPackage = "user.proto",
+            HealthCheckIntervalSeconds = 30,
+            MaxRetries = 3,
+            IsHealthy = true,
+            LastHealthCheckAt = DateTime.UtcNow.AddMinutes(-2),
+            AverageResponseTimeMs = 25.5,
+            TotalRequestsProcessed = 15000,
+            FailedRequestsCount = 45,
+            RegisteredAt = DateTime.UtcNow.AddDays(-7),
+            ModifiedAt = DateTime.UtcNow,
+            IsActive = true
+        };
+
+        // Generate endpoint URI
+        string endpointUri = userService.GetEndpointUri();
+        Console.WriteLine($"Service endpoint: {endpointUri}");
+        // Output: "Service endpoint: http://localhost:5001"
+
+        // Validate service configuration
+        try
+        {
+            userService.Validate();
+            Console.WriteLine("Service configuration is valid");
+        }
+        catch (InvalidOperationException ex)
+        {
+            Console.WriteLine($"Validation error: {ex.Message}");
+        }
+
+        // Update health status
+        userService.UpdateHealthStatus(isHealthy: true);
+        Console.WriteLine($"Service health: {userService.IsHealthy}");
+        Console.WriteLine($"Last health check: {userService.LastHealthCheckAt:u}");
+
+        // Record request metrics
+        userService.RecordRequestMetric(responseTimeMs: 35.2, success: true);
+        userService.RecordRequestMetric(responseTimeMs: 210.5, success: false);
+
+        Console.WriteLine($"Total requests: {userService.TotalRequestsProcessed}");
+        Console.WriteLine($"Failed requests: {userService.FailedRequestsCount}");
+        Console.WriteLine($"Average response time: {userService.AverageResponseTimeMs:F1}ms");
+    }
+}
+```
 ```
