@@ -122,6 +122,78 @@ public class NullLogger<T> : ILogger<T>
 
 `IWebhookService` is responsible for sending webhooks to external endpoints, handling retries, timeout management, and failure tracking.
 
+## GatewayStatistics
+
+`GatewayStatistics` provides aggregated metrics and analytics for the gRPC gateway and its connected services. It tracks request volumes, response times, error rates, data throughput, connection statistics, service health status, and cache performance across all gateway operations.
+
+### Example Usage:
+
+```csharp
+using System;
+using System.Collections.Generic;
+using DotNetGrpcGateway.Domain;
+
+class Program
+{
+    static void Main()
+    {
+        // Create statistics instance
+        var stats = new GatewayStatistics
+        {
+            Id = 1,
+            StatisticsDate = DateTime.UtcNow.Date,
+            TotalRequestsProcessed = 15000,
+            SuccessfulRequests = 14850,
+            FailedRequests = 150,
+            SuccessRate = 99.0,
+            AverageResponseTimeMs = 45.2,
+            MinResponseTimeMs = 5.1,
+            MaxResponseTimeMs = 245.8,
+            TotalDataProcessedBytes = 2500000,
+            ActiveConnections = 42,
+            PeakConnections = 120,
+            RequestsByService = new Dictionary<string, long>
+            {
+                {"UserService", 8500},
+                {"OrderService", 4200},
+                {"ProductService", 2300}
+            },
+            RequestsByMethod = new Dictionary<string, long>
+            {
+                {"GetUser", 5000},
+                {"CreateOrder", 2000},
+                {"SearchProducts", 3000}
+            },
+            ErrorsByType = new Dictionary<string, int>
+            {
+                {"Timeout", 80},
+                {"Validation", 45},
+                {"Connection", 25}
+            },
+            HealthyServices = 8,
+            UnhealthyServices = 1,
+            TotalServices = 9,
+            CacheHitRate = 87.5,
+            CacheHits = 1750,
+            CacheMisses = 250,
+            RecordedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow
+        };
+
+        // Display key metrics
+        Console.WriteLine($"Statistics for {stats.StatisticsDate:yyyy-MM-dd}");
+        Console.WriteLine($"Total requests: {stats.TotalRequestsProcessed:N0}");
+        Console.WriteLine($"Success rate: {stats.SuccessRate:F1}%");
+        Console.WriteLine($"Avg response time: {stats.AverageResponseTimeMs:F1}ms");
+        Console.WriteLine($"Data processed: {stats.TotalDataProcessedBytes:N0} bytes");
+        Console.WriteLine($"Active connections: {stats.ActiveConnections}");
+        Console.WriteLine($"Peak connections: {stats.PeakConnections}");
+        Console.WriteLine($"Healthy services: {stats.HealthyServices}/{stats.TotalServices}");
+        Console.WriteLine($"Cache hit rate: {stats.CacheHitRate:F1}%");
+    }
+}
+```
+
 ## HttpContextExtensions
 
 `HttpContextExtensions` provides extension methods for `HttpContext` that simplify common HTTP request operations including IP address extraction, header access, authorization token parsing, request identification, and gRPC request detection.
