@@ -638,4 +638,50 @@ class Program
 }
 ```
 
+
+## RouteChannelOptions
+
+`RouteChannelOptions` configures gRPC channel settings for a gateway route, including timeouts, message size limits, additional headers, and TLS options. These settings are applied when establishing the connection to the target gRPC service.
+
+### Example Usage
+
+```csharp
+using System;
+using System.Collections.Generic;
+using DotNetGrpcGateway.Domain;
+
+class Program
+{
+  static void Main()
+  {
+    // Create channel options for a gRPC route
+    var channelOptions = new RouteChannelOptions
+    {
+      CallTimeout = TimeSpan.FromSeconds(10),
+      MaxReceiveMessageSize = 16 * 1024 * 1024, // 16MB
+      MaxSendMessageSize = 8 * 1024 * 1024,    // 8MB
+      AdditionalHeaders = new Dictionary<string, string>
+      {
+        { "X-Custom-Header", "value" },
+        { "X-Request-Timeout", "10000" }
+      },
+      SkipTlsVerification = false,
+      TlsTargetName = "myservice.example.com"
+    };
+
+    // Use in a gateway route configuration
+    var route = new GatewayRoute
+    {
+      Id = 1,
+      Pattern = "UserService.GetUser",
+      TargetServiceId = 10,
+      ChannelOptions = channelOptions
+    };
+
+    Console.WriteLine($"Configured channel options with timeout: {channelOptions.CallTimeout}");
+    Console.WriteLine($"Max receive size: {channelOptions.MaxReceiveMessageSize} bytes");
+    Console.WriteLine($"Max send size: {channelOptions.MaxSendMessageSize} bytes");
+    Console.WriteLine($"TLS target: {channelOptions.TlsTargetName ?? "default"}");
+  }
+}
 ```
