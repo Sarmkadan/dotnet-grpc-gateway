@@ -1,0 +1,108 @@
+version: '3.8'
+
+services:
+  # dotnet-grpc-gateway - Development with hot reload
+  gateway:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: build
+    container_name: dotnet-grpc-gateway-dev
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      ASPNETCORE_URLS: http://0.0.0.0:8080
+      Gateway__Port: "8080"
+      Gateway__MaxConcurrentConnections: "1000"
+      Gateway__RequestTimeoutMs: "30000"
+      Gateway__EnableStreaming: "true"
+      Logging__LogLevel__Default: Debug
+      ConnectionStrings__DefaultConnection: "Host=postgres;Port=5432;Database=grpc_gateway;Username=postgres;Password=${POSTGRES_PASSWORD:-postgres}"
+    ports:
+      - "8080:8080"
+      - "5678:5678"  # Debug port
+      - "7777:7777"  # Alternative debug port
+    volumes:
+      - ./src/dotnet-grpc-gateway:/app
+      - ./logs:/app/logs
+    networks:
+      - grpc-gateway-network
+
+  # PostgreSQL database
+  postgres:
+    image: postgres:16-alpine
+    container_name: dotnet-grpc-gateway-postgres-dev
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: grpc_gateway
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data_dev:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d grpc_gateway"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - grpc-gateway-network
+
+  # Redis for caching (optional)
+  redis:
+    image: redis:7-alpine
+    container_name: dotnet-grpc-gateway-redis-dev
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data_dev:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+    networks:
+      - grpc-gateway-network
+
+  # Prometheus for metrics (optional)
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: dotnet-grpc-gateway-prometheus-dev
+    restart: unless-stopped
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./docker/prometheus.yml:/etc/prometheus/prometheus.yml
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+    networks:
+      - grpc-gateway-network
+
+  # Grafana for dashboards (optional)
+  grafana:
+    image: grafana/grafana:latest
+    container_name: dotnet-grpc-gateway-grafana-dev
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    volumes:
+      - grafana_data_dev:/var/lib/grafana
+    networks:
+      - grpc-gateway-network
+
+volumes:
+  postgres_data_dev:
+    driver: local
+  redis_data_dev:
+    driver: local
+  grafana_data_dev:
+    driver: local
+
+networks:
+  grpc-gateway-network:
+    driver: bridge
