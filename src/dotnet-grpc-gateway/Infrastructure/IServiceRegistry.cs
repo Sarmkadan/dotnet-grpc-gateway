@@ -1,3 +1,4 @@
+#nullable enable
 // =============================================================================
 // Author: Vladyslav Zaiets | https://sarmkadan.com
 // CTO & Software Architect
@@ -69,7 +70,7 @@ public class ServiceRegistry : IServiceRegistry
 
     public async Task<GrpcService> RegisterAsync(GrpcService service)
     {
-        if (service == null)
+        if (service is null)
             throw new ArgumentNullException(nameof(service));
 
         service.Validate();
@@ -88,7 +89,7 @@ public class ServiceRegistry : IServiceRegistry
 
     public async Task UpdateAsync(GrpcService service)
     {
-        if (service == null)
+        if (service is null)
             throw new ArgumentNullException(nameof(service));
 
         if (!_servicesById.ContainsKey(service.Id))

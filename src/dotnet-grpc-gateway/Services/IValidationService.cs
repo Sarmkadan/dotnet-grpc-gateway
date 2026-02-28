@@ -1,3 +1,4 @@
+#nullable enable
 // =============================================================================
 // Author: Vladyslav Zaiets | https://sarmkadan.com
 // CTO & Software Architect
@@ -35,7 +36,7 @@ public class ValidationService : IValidationService
 
     public void ValidateGatewayConfiguration(GatewayConfiguration config)
     {
-        if (config == null)
+        if (config is null)
             throw new ArgumentNullException(nameof(config));
 
         var errors = new List<string>();
@@ -66,7 +67,7 @@ public class ValidationService : IValidationService
 
     public void ValidateGrpcService(GrpcService service)
     {
-        if (service == null)
+        if (service is null)
             throw new ArgumentNullException(nameof(service));
 
         var errors = new List<string>();
@@ -94,7 +95,7 @@ public class ValidationService : IValidationService
 
     public void ValidateGatewayRoute(GatewayRoute route)
     {
-        if (route == null)
+        if (route is null)
             throw new ArgumentNullException(nameof(route));
 
         var errors = new List<string>();
@@ -122,7 +123,7 @@ public class ValidationService : IValidationService
 
     public void ValidateRequestMetric(RequestMetric metric)
     {
-        if (metric == null)
+        if (metric is null)
             throw new ArgumentNullException(nameof(metric));
 
         var errors = new List<string>();

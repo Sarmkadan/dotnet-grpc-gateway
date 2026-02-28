@@ -1,3 +1,4 @@
+#nullable enable
 // =============================================================================
 // Author: Vladyslav Zaiets | https://sarmkadan.com
 // CTO & Software Architect
@@ -53,7 +54,7 @@ public class GatewayRepository : IGatewayRepository
 
     public async Task<GatewayConfiguration> CreateAsync(GatewayConfiguration config)
     {
-        if (config == null)
+        if (config is null)
             throw new ArgumentNullException(nameof(config));
 
         config.Validate();
@@ -69,7 +70,7 @@ public class GatewayRepository : IGatewayRepository
 
     public async Task UpdateAsync(GatewayConfiguration config)
     {
-        if (config == null)
+        if (config is null)
             throw new ArgumentNullException(nameof(config));
 
         if (!_memoryStore.ContainsKey(config.Id))

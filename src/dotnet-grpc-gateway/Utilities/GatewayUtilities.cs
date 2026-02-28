@@ -1,3 +1,4 @@
+#nullable enable
 // =============================================================================
 // Author: Vladyslav Zaiets | https://sarmkadan.com
 // CTO & Software Architect
@@ -31,7 +32,7 @@ public static class GatewayUtilities
     /// </summary>
     public static string ToJson<T>(T obj)
     {
-        if (obj == null)
+        if (obj is null)
             return string.Empty;
 
         return JsonSerializer.Serialize(obj, JsonOptions);
@@ -148,7 +149,7 @@ public static class GatewayUtilities
     /// </summary>
     public static T? SafeGetValue<T>(Dictionary<string, T> dict, string key)
     {
-        if (dict == null || string.IsNullOrWhiteSpace(key))
+        if (dict is null || string.IsNullOrWhiteSpace(key))
             return default;
 
         dict.TryGetValue(key, out var value);

@@ -1,3 +1,4 @@
+#nullable enable
 // =============================================================================
 // Author: Vladyslav Zaiets | https://sarmkadan.com
 // CTO & Software Architect
@@ -18,7 +19,7 @@ public static class ServiceCollectionExtensions
     /// </summary>
     public static IServiceCollection AddGatewayServices(this IServiceCollection services)
     {
-        if (services == null)
+        if (services is null)
             throw new ArgumentNullException(nameof(services));
 
         // Data access repositories
@@ -46,10 +47,10 @@ public static class ServiceCollectionExtensions
         this IServiceCollection services,
         IConfiguration configuration)
     {
-        if (services == null)
+        if (services is null)
             throw new ArgumentNullException(nameof(services));
 
-        if (configuration == null)
+        if (configuration is null)
             throw new ArgumentNullException(nameof(configuration));
 
         services.Configure<GatewayOptions>(configuration.GetSection("Gateway"));
@@ -75,7 +76,7 @@ public static class ServiceCollectionExtensions
     /// </summary>
     public static IServiceCollection AddGatewayReflection(this IServiceCollection services)
     {
-        if (services == null)
+        if (services is null)
             throw new ArgumentNullException(nameof(services));
 
         services.AddHttpClient<IReflectionService, ReflectionService>();
@@ -151,7 +152,7 @@ public class GatewayHealthCheck : IHealthCheck
         {
             var config = await _gatewayService.GetConfigurationAsync();
 
-            if (config == null || !config.IsActive)
+            if (config is null || !config.IsActive)
                 return HealthCheckResult.Unhealthy("Gateway configuration is invalid or inactive");
 
             return HealthCheckResult.Healthy("Gateway is operational");

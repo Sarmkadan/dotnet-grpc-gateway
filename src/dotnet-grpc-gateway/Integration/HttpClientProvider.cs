@@ -1,3 +1,4 @@
+#nullable enable
 // =============================================================================
 // Author: Vladyslav Zaiets | https://sarmkadan.com
 // CTO & Software Architect
@@ -60,7 +61,7 @@ public class HttpClientProvider : IHttpClientProvider
             client.Timeout = options.Timeout;
 
             // Set default headers
-            if (options.DefaultHeaders != null)
+            if (options.DefaultHeaders is not null)
             {
                 foreach (var header in options.DefaultHeaders)
                 {

@@ -1,3 +1,4 @@
+#nullable enable
 // =============================================================================
 // Author: Vladyslav Zaiets | https://sarmkadan.com
 // CTO & Software Architect
@@ -64,7 +65,7 @@ public class RouteRepository : IRouteRepository
 
     public async Task<GatewayRoute> CreateAsync(GatewayRoute route)
     {
-        if (route == null)
+        if (route is null)
             throw new ArgumentNullException(nameof(route));
 
         route.Validate();
@@ -86,7 +87,7 @@ public class RouteRepository : IRouteRepository
 
     public async Task UpdateAsync(GatewayRoute route)
     {
-        if (route == null)
+        if (route is null)
             throw new ArgumentNullException(nameof(route));
 
         if (!_routesById.ContainsKey(route.Id))

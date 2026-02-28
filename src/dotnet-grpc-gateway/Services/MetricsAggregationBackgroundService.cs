@@ -1,3 +1,4 @@
+#nullable enable
 // =============================================================================
 // Author: Vladyslav Zaiets | https://sarmkadan.com
 // CTO & Software Architect
@@ -65,7 +66,7 @@ public class MetricsAggregationBackgroundService : BackgroundService
         {
             // Get current statistics
             var todayStats = await metricsService.GetTodayStatisticsAsync();
-            var performanceMetrics = performanceMonitor != null
+            var performanceMetrics = performanceMonitor is not null
                 ? await performanceMonitor.GetMetricsAsync()
                 : null;
 

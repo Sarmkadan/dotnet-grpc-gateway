@@ -1,3 +1,4 @@
+#nullable enable
 // =============================================================================
 // Author: Vladyslav Zaiets | https://sarmkadan.com
 // CTO & Software Architect
@@ -37,7 +38,7 @@ public static class JsonSerializationUtility
     /// </summary>
     public static string Serialize<T>(T? value)
     {
-        if (value == null)
+        if (value is null)
             return "null";
 
         return JsonSerializer.Serialize(value, DefaultOptions);
@@ -48,7 +49,7 @@ public static class JsonSerializationUtility
     /// </summary>
     public static string SerializePretty<T>(T? value)
     {
-        if (value == null)
+        if (value is null)
             return "null";
 
         return JsonSerializer.Serialize(value, PrettyOptions);
@@ -134,9 +135,9 @@ public static class JsonSerializationUtility
     /// </summary>
     public static T? MergeObjects<T>(T? obj1, T? obj2) where T : class
     {
-        if (obj1 == null)
+        if (obj1 is null)
             return obj2;
-        if (obj2 == null)
+        if (obj2 is null)
             return obj1;
 
         var json1 = Serialize(obj1);
