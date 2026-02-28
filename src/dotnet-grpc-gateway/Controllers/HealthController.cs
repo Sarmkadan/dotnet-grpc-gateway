@@ -1,3 +1,4 @@
+#nullable enable
 // =============================================================================
 // Author: Vladyslav Zaiets | https://sarmkadan.com
 // CTO & Software Architect
@@ -103,7 +104,7 @@ public class HealthController : ControllerBase
         {
             var report = await _discoveryService.PerformHealthCheckAsync(serviceId);
 
-            if (report == null)
+            if (report is null)
                 return NotFound($"Service {serviceId} not found");
 
             var status = new ServiceHealthInfo

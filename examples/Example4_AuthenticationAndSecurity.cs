@@ -1,3 +1,4 @@
+#nullable enable
 // =============================================================================
 // Author: Vladyslav Zaiets | https://sarmkadan.com
 // CTO & Software Architect
@@ -250,7 +251,7 @@ public class AuthenticationAndSecurityExample
             await Task.Delay(1000);
 
             // Step 6: Test authenticated access
-            if (clientToken != null)
+            if (clientToken is not null)
             {
                 Console.WriteLine("\nStep 6: Making authenticated request...");
                 await example.MakeAuthenticatedRequestAsync(

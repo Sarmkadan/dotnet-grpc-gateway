@@ -1,3 +1,4 @@
+#nullable enable
 // =============================================================================
 // Author: Vladyslav Zaiets | https://sarmkadan.com
 // CTO & Software Architect
@@ -83,7 +84,7 @@ public class RequestLoggingMiddleware
             QueryString = request.QueryString.Value,
             ContentType = request.ContentType,
             ContentLength = request.ContentLength,
-            Body = bodyContent != null ? TruncateBody(bodyContent) : null
+            Body = bodyContent is not null ? TruncateBody(bodyContent) : null
         };
 
         _logger.LogInformation("Incoming request: {@RequestData}", logData);
@@ -108,7 +109,7 @@ public class RequestLoggingMiddleware
             ContentType = response.ContentType,
             ContentLength = response.ContentLength,
             ElapsedMs = elapsedMs,
-            Body = responseContent != null ? TruncateBody(responseContent) : null
+            Body = responseContent is not null ? TruncateBody(responseContent) : null
         };
 
         var logLevel = response.StatusCode >= 500 ? LogLevel.Error :
