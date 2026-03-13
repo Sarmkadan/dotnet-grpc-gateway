@@ -32,6 +32,24 @@ public class ErrorHandlingMiddleware
         {
             await _next(context);
         }
+        catch (ObjectDisposedException ex)
+        {
+            // The response stream was disposed because the client closed the connection
+            // mid-stream. This is normal for server-streaming RPCs and must not produce
+            // a 500 error log entry.
+            _logger.LogDebug(
+                ex,
+                "Client disconnected before stream completed (request {RequestId})",
+                requestId);
+        }
+        catch (OperationCanceledException ex) when (context.RequestAborted.IsCancellationRequested)
+        {
+            // Client cancelled the request (e.g. closed the browser tab).
+            _logger.LogDebug(
+                ex,
+                "Request {RequestId} was cancelled by the client",
+                requestId);
+        }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Unhandled exception: {Message}", ex.Message);
