@@ -24,6 +24,15 @@ public interface IGrpcClientFactory
     HttpClient CreateHttpClient(GrpcService service);
 
     /// <summary>
+    /// Creates or retrieves a cached <see cref="HttpClient"/> configured for the specified gRPC service,
+    /// with per-route overrides applied on top of the service defaults.
+    /// </summary>
+    /// <param name="service">The downstream gRPC service definition.</param>
+    /// <param name="routeChannelOptions">Per-route channel overrides; may be <see langword="null"/>.</param>
+    /// <returns>A configured <see cref="HttpClient"/> for the service endpoint.</returns>
+    HttpClient CreateHttpClient(GrpcService service, RouteChannelOptions? routeChannelOptions);
+
+    /// <summary>
     /// Invokes a unary gRPC method on the specified service and returns the deserialized response.
     /// </summary>
     /// <typeparam name="T">The expected response type.</typeparam>
@@ -59,33 +68,55 @@ public class GrpcClientFactory : IGrpcClientFactory
     }
 
     public HttpClient CreateHttpClient(GrpcService service)
+        => CreateHttpClient(service, routeChannelOptions: null);
+
+    public HttpClient CreateHttpClient(GrpcService service, RouteChannelOptions? routeChannelOptions)
     {
         if (service is null)
             throw new ArgumentNullException(nameof(service));
 
+        // When route-level overrides are present we build a dedicated client so the
+        // gateway-level cached client is not accidentally mutated.
+        if (routeChannelOptions is not null)
+            return BuildHttpClient(service, routeChannelOptions);
+
         if (_clientCache.TryGetValue(service.Id, out var cachedClient))
             return cachedClient;
 
+        var client = BuildHttpClient(service, routeChannelOptions: null);
+        _clientCache[service.Id] = client;
+        return client;
+    }
+
+    private HttpClient BuildHttpClient(GrpcService service, RouteChannelOptions? routeChannelOptions)
+    {
+        var skipTls = routeChannelOptions?.SkipTlsVerification ?? false;
         var handler = new HttpClientHandler();
-        if (!service.UseTls)
+        if (!service.UseTls || skipTls)
         {
             handler.ServerCertificateCustomValidationCallback = (_, _, _, _) => true;
         }
 
+        var timeout = routeChannelOptions?.CallTimeout ?? TimeSpan.FromSeconds(30);
         var client = new HttpClient(handler)
         {
             BaseAddress = new Uri(service.GetEndpointUri()),
-            Timeout = TimeSpan.FromSeconds(30)
+            Timeout = timeout
         };
 
         client.DefaultRequestHeaders.Add("User-Agent", "DotNetGrpcGateway/1.0");
 
-        _clientCache[service.Id] = client;
+        if (routeChannelOptions?.AdditionalHeaders is { Count: > 0 } headers)
+        {
+            foreach (var (key, value) in headers)
+                client.DefaultRequestHeaders.TryAddWithoutValidation(key, value);
+        }
 
         _logger.LogInformation(
-            "Created HTTP client for service {ServiceName} at {Endpoint}",
+            "Created HTTP client for service {ServiceName} at {Endpoint} (timeout={Timeout})",
             service.Name,
-            service.GetEndpointUri());
+            service.GetEndpointUri(),
+            timeout);
 
         return client;
     }
