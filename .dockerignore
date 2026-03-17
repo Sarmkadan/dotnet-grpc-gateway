@@ -1,0 +1,37 @@
+# Build output directories
+bin/
+obj/
+
+# Git
+.git/
+.gitignore
+
+# Test files
+**/tests/
+**/*.Tests.csproj
+
+# Documentation
+**/docs/
+README.md
+CHANGELOG.md
+
+# Temporary files
+*.tmp
+*.temp
+
+# User secrets
+**/appsettings.Development.json
+**/appsettings.Local.json
+
+# IDE specific files
+.vs/
+.idea/
+*.user
+*.suo
+*.userosscache
+*.userprefs
+
+# Build artifacts
+*.cache
+*.pid
+*.pidfile
