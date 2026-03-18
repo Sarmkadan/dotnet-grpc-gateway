@@ -133,6 +133,7 @@ try
 
     app.UseCors("GrpcWebPolicy");
     app.UseGrpcWeb();
+    app.UseMiddleware<GrpcWebCompressionMiddleware>();
     app.UseMiddleware<GrpcWebTrailerForwardingMiddleware>();
 
     // Exception handling middleware
