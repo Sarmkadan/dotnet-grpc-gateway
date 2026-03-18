@@ -1,3 +1,4 @@
+#nullable enable
 // =============================================================================
 // Author: Vladyslav Zaiets | https://sarmkadan.com
 // CTO & Software Architect
@@ -31,7 +32,7 @@ public class ServiceHealthCheckFailedEventHandler : IEventHandler<ServiceHealthC
             @event.ServiceName, @event.ServiceId, @event.ErrorMessage, @event.CorrelationId);
 
         // Send alert via webhook if configured
-        if (_webhookService != null)
+        if (_webhookService is not null)
         {
             try
             {

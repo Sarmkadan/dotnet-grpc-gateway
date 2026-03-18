@@ -1,3 +1,4 @@
+#nullable enable
 // =============================================================================
 // Author: Vladyslav Zaiets | https://sarmkadan.com
 // CTO & Software Architect
@@ -158,7 +159,7 @@ public class WebhookService : IWebhookService
         }
 
         // Record delivery in history
-        if (result != null)
+        if (result is not null)
         {
             _history.Add(new WebhookDelivery
             {

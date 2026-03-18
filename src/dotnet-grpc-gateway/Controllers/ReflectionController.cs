@@ -1,3 +1,4 @@
+#nullable enable
 // =============================================================================
 // Author: Vladyslav Zaiets | https://sarmkadan.com
 // CTO & Software Architect
@@ -65,7 +66,7 @@ public class ReflectionController : ControllerBase
         {
             var info = await _reflectionService.GetServiceReflectionAsync(serviceId, cancellationToken);
 
-            if (info == null)
+            if (info is null)
                 return NotFound(
                     $"No reflection data available for service {serviceId}. " +
                     $"Call POST /api/reflection/{serviceId}/refresh first.");
@@ -95,7 +96,7 @@ public class ReflectionController : ControllerBase
         {
             var info = await _reflectionService.GetServiceReflectionAsync(serviceId, cancellationToken);
 
-            if (info == null)
+            if (info is null)
                 return NotFound($"No reflection data for service {serviceId}");
 
             return Ok(info.Methods);

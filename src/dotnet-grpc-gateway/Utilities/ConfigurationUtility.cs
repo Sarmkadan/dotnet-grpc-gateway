@@ -1,3 +1,4 @@
+#nullable enable
 // =============================================================================
 // Author: Vladyslav Zaiets | https://sarmkadan.com
 // CTO & Software Architect
@@ -19,7 +20,7 @@ public static class ConfigurationUtility
         try
         {
             var value = config[key];
-            if (value == null)
+            if (value is null)
                 return defaultValue;
 
             return (T)Convert.ChangeType(value, typeof(T));

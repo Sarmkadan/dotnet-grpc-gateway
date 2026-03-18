@@ -1,3 +1,4 @@
+#nullable enable
 // =============================================================================
 // Author: Vladyslav Zaiets | https://sarmkadan.com
 // CTO & Software Architect
@@ -69,7 +70,7 @@ public class RequestContext
         if (string.IsNullOrEmpty(key))
             return;
 
-        if (value == null)
+        if (value is null)
             Properties.Remove(key);
         else
             Properties[key] = value;

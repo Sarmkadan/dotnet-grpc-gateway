@@ -1,3 +1,4 @@
+#nullable enable
 // =============================================================================
 // Author: Vladyslav Zaiets | https://sarmkadan.com
 // CTO & Software Architect
@@ -73,7 +74,7 @@ public static class ValidationUtility
     /// </summary>
     public static bool IsNullOrEmpty(object? value)
     {
-        if (value == null)
+        if (value is null)
             return true;
 
         if (value is string str)

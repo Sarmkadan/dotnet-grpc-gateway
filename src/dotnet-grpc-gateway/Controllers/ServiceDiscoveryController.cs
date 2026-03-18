@@ -1,3 +1,4 @@
+#nullable enable
 // =============================================================================
 // Author: Vladyslav Zaiets | https://sarmkadan.com
 // CTO & Software Architect
@@ -78,7 +79,7 @@ public class ServiceDiscoveryController : ControllerBase
         try
         {
             var service = await _gatewayService.GetServiceAsync(serviceId);
-            if (service == null)
+            if (service is null)
                 return NotFound($"Service {serviceId} not found");
 
             var routes = await _routeManagementService.GetRoutesByServiceAsync(serviceId);
@@ -109,7 +110,7 @@ public class ServiceDiscoveryController : ControllerBase
         try
         {
             var route = await _routeManagementService.FindMatchingRouteAsync(request.Path);
-            if (route == null)
+            if (route is null)
                 return NotFound("No matching route found");
 
             var service = await _gatewayService.GetServiceAsync(route.TargetServiceId);
