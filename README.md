@@ -17,6 +17,7 @@ A minimal, production-ready gRPC-Web gateway for .NET — browser-compatible gRP
 - [Architecture](#architecture)
 - [Features](#features)
 - [Installation](#installation)
+- [Getting Started: Blazor WebAssembly + ASP.NET Core Backend](#getting-started-blazor-webassembly--aspnet-core-backend)
 - [Quick Start](#quick-start)
 - [Usage Examples](#usage-examples)
 - [API Reference](#api-reference)
@@ -91,6 +92,8 @@ Built with modern .NET 10 and C# 14 features, it's designed for cloud-native dep
 │  │  - Rate Limiting Middleware                            │  │
 │  │  - Request Logging Middleware                          │  │
 │  │  - gRPC-Web Protocol Handler                           │  │
+│  │  - gRPC-Web Compression Middleware                     │  │
+│  │  - gRPC-Web Trailer Forwarding Middleware              │  │
 │  └────────────────────────────────────────────────────────┘  │
 │                                                               │
 │  ┌────────────────────────────────────────────────────────┐  │
@@ -122,6 +125,61 @@ Built with modern .NET 10 and C# 14 features, it's designed for cloud-native dep
     │ - OrderService        │
     └───────────────────────┘
 ```
+
+### How gRPC-Web Frame Translation Works
+
+Browsers cannot use HTTP/2 trailers or raw gRPC framing, so the gateway performs
+a two-step translation on every request:
+
+**1. Inbound (browser → gateway → backend)**
+
+```
+Browser request (HTTP/1.1)
+  Content-Type: application/grpc-web+proto
+  Body: [0x00][length 4 bytes BE][protobuf payload]
+                  │
+                  ▼
+         Gateway strips gRPC-Web framing header,
+         reassembles raw protobuf payload,
+         opens an HTTP/2 channel to the backend,
+         and forwards as a standard gRPC call.
+```
+
+**2. Outbound (backend → gateway → browser)**
+
+```
+Backend gRPC response (HTTP/2)
+  grpc-status: 0
+  grpc-message: OK
+  Body: [raw protobuf frames]
+  Trailing headers: grpc-status, grpc-status-details-bin, …
+                  │
+                  ▼
+         Gateway re-wraps each response frame with the
+         5-byte gRPC-Web header, then appends the trailing
+         metadata as a gRPC-Web trailer frame (flag 0x80).
+         Optionally gzip-compresses large data frames.
+                  │
+                  ▼
+Browser receives (HTTP/1.1)
+  Content-Type: application/grpc-web+proto
+  grpc-encoding: gzip          (if compression active)
+  Body: [0x00][len][gzipped protobuf]
+        [0x80][len][grpc-status: 0\r\ngrpc-message: OK\r\n]
+```
+
+Because trailers are embedded in the body as a trailer frame, browsers gain
+full access to status codes, error details, and pagination tokens — without
+needing HTTP/2 or the Fetch Trailer API.
+
+### Why Envoy Is Not Needed
+
+Envoy solves gRPC-Web by acting as a sidecar that re-encodes HTTP/1.1 gRPC-Web
+to HTTP/2 gRPC.  `dotnet-grpc-gateway` performs the same re-encoding in-process
+inside ASP.NET Core, so there is no separate proxy process to deploy, configure,
+or monitor.  The entire bridge is a few ASP.NET middleware components and a
+managed `HttpClient` pool — which is also why the memory footprint is ~15 MB
+vs. 50–100 MB for Envoy.
 
 ### Core Components
 
@@ -277,6 +335,128 @@ dotnet add package DotNetGrpcGateway
 ### Option 4: Kubernetes Deployment
 
 See [docs/deployment.md](docs/deployment.md) for Kubernetes manifests.
+
+---
+
+## Getting Started: Blazor WebAssembly + ASP.NET Core Backend
+
+This tutorial walks through the most common scenario: a **Blazor WebAssembly** client
+calling an **ASP.NET Core gRPC backend** through the gateway.
+
+### Prerequisites
+
+- .NET 10 SDK
+- Docker & Docker Compose (optional, for the backend service)
+
+### Step 1 — Start the gateway
+
+```bash
+git clone https://github.com/Sarmkadan/dotnet-grpc-gateway.git
+cd dotnet-grpc-gateway
+docker-compose up -d
+# Gateway is now listening on http://localhost:5000
+```
+
+### Step 2 — Create a gRPC backend service
+
+```bash
+dotnet new grpc -n GreeterService
+cd GreeterService
+dotnet run --urls http://localhost:5001
+```
+
+The default template exposes `greet.Greeter/SayHello`.
+
+### Step 3 — Register the backend with the gateway
+
+```bash
+curl -X POST http://localhost:5000/api/gateway/services \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "GreeterService",
+    "serviceFullName": "greet.Greeter",
+    "host": "localhost",
+    "port": 5001,
+    "useTls": false,
+    "healthCheckIntervalSeconds": 30
+  }'
+# Returns: { "id": 1, ... }
+```
+
+### Step 4 — Add a routing rule
+
+```bash
+curl -X POST http://localhost:5000/api/gateway/routes \
+  -H "Content-Type: application/json" \
+  -d '{
+    "pattern": "greet.Greeter",
+    "targetServiceId": 1,
+    "matchType": 1,
+    "priority": 100
+  }'
+```
+
+### Step 5 — Call the service from Blazor WebAssembly
+
+Add the gRPC-Web NuGet package to your Blazor project:
+
+```bash
+dotnet add package Grpc.Net.Client.Web
+dotnet add package Google.Protobuf
+dotnet add package Grpc.Tools
+```
+
+Configure the gRPC-Web channel in `Program.cs`:
+
+```csharp
+using Grpc.Net.Client;
+using Grpc.Net.Client.Web;
+
+var channel = GrpcChannel.ForAddress("http://localhost:5000", new GrpcChannelOptions
+{
+    HttpHandler = new GrpcWebHandler(new HttpClientHandler())
+});
+
+var client = new Greeter.GreeterClient(channel);
+builder.Services.AddSingleton(client);
+```
+
+Call the service from a Blazor component:
+
+```razor
+@inject Greeter.GreeterClient GreeterClient
+
+<button @onclick="SayHello">Say Hello</button>
+<p>@_reply</p>
+
+@code {
+    private string _reply = string.Empty;
+
+    private async Task SayHello()
+    {
+        var response = await GreeterClient.SayHelloAsync(
+            new HelloRequest { Name = "Blazor" });
+        _reply = response.Message;
+    }
+}
+```
+
+The gateway translates the gRPC-Web binary frame from the browser into a
+standard HTTP/2 gRPC call to `localhost:5001`, then re-encodes the response
+(including trailing metadata) back into gRPC-Web for the browser.
+
+### Step 6 — Verify everything works
+
+```bash
+# Check gateway health
+curl http://localhost:5000/health
+
+# Check the registered service
+curl http://localhost:5000/api/gateway/services/1
+
+# Check request metrics after a few calls
+curl http://localhost:5000/api/gateway/statistics/today
+```
 
 ---
 
