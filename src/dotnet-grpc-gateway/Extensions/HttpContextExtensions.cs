@@ -1,3 +1,4 @@
+#nullable enable
 // =============================================================================
 // Author: Vladyslav Zaiets | https://sarmkadan.com
 // CTO & Software Architect
@@ -15,7 +16,7 @@ public static class HttpContextExtensions
     /// </summary>
     public static string GetClientIpAddress(this HttpContext context)
     {
-        if (context == null)
+        if (context is null)
             throw new ArgumentNullException(nameof(context));
 
         // Check for X-Forwarded-For header (set by proxies)
@@ -35,7 +36,7 @@ public static class HttpContextExtensions
     /// </summary>
     public static string? GetHeader(this HttpContext context, string headerName)
     {
-        if (context == null)
+        if (context is null)
             throw new ArgumentNullException(nameof(context));
 
         if (string.IsNullOrWhiteSpace(headerName))
@@ -66,7 +67,7 @@ public static class HttpContextExtensions
     /// </summary>
     public static string GetRequestId(this HttpContext context)
     {
-        if (context == null)
+        if (context is null)
             throw new ArgumentNullException(nameof(context));
 
         var requestId = context.GetHeader("X-Request-ID");
@@ -81,7 +82,7 @@ public static class HttpContextExtensions
     /// </summary>
     public static bool IsGrpcRequest(this HttpContext context)
     {
-        if (context == null)
+        if (context is null)
             throw new ArgumentNullException(nameof(context));
 
         var contentType = context.Request.ContentType ?? "";
@@ -93,7 +94,7 @@ public static class HttpContextExtensions
     /// </summary>
     public static bool IsGrpcWebRequest(this HttpContext context)
     {
-        if (context == null)
+        if (context is null)
             throw new ArgumentNullException(nameof(context));
 
         var contentType = context.Request.ContentType ?? "";

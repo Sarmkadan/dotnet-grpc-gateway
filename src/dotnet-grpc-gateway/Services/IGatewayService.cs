@@ -1,3 +1,4 @@
+#nullable enable
 // =============================================================================
 // Author: Vladyslav Zaiets | https://sarmkadan.com
 // CTO & Software Architect
@@ -37,7 +38,7 @@ public class GatewayService : IGatewayService
 
     public async Task<GatewayConfiguration> GetConfigurationAsync()
     {
-        if (_currentConfig != null)
+        if (_currentConfig is not null)
             return _currentConfig;
 
         var configs = await _unitOfWork.Gateways.GetAllAsync();
@@ -66,7 +67,7 @@ public class GatewayService : IGatewayService
 
     public async Task<GatewayConfiguration> UpdateConfigurationAsync(GatewayConfiguration config)
     {
-        if (config == null)
+        if (config is null)
             throw new ArgumentNullException(nameof(config));
 
         try
@@ -84,7 +85,7 @@ public class GatewayService : IGatewayService
 
     public async Task RegisterServiceAsync(GrpcService service)
     {
-        if (service == null)
+        if (service is null)
             throw new ArgumentNullException(nameof(service));
 
         try
@@ -92,7 +93,7 @@ public class GatewayService : IGatewayService
             service.Validate();
 
             var existing = await _unitOfWork.Services.GetByNameAsync(service.Name);
-            if (existing != null)
+            if (existing is not null)
                 throw new InvalidOperationException($"Service '{service.Name}' already registered");
 
             await _unitOfWork.Services.RegisterAsync(service);
@@ -106,7 +107,7 @@ public class GatewayService : IGatewayService
     public async Task UnregisterServiceAsync(int serviceId)
     {
         var service = await _unitOfWork.Services.GetByIdAsync(serviceId);
-        if (service == null)
+        if (service is null)
             throw new ServiceNotFoundException("unknown");
 
         // Remove all routes associated with this service
@@ -137,7 +138,7 @@ public class GatewayService : IGatewayService
 
     public async Task<GatewayRoute> AddRouteAsync(GatewayRoute route)
     {
-        if (route == null)
+        if (route is null)
             throw new ArgumentNullException(nameof(route));
 
         try
@@ -146,7 +147,7 @@ public class GatewayService : IGatewayService
 
             // Verify service exists
             var service = await _unitOfWork.Services.GetByIdAsync(route.TargetServiceId);
-            if (service == null)
+            if (service is null)
                 throw new ServiceNotFoundException("unknown");
 
             return await _unitOfWork.Routes.CreateAsync(route);

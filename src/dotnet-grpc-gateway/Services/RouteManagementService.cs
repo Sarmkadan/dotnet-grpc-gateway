@@ -1,3 +1,4 @@
+#nullable enable
 // =============================================================================
 // Author: Vladyslav Zaiets | https://sarmkadan.com
 // CTO & Software Architect
@@ -69,7 +70,7 @@ public class RouteManagementService : IRouteManagementService
                 .OrderByDescending(r => r.Priority)
                 .FirstOrDefault();
 
-            if (matchingRoute != null)
+            if (matchingRoute is not null)
                 _logger.LogDebug("Found matching route for path {Path}: {Pattern}",
                     StringUtility.MaskSensitiveData(path), matchingRoute.Pattern);
 
@@ -148,7 +149,7 @@ public class RouteManagementService : IRouteManagementService
             var allRoutes = await _routeRepository.GetAllAsync();
             var duplicate = allRoutes.FirstOrDefault(r => r.Id != route.Id && r.Pattern == route.Pattern);
 
-            if (duplicate != null)
+            if (duplicate is not null)
             {
                 _logger.LogWarning("Route pattern {Pattern} already exists (ID: {DuplicateId})",
                     StringUtility.MaskSensitiveData(route.Pattern), duplicate.Id);

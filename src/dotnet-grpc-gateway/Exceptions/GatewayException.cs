@@ -1,3 +1,4 @@
+#nullable enable
 // =============================================================================
 // Author: Vladyslav Zaiets | https://sarmkadan.com
 // CTO & Software Architect
@@ -96,7 +97,7 @@ public class AuthorizationException : GatewayException
         : base($"Authorization denied: {reason}", "AUTHORIZATION_DENIED", 403)
     {
         AddDetail("reason", reason);
-        if (clientId != null)
+        if (clientId is not null)
             AddDetail("client_id", clientId);
     }
 }

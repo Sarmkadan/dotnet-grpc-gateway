@@ -1,3 +1,4 @@
+#nullable enable
 // =============================================================================
 // Author: Vladyslav Zaiets | https://sarmkadan.com
 // CTO & Software Architect
@@ -37,7 +38,7 @@ public class ServiceDiscoveryService : IServiceDiscoveryService
         try
         {
             var service = await _unitOfWork.Services.GetByIdAsync(serviceId);
-            if (service == null)
+            if (service is null)
                 throw new ServiceNotFoundException("unknown");
 
             var healthReport = new ServiceHealthReport
@@ -105,7 +106,7 @@ public class ServiceDiscoveryService : IServiceDiscoveryService
     public async Task UpdateServiceHealthAsync(int serviceId, bool isHealthy, string? errorMessage = null)
     {
         var service = await _unitOfWork.Services.GetByIdAsync(serviceId);
-        if (service == null)
+        if (service is null)
             throw new ServiceNotFoundException("unknown");
 
         service.UpdateHealthStatus(isHealthy, errorMessage);
