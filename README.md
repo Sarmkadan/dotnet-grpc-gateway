@@ -278,6 +278,24 @@ IConnectionStringProvider       Connection string management
 - Error distribution tracking
 - Webhook integrations
 
+### Load Balancing
+- Multiple endpoints per registered service
+- Round-robin, random, and least-connections strategies
+- Per-endpoint health tracking and request counters
+- REST API for endpoint registration, health updates, and strategy changes
+
+### Circuit Breaker
+- Per-service circuit state tracking
+- Closed, Open, and HalfOpen transitions
+- Manual reset API for operations teams
+- Configurable failure threshold, open duration, and recovery threshold
+
+### Request/Response Logging
+- In-memory structured request log store
+- Query API for recent entries, filtered searches, and summaries
+- Sensitive request headers automatically redacted
+- Fixed-capacity ring buffer to protect memory usage
+
 ---
 
 ## Installation
@@ -1017,6 +1035,60 @@ POST /api/servicediscovery/route-conflicts
   Body: [ { pattern, priority }, ... ]
 ```
 
+### Load Balancing Endpoints
+
+```
+GET /api/loadbalancer/services/{serviceId}/endpoints
+  List registered endpoints for a service
+
+POST /api/loadbalancer/services/{serviceId}/endpoints
+  Register a new endpoint
+  Body: { id, host, port, useTls, isHealthy, weight }
+
+DELETE /api/loadbalancer/services/{serviceId}/endpoints/{endpointId}
+  Remove an endpoint from the pool
+
+PATCH /api/loadbalancer/services/{serviceId}/endpoints/{endpointId}/health
+  Update endpoint health state
+  Body: true | false
+
+GET /api/loadbalancer/strategy
+  Get active load balancing strategy
+
+PUT /api/loadbalancer/strategy
+  Change strategy
+  Body: "RoundRobin" | "Random" | "LeastConnections"
+```
+
+### Circuit Breaker Endpoints
+
+```
+GET /api/circuitbreaker
+  List circuit breaker state for all tracked services
+
+GET /api/circuitbreaker/services/{serviceId}
+  Get breaker state, failure count, and opened timestamp
+
+POST /api/circuitbreaker/services/{serviceId}/reset
+  Reset a breaker back to Closed
+```
+
+### Request Log Endpoints
+
+```
+GET /api/requestlogs?limit=50
+  Get recent structured request log entries
+
+GET /api/requestlogs/search?method=Greeter&statusCode=200&from=2025-01-01T00:00:00Z&to=2025-01-01T01:00:00Z&limit=100
+  Search retained request logs by method, status code, and time range
+
+GET /api/requestlogs/summary
+  Get aggregate request log statistics
+
+DELETE /api/requestlogs
+  Clear retained request log entries
+```
+
 ### Statistics Endpoints
 
 ```
@@ -1082,6 +1154,62 @@ Gateway__MaxConcurrentConnections   1000
 Gateway__RequestTimeoutMs       30000
 ConnectionStrings__DefaultConnection   PostgreSQL connection string
 ```
+
+### Load Balancing Configuration
+
+The gateway registers the in-process load balancer as a singleton:
+
+```csharp
+services.AddSingleton<ILoadBalancerService, LoadBalancerService>();
+```
+
+Supported strategies:
+
+- `RoundRobin` (default)
+- `Random`
+- `LeastConnections`
+
+Endpoint configuration fields:
+
+- `Host`
+- `Port`
+- `UseTls`
+- `IsHealthy`
+- `Weight`
+
+### Circuit Breaker Configuration
+
+Default circuit breaker options:
+
+```csharp
+new CircuitBreakerOptions
+{
+    FailureThreshold = 5,
+    OpenDuration = TimeSpan.FromSeconds(30),
+    HalfOpenSuccessThreshold = 2
+}
+```
+
+The registry is registered as a singleton and creates one breaker per service on demand:
+
+```csharp
+services.AddSingleton<ICircuitBreakerRegistry, CircuitBreakerRegistry>();
+```
+
+### Request/Response Logging Configuration
+
+Structured request logging is enabled by registering the in-memory store and middleware:
+
+```csharp
+services.AddSingleton<IRequestLogService>(new RequestLogService(10_000));
+app.UseMiddleware<RequestResponseCapturingMiddleware>();
+```
+
+Log store behavior:
+
+- Ring buffer capacity: `10_000` entries
+- Sensitive headers redacted: `Authorization`, `Cookie`, `X-Api-Key`
+- Query filters: gRPC method substring, status code, time range, and result limit
 
 ---
 
