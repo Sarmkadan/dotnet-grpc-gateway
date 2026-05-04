@@ -177,21 +177,107 @@ The gateway returns structured error responses:
 }
 ```
 
+## Phase 2 Enhancements
+
+### New Middleware
+- **RequestLoggingMiddleware**: Comprehensive request/response logging with performance metrics
+- **RateLimitingMiddleware**: Token bucket rate limiting per client IP
+- **AuthenticationMiddleware**: Bearer token authentication for API endpoints
+
+### Caching Layer
+- **MemoryCacheService**: High-performance in-memory caching with statistics
+- **CachePolicy**: Configurable cache policies with TTL and size limits
+
+### Event System (Pub-Sub)
+- **EventPublisher**: In-memory pub-sub message bus
+- **Event Handlers**:
+  - ServiceRegisteredEvent
+  - ServiceUnregisteredEvent
+  - RouteAddedEvent / RouteRemovedEvent
+  - ServiceHealthCheckFailedEvent
+  - ConfigurationUpdatedEvent
+  - RequestThrottledEvent
+
+### Output Formatters
+- **JsonFormatter**: JSON output with pretty-printing
+- **CsvFormatter**: Comma-separated values for data export
+- **XmlFormatter**: XML serialization with formatting
+- **OutputFormatterFactory**: Factory for content negotiation
+
+### Integration Services
+- **WebhookService**: Webhook delivery with retry logic and history tracking
+- **HttpClientProvider**: Managed HTTP client pool with configuration
+
+### Advanced Route Management
+- **RouteManagementService**: Route validation, conflict detection, and analysis
+- **ServiceDiscoveryController**: Dynamic service discovery REST endpoints
+
+### Performance & Analytics
+- **PerformanceMonitor**: Real-time latency percentiles (P50, P95, P99)
+- **RequestMetricsAnalyzerService**: Pattern analysis and anomaly detection
+- **MetricsController**: Detailed performance statistics and insights
+
+### Utilities (6 files)
+- **StringUtility**: String manipulation, wildcards, regex patterns
+- **HttpUtility**: HTTP header parsing, content type detection
+- **DateTimeUtility**: UTC time handling, time range utilities
+- **ValidationUtility**: URI, IP, port, hostname validation
+- **JsonSerializationUtility**: Consistent JSON handling with fallbacks
+- **ConfigurationUtility**: Type-safe config access with defaults
+
+### Background Services
+- **MetricsAggregationBackgroundService**: Periodic stats compilation
+- **CacheExpirationBackgroundService**: Cache health monitoring
+- **ServiceCleanupBackgroundService**: Stale service removal
+
+### Infrastructure
+- **RequestContext**: Async-safe request context with correlation IDs
+- **StructuredLogger**: Consistent structured logging across the application
+
 ## Development
 
 The codebase is organized into clear layers:
 
 ```
 src/dotnet-grpc-gateway/
-├── Domain/              # Entity models
-├── Services/            # Business logic
-├── Infrastructure/      # Data access & middleware
-├── Configuration/       # DI setup
-├── Controllers/         # REST API
-├── Constants/           # Enums and constants
-├── Exceptions/          # Custom exceptions
-└── Program.cs           # Entry point
+├── Domain/                  # Entity models
+├── Services/                # Business logic (8 services)
+├── Infrastructure/          # Middleware, logging, monitoring
+├── Configuration/           # DI setup
+├── Controllers/             # REST API (3 controllers)
+├── Middleware/              # Request pipeline (3 middleware)
+├── Caching/                 # Caching layer (2 files)
+├── Formatters/              # Output formatting (4 files)
+├── Integration/             # External service integration (2 files)
+├── Events/                  # Event system (2 files + 5 handlers)
+├── Utilities/               # Helper utilities (6 files)
+├── Constants/               # Enums and constants
+├── Exceptions/              # Custom exceptions
+└── Program.cs               # Entry point
 ```
+
+## New REST Endpoints (Phase 2)
+
+### Performance Metrics
+- `GET /api/metrics/performance` - Latency percentiles and throughput
+- `GET /api/metrics/requests` - Request counts and patterns
+- `GET /api/metrics/slow` - Requests exceeding latency threshold
+- `GET /api/metrics/errors` - Error distribution by status code
+- `GET /api/metrics/endpoints` - Top endpoints by usage
+- `POST /api/metrics/reset` - Reset all metrics
+
+### Health & Readiness
+- `GET /api/health/status` - Overall gateway health
+- `GET /api/health/services` - Per-service health details
+- `GET /api/health/services/{id}` - Specific service health
+- `GET /api/health/ready` - Readiness probe
+- `GET /api/health/live` - Liveness probe
+
+### Service Discovery
+- `GET /api/servicediscovery/services` - All registered services
+- `GET /api/servicediscovery/services/{id}/routes` - Service routes
+- `POST /api/servicediscovery/route-match` - Find matching route
+- `POST /api/servicediscovery/route-conflicts` - Detect route conflicts
 
 ## License
 
