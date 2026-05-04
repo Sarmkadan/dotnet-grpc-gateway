@@ -248,9 +248,6 @@ class Program
 
 `RequestLogEntry` represents a single recorded request/response log entry captured by the gRPC gateway. It contains comprehensive request and response metadata including timing, status codes, sizes, headers, and error information. The class automatically computes log levels and descriptive messages based on the request outcome and performance characteristics.
 
-
-
-
 ### Example Usage
 
 ```csharp
@@ -316,6 +313,56 @@ class Program
 
         Console.WriteLine($"\nFailed Request - Log Level: {failedEntry.LogLevel}"); // Automatically computed as "ERROR"
         Console.WriteLine($"Message: {failedEntry.Message}");
+    }
+}
+```
+
+## RequestMetric
+
+`RequestMetric` tracks key performance indicators and metadata for individual requests processed by the gRPC gateway. It captures crucial data such as request/response sizes, duration, success/failure status, and retry information to facilitate observability, auditing, and troubleshooting.
+
+### Example Usage
+
+```csharp
+using System;
+using System.Collections.Generic;
+using DotNetGrpcGateway.Domain;
+
+class Program
+{
+    static void Main()
+    {
+        // Create a request metric for a processed request
+        var metric = new RequestMetric
+        {
+            Id = 1,
+            RequestId = Guid.NewGuid().ToString(),
+            ServiceName = "UserService",
+            MethodName = "GetUser",
+            ClientIpAddress = "192.168.1.100",
+            RouteId = 10,
+            RequestSizeBytes = 512,
+            ResponseSizeBytes = 2048,
+            DurationMs = 45.5,
+            HttpStatusCode = 200,
+            GrpcStatusCode = "OK",
+            IsSuccessful = true,
+            RequestHeaders = new Dictionary<string, string> { { "User-Agent", "Mozilla/5.0" } },
+            ResponseHeaders = new Dictionary<string, string> { { "Content-Type", "application/grpc" } },
+            CacheHitStatus = "Miss",
+            WasRetried = false,
+            RetryCount = 0,
+            RecordedAt = DateTime.UtcNow
+        };
+
+        // Use helper methods
+        if (metric.IsSlowRequest(slowThresholdMs: 100))
+        {
+            Console.WriteLine("Request was slow");
+        }
+        
+        metric.RecordRetry();
+        Console.WriteLine($"Retried: {metric.WasRetried}, Retry count: {metric.RetryCount}");
     }
 }
 ```
