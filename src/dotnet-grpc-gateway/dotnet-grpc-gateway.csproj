@@ -10,6 +10,8 @@
     <Authors>Vladyslav Zaiets</Authors>
     <Description>Minimal gRPC-Web gateway for .NET - browser-compatible gRPC without Envoy or complex proxies</Description>
     <PackageProjectUrl>https://github.com/sarmkadan/dotnet-grpc-gateway</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/sarmkadan/dotnet-grpc-gateway</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
   </PropertyGroup>
 
