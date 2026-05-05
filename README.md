@@ -166,25 +166,25 @@ IConnectionStringProvider       Connection string management
 
 ## Features
 
-### ✨ gRPC-Web Support
+### gRPC-Web Support
 - Browser-compatible HTTP/1.1 translation
 - Automatic protocol detection
 - CORS handling
 - Streaming support
 
-### 🔍 Service Discovery
+### Service Discovery
 - Automatic service registration/deregistration
 - Real-time health checks (30-second intervals)
 - Service availability tracking
 - Per-service health reports
 
-### 🛣️ Request Routing
+### Request Routing
 - Pattern-based routing with wildcards
 - Priority-based matching
 - Route conflict detection
 - Dynamic route updates (no restart required)
 
-### 📊 Metrics & Analytics
+### Metrics & Analytics
 - Per-request metrics collection
 - Latency percentiles (P50, P95, P99)
 - Error rate tracking
@@ -192,21 +192,21 @@ IConnectionStringProvider       Connection string management
 - Slow request detection
 - 30-day retention
 
-### 🛡️ Security
+### Security
 - Bearer token authentication
 - Per-service authorization policies
 - Rate limiting (requests per minute)
 - IP-based rate limiting
 - Request validation
 
-### ⚡ Performance
+### Performance
 - In-memory caching with TTL
 - Cache statistics
 - Response compression
 - Connection pooling
 - Configurable timeouts
 
-### 📈 Monitoring
+### Monitoring
 - Health check endpoints
 - Readiness/liveness probes
 - Performance metrics export
