@@ -65,14 +65,15 @@ public class MetricsAggregationBackgroundService : BackgroundService
         {
             // Get current statistics
             var todayStats = await metricsService.GetTodayStatisticsAsync();
-            var performanceMetrics = await performanceMonitor?.GetMetricsAsync()
-                ?? Task.FromResult<PerformanceMetrics?>(null);
+            var performanceMetrics = performanceMonitor != null
+                ? await performanceMonitor.GetMetricsAsync()
+                : null;
 
             _logger.LogInformation(
                 "Metrics aggregated - Requests: {TotalRequests}, " +
                 "Avg Response Time: {AvgResponseTime}ms, " +
                 "Requests/sec: {RPS:F2}",
-                todayStats.TotalRequests,
+                todayStats.TotalRequestsProcessed,
                 performanceMetrics?.AverageDurationMs ?? 0,
                 performanceMetrics?.RequestsPerSecond ?? 0);
         }

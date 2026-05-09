@@ -72,7 +72,7 @@ public class GatewayService : IGatewayService
         try
         {
             config.Validate();
-            await _unitOfWork.UpdateAsync(config);
+            await _unitOfWork.Gateways.UpdateAsync(config);
             _currentConfig = config;
             return config;
         }

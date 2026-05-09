@@ -74,7 +74,7 @@ public class CacheExpirationBackgroundService : BackgroundService
                 stats.MissCount);
 
             // Alert if cache is empty but requests are being made
-            if (stats.EntryCount == 0 && stats.TotalHits > 0)
+            if (stats.EntryCount == 0 && stats.HitCount > 0)
             {
                 _logger.LogWarning("Cache is empty despite {HitCount} hits - possible expiration issues", stats.HitCount);
             }

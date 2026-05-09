@@ -60,10 +60,10 @@ public class MetricsController : ControllerBase
 
         return Ok(new
         {
-            totalRequests = stats.TotalRequests,
+            totalRequests = stats.TotalRequestsProcessed,
             successfulRequests = stats.SuccessfulRequests,
             failedRequests = stats.FailedRequests,
-            averageResponseTime = stats.AverageResponseTime,
+            averageResponseTime = stats.AverageResponseTimeMs,
             date = DateTime.UtcNow.Date
         });
     }
@@ -82,11 +82,11 @@ public class MetricsController : ControllerBase
 
         var result = slowRequests.Take(limit).Select(r => new
         {
-            r.Path,
-            r.Method,
-            r.ResponseTime,
-            r.StatusCode,
-            r.Timestamp
+            Path = $"{r.ServiceName}/{r.MethodName}",
+            Method = r.MethodName,
+            ResponseTime = r.DurationMs,
+            StatusCode = r.HttpStatusCode,
+            Timestamp = r.RecordedAt
         }).ToList();
 
         return Ok(result);
@@ -102,8 +102,8 @@ public class MetricsController : ControllerBase
         var slowRequests = await _metricsService.GetSlowRequestsAsync(0); // Get all requests
 
         var errorDistribution = slowRequests
-            .Where(r => r.StatusCode >= 400)
-            .GroupBy(r => r.StatusCode)
+            .Where(r => r.HttpStatusCode >= 400)
+            .GroupBy(r => r.HttpStatusCode)
             .OrderByDescending(g => g.Count())
             .Select(g => new { statusCode = g.Key, count = g.Count() })
             .ToList();
@@ -125,16 +125,16 @@ public class MetricsController : ControllerBase
         var slowRequests = await _metricsService.GetSlowRequestsAsync(0);
 
         var endpointStats = slowRequests
-            .GroupBy(r => r.Path)
+            .GroupBy(r => $"{r.ServiceName}/{r.MethodName}")
             .OrderByDescending(g => g.Count())
             .Take(10)
             .Select(g => new
             {
                 path = g.Key,
                 count = g.Count(),
-                avgResponseTime = g.Average(r => r.ResponseTime),
-                minResponseTime = g.Min(r => r.ResponseTime),
-                maxResponseTime = g.Max(r => r.ResponseTime)
+                avgResponseTime = g.Average(r => r.DurationMs),
+                minResponseTime = g.Min(r => r.DurationMs),
+                maxResponseTime = g.Max(r => r.DurationMs)
             })
             .ToList();
 
