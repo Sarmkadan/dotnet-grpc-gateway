@@ -50,7 +50,7 @@ jobs:
         ConnectionStrings__DefaultConnection: "Host=localhost;Port=5432;Database=grpc_gateway_test;Username=postgres;Password=postgres"
 
     - name: Upload coverage
-      uses: codecov/codecov-action@v4
+      uses: codecov/codecov-action@v6
       with:
         files: ./coverage.xml
         flags: unittests
