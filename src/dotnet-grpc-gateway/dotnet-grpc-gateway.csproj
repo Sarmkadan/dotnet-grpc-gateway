@@ -9,11 +9,19 @@
     <Version>1.0.0</Version>
     <Authors>Vladyslav Zaiets</Authors>
     <Description>Minimal gRPC-Web gateway for .NET - browser-compatible gRPC without Envoy or complex proxies</Description>
+    <PackageId>Zaiets.dotnet.grpc.gateway</PackageId>
+    <PackageTags>grpc grpc-web gateway proxy dotnet api</PackageTags>
     <PackageProjectUrl>https://github.com/sarmkadan/dotnet-grpc-gateway</PackageProjectUrl>
     <RepositoryUrl>https://github.com/sarmkadan/dotnet-grpc-gateway</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
   </PropertyGroup>
+
+  <ItemGroup>
+    <None Include="../../README.md" Pack="true" PackagePath="\" />
+  </ItemGroup>
 
   <ItemGroup>
     <PackageReference Include="Grpc.AspNetCore" Version="2.68.0" />
