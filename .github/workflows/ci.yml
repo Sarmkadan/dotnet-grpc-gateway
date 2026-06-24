@@ -17,7 +17,7 @@ jobs:
         dotnet-version: [ '8.0.x', '10.0.x' ]
 
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v7
 
     - name: Setup .NET ${{ matrix.dotnet-version }}
       uses: actions/setup-dotnet@v4
