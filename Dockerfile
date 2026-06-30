@@ -34,11 +34,11 @@ COPY --from=build /app/publish .
 RUN groupadd -r appuser && useradd -r -g appuser appuser
 USER appuser
 
-ENV ASPNETCORE_URLS=http://+:8080
+ENV ASPNETCORE_URLS=http://+:5000
 
-EXPOSE 8080
+EXPOSE 5000
 
 HEALTHCHECK --interval=30s --timeout=3s --start-period=10s --retries=3 \
-    CMD curl -f http://localhost:8080/health || exit 1
+    CMD curl -f http://localhost:5000/health || exit 1
 
 ENTRYPOINT ["dotnet", "dotnet-grpc-gateway.dll"]

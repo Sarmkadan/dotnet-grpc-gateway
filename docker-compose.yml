@@ -32,19 +32,19 @@ services:
         condition: service_healthy
     environment:
       ASPNETCORE_ENVIRONMENT: Development
-      ASPNETCORE_URLS: http://0.0.0.0:8080
-      Gateway__Port: "8080"
+      ASPNETCORE_URLS: http://0.0.0.0:5000
+      Gateway__Port: "5000"
       Gateway__MaxConcurrentConnections: "1000"
       Gateway__RequestTimeoutMs: "30000"
       Gateway__EnableStreaming: "true"
       Logging__LogLevel__Default: Information
       ConnectionStrings__DefaultConnection: "Host=postgres;Port=5432;Database=grpc_gateway;Username=postgres;Password=${POSTGRES_PASSWORD:-postgres}"
     ports:
-      - "8080:8080"
+      - "5000:5000"
     volumes:
       - ./logs:/app/logs
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      test: ["CMD", "curl", "-f", "http://localhost:5000/health"]
       interval: 30s
       timeout: 10s
       retries: 3
