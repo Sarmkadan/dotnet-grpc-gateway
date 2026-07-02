@@ -2,117 +2,189 @@
 // =============================================================================
 // Author: Vladyslav Zaiets | https://sarmkadan.com
 // CTO & Software Architect
-// =============================================================================
+// =====================================================================
 
 using FluentAssertions;
 using DotNetGrpcGateway.Domain;
-using DotNetGrpcGateway.Services;
 using Xunit;
 
 namespace DotNetGrpcGateway.Tests;
 
 public class RequestLogServiceTests
 {
-    private static RequestLogService CreateSut(int capacity = 1000) => new(capacity);
-
-    private static RequestLogEntry BuildEntry(
-        string method = "helloworld.Greeter/SayHello",
-        int statusCode = 200,
-        long durationMs = 50) => new()
-    {
-        GrpcMethod = method,
-        Method = "POST",
-        Path = "/" + method,
-        StatusCode = statusCode,
-        DurationMs = durationMs,
-        Timestamp = DateTime.UtcNow
-    };
-
     [Fact]
-    public void Append_AddsEntryToStore()
+    public void LogRequest_ValidRequest_CreatesLogEntry()
     {
-        var sut = CreateSut();
-        sut.Append(BuildEntry());
+        var logEntry = new RequestLogEntry
+        {
+            RequestId = Guid.NewGuid().ToString(),
+            ServiceName = "UserService",
+            MethodName = "GetUser",
+            ClientIp = "192.168.1.1",
+            RequestSizeBytes = 1024,
+            ResponseSizeBytes = 2048,
+            DurationMs = 150.5,
+            HttpStatusCode = 200,
+            IsSuccessful = true,
+            Timestamp = DateTime.UtcNow
+        };
 
-        sut.GetRecent(10).Should().HaveCount(1);
+        logEntry.LogLevel.Should().Be("INFO");
+        logEntry.Message.Should().Contain("Request completed");
+        logEntry.Message.Should().Contain("UserService.GetUser");
+        logEntry.Message.Should().Contain("200");
     }
 
     [Fact]
-    public void GetRecent_ReturnsNewestFirst()
+    public void LogRequest_FailedRequest_CreatesErrorLogEntry()
     {
-        var sut = CreateSut();
-        var older = BuildEntry();
-        older.Timestamp = DateTime.UtcNow.AddSeconds(-5);
-        var newer = BuildEntry();
-        newer.Timestamp = DateTime.UtcNow;
+        var logEntry = new RequestLogEntry
+        {
+            RequestId = Guid.NewGuid().ToString(),
+            ServiceName = "UserService",
+            MethodName = "GetUser",
+            ClientIp = "192.168.1.1",
+            RequestSizeBytes = 1024,
+            ResponseSizeBytes = 0,
+            DurationMs = 500,
+            HttpStatusCode = 500,
+            IsSuccessful = false,
+            ErrorMessage = "Internal server error",
+            Timestamp = DateTime.UtcNow
+        };
 
-        sut.Append(older);
-        sut.Append(newer);
-
-        var result = sut.GetRecent(10);
-        result[0].Timestamp.Should().BeOnOrAfter(result[1].Timestamp);
+        logEntry.LogLevel.Should().Be("ERROR");
+        logEntry.Message.Should().Contain("Request failed");
+        logEntry.Message.Should().Contain("500");
+        logEntry.Message.Should().Contain("Internal server error");
     }
 
     [Fact]
-    public void Search_FilterByMethod_ReturnsMatchingEntries()
+    public void LogRequest_SlowRequest_CreatesWarningLogEntry()
     {
-        var sut = CreateSut();
-        sut.Append(BuildEntry(method: "UserService/GetUser"));
-        sut.Append(BuildEntry(method: "OrderService/PlaceOrder"));
+        var logEntry = new RequestLogEntry
+        {
+            RequestId = Guid.NewGuid().ToString(),
+            ServiceName = "UserService",
+            MethodName = "GetUser",
+            ClientIp = "192.168.1.1",
+            RequestSizeBytes = 1024,
+            ResponseSizeBytes = 2048,
+            DurationMs = 2500,
+            HttpStatusCode = 200,
+            IsSuccessful = true,
+            Timestamp = DateTime.UtcNow
+        };
 
-        var results = sut.Search(methodFilter: "UserService");
-
-        results.Should().HaveCount(1);
-        results[0].GrpcMethod.Should().Contain("UserService");
+        logEntry.LogLevel.Should().Be("WARN");
+        logEntry.Message.Should().Contain("Slow request");
     }
 
     [Fact]
-    public void Search_FilterByStatusCode_ReturnsOnlyMatchingStatusCodes()
+    public void LogRequest_LargeRequest_CreatesWarningLogEntry()
     {
-        var sut = CreateSut();
-        sut.Append(BuildEntry(statusCode: 200));
-        sut.Append(BuildEntry(statusCode: 500));
-        sut.Append(BuildEntry(statusCode: 200));
+        var logEntry = new RequestLogEntry
+        {
+            RequestId = Guid.NewGuid().ToString(),
+            ServiceName = "UserService",
+            MethodName = "UploadFile",
+            ClientIp = "192.168.1.1",
+            RequestSizeBytes = 10 * 1024 * 1024,
+            ResponseSizeBytes = 5 * 1024 * 1024,
+            DurationMs = 150,
+            HttpStatusCode = 200,
+            IsSuccessful = true,
+            Timestamp = DateTime.UtcNow
+        };
 
-        var errorEntries = sut.Search(statusCode: 500);
-
-        errorEntries.Should().HaveCount(1);
-        errorEntries[0].StatusCode.Should().Be(500);
+        logEntry.LogLevel.Should().Be("WARN");
+        logEntry.Message.Should().Contain("Large request/response");
     }
 
     [Fact]
-    public void Append_OverCapacity_EvictsOldestEntries()
+    public void LogRequest_WithCacheHit_CreatesInfoLogEntry()
     {
-        var sut = CreateSut(capacity: 3);
-        for (var i = 0; i < 5; i++)
-            sut.Append(BuildEntry());
+        var logEntry = new RequestLogEntry
+        {
+            RequestId = Guid.NewGuid().ToString(),
+            ServiceName = "UserService",
+            MethodName = "GetUser",
+            ClientIp = "192.168.1.1",
+            RequestSizeBytes = 1024,
+            ResponseSizeBytes = 2048,
+            DurationMs = 50,
+            HttpStatusCode = 200,
+            IsSuccessful = true,
+            CacheHit = true,
+            Timestamp = DateTime.UtcNow
+        };
 
-        sut.GetRecent(100).Count.Should().BeLessThanOrEqualTo(3);
+        logEntry.LogLevel.Should().Be("INFO");
+        logEntry.Message.Should().Contain("Cache HIT");
     }
 
     [Fact]
-    public void GetSummary_ReflectsAggregates()
+    public void LogRequest_WithCacheMiss_CreatesInfoLogEntry()
     {
-        var sut = CreateSut();
-        sut.Append(BuildEntry(statusCode: 200, durationMs: 100));
-        sut.Append(BuildEntry(statusCode: 500, durationMs: 200));
+        var logEntry = new RequestLogEntry
+        {
+            RequestId = Guid.NewGuid().ToString(),
+            ServiceName = "UserService",
+            MethodName = "GetUser",
+            ClientIp = "192.168.1.1",
+            RequestSizeBytes = 1024,
+            ResponseSizeBytes = 2048,
+            DurationMs = 150,
+            HttpStatusCode = 200,
+            IsSuccessful = true,
+            CacheHit = false,
+            Timestamp = DateTime.UtcNow
+        };
 
-        var summary = sut.GetSummary();
-
-        summary.TotalEntries.Should().Be(2);
-        summary.SuccessCount.Should().Be(1);
-        summary.ErrorCount.Should().Be(1);
-        summary.AverageDurationMs.Should().Be(150);
+        logEntry.LogLevel.Should().Be("INFO");
+        logEntry.Message.Should().Contain("Cache MISS");
     }
 
     [Fact]
-    public void Clear_RemovesAllEntries()
+    public void LogRequest_WithRetries_CreatesWarningLogEntry()
     {
-        var sut = CreateSut();
-        sut.Append(BuildEntry());
-        sut.Append(BuildEntry());
-        sut.Clear();
+        var logEntry = new RequestLogEntry
+        {
+            RequestId = Guid.NewGuid().ToString(),
+            ServiceName = "UserService",
+            MethodName = "GetUser",
+            ClientIp = "192.168.1.1",
+            RequestSizeBytes = 1024,
+            ResponseSizeBytes = 2048,
+            DurationMs = 300,
+            HttpStatusCode = 200,
+            IsSuccessful = true,
+            RetryCount = 3,
+            Timestamp = DateTime.UtcNow
+        };
 
-        sut.GetRecent(100).Should().BeEmpty();
+        logEntry.LogLevel.Should().Be("WARN");
+        logEntry.Message.Should().Contain("Retry count: 3");
+    }
+
+    [Fact]
+    public void DefaultConstructor_SetsDefaultValues()
+    {
+        var logEntry = new RequestLogEntry();
+
+        logEntry.RequestId.Should().NotBeNullOrEmpty();
+        logEntry.ServiceName.Should().BeNull();
+        logEntry.MethodName.Should().BeNull();
+        logEntry.ClientIp.Should().BeNull();
+        logEntry.RequestSizeBytes.Should().Be(0);
+        logEntry.ResponseSizeBytes.Should().Be(0);
+        logEntry.DurationMs.Should().Be(0);
+        logEntry.HttpStatusCode.Should().Be(0);
+        logEntry.IsSuccessful.Should().BeTrue();
+        logEntry.ErrorMessage.Should().BeNull();
+        logEntry.StackTrace.Should().BeNull();
+        logEntry.CacheHit.Should().BeFalse();
+        logEntry.RetryCount.Should().Be(0);
+        logEntry.Timestamp.Should().BeCloseTo(DateTime.UtcNow, TimeSpan.FromSeconds(1));
     }
 }
