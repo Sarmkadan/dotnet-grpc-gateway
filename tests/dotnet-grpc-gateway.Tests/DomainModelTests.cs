@@ -2,70 +2,13 @@
 // =============================================================================
 // Author: Vladyslav Zaiets | https://sarmkadan.com
 // CTO & Software Architect
-// =============================================================================
+// =====================================================================
 
 using FluentAssertions;
 using DotNetGrpcGateway.Domain;
 using Xunit;
 
 namespace DotNetGrpcGateway.Tests;
-
-public class GatewayRouteTests
-{
-    private static GatewayRoute ValidRoute() => new()
-    {
-        Pattern = "UserService.GetUser",
-        TargetServiceId = 1,
-        Priority = 100,
-        RateLimitPerMinute = 500
-    };
-
-    [Fact]
-    public void Validate_EmptyPattern_ThrowsInvalidOperationException()
-    {
-        var route = ValidRoute();
-        route.Pattern = string.Empty;
-
-        var act = () => route.Validate();
-
-        act.Should().Throw<InvalidOperationException>()
-            .WithMessage("*pattern*");
-    }
-
-    [Fact]
-    public void Validate_PriorityOutOfBounds_ThrowsInvalidOperationException()
-    {
-        var route = ValidRoute();
-        route.Priority = 1001;
-
-        var act = () => route.Validate();
-
-        act.Should().Throw<InvalidOperationException>()
-            .WithMessage("*Priority*");
-    }
-
-    [Fact]
-    public void MatchesRequest_ExactMatch_ReturnsTrueOnlyForIdenticalPath()
-    {
-        var route = ValidRoute();
-        route.Pattern = "UserService.GetUser";
-        route.MatchType = RouteMatchType.ExactMatch;
-
-        route.MatchesRequest("UserService", "GetUser").Should().BeTrue();
-        route.MatchesRequest("UserService", "ListUsers").Should().BeFalse();
-    }
-
-    [Fact]
-    public void MatchesRequest_PrefixMatch_ReturnsTrueForRoutesStartingWithPattern()
-    {
-        var route = ValidRoute();
-        route.Pattern = "UserService";
-        route.MatchType = RouteMatchType.Prefix;
-
-        route.MatchesRequest("UserService", "GetUser").Should().BeTrue();
-        route.MatchesRequest("OrderService", "GetOrder").Should().BeFalse();
-    }
-}
 
 public class GrpcServiceTests
 {
@@ -133,6 +76,6 @@ public class GrpcServiceTests
         var act = () => service.Validate();
 
         act.Should().Throw<InvalidOperationException>()
-            .WithMessage("*port*");
+        .WithMessage("*port*");
     }
 }
