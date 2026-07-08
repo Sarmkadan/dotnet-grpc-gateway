@@ -6,8 +6,8 @@
 
 using System.Diagnostics;
 using System.Text;
-using DotNetGrpcGateway.Configuration;
 using DotNetGrpcGateway.Extensions;
+using DotNetGrpcGateway.Options;
 using Microsoft.Extensions.Options;
 
 namespace DotNetGrpcGateway.Middleware;
@@ -34,7 +34,7 @@ public class RequestLoggingMiddleware
     public RequestLoggingMiddleware(
         RequestDelegate next,
         ILogger<RequestLoggingMiddleware> logger,
-        IOptions<GatewayOptions> gatewayOptions)
+        IOptions<DotnetGrpcGatewayOptions> gatewayOptions)
     {
         _next = next ?? throw new ArgumentNullException(nameof(next));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));

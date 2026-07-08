@@ -14,7 +14,7 @@ namespace DotNetGrpcGateway.Middleware;
 /// The gRPC-Web spec supports per-message compression via the compression flag
 /// (bit 0) of the 5-byte frame header.  When the browser advertises
 /// <c>grpc-accept-encoding: gzip</c> and compression is enabled in
-/// <see cref="DotNetGrpcGateway.Configuration.GatewayOptions.EnableCompression"/>,
+/// <see cref="DotNetGrpcGateway.Options.DotnetGrpcGatewayOptions.EnableCompression"/>,
 /// this middleware gzip-compresses every data frame and sets the
 /// <c>grpc-encoding: gzip</c> response header so the client can decompress.
 /// Trailer frames (flag 0x80) are never compressed.

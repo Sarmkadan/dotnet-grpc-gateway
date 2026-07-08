@@ -133,26 +133,32 @@ dotnet run --project src/dotnet-grpc-gateway
 
 ## Configuration
 
-The gateway is configured via `appsettings.json`:
+The gateway is configured via `appsettings.json` (see `appsettings.example.json` for a template):
 
 ```json
 {
-  "Logging": {
-    "LogLevel": {
-      "Default": "Information",
-      "Microsoft": "Warning"
-    }
-  },
-  "ConnectionStrings": {
-    "DefaultConnection": "Host=localhost;Port=5432;Database=grpc_gateway;Username=postgres;Password=postgres"
-  },
   "Gateway": {
     "ListenAddress": "0.0.0.0",
     "Port": 5000,
     "EnableReflection": true,
     "EnableMetrics": true,
     "MaxConcurrentConnections": 1000,
-    "RequestTimeoutMs": 30000
+    "RequestTimeoutMs": 30000,
+    "LogLevel": "Information",
+    "HealthCheck": {
+      "IntervalSeconds": 30,
+      "TimeoutMs": 5000,
+      "FailureThreshold": 3
+    },
+    "Metrics": {
+      "EnableMetrics": true,
+      "CollectionIntervalSeconds": 60,
+      "RetentionDays": 30
+    },
+    "RequestLogging": {
+      "Enabled": true,
+      "Verbosity": "Normal"
+    }
   }
 }
 ```
