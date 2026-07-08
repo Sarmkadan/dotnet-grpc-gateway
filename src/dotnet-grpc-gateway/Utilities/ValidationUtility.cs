@@ -5,6 +5,7 @@
 // =============================================================================
 
 using System.Net;
+using DotNetGrpcGateway.Exceptions;
 
 namespace DotNetGrpcGateway.Utilities;
 
@@ -163,5 +164,15 @@ public static class ValidationUtility
     public static bool IsValidTimeout(int timeoutMs)
     {
         return timeoutMs > 0 && timeoutMs <= 300000; // Max 5 minutes
+    }
+
+    /// <summary>
+    /// Throws a <see cref="ValidationException"/> if the supplied condition is false.
+    /// Helper to keep validation concise.
+    /// </summary>
+    public static void Ensure(bool condition, string message)
+    {
+        if (!condition)
+            throw new ValidationException(message);
     }
 }

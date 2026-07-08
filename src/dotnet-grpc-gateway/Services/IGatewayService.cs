@@ -19,61 +19,61 @@ public interface IGatewayService
     /// </summary>
     /// <returns>A task that represents the asynchronous operation. The task result contains the <see cref="GatewayConfiguration"/>.</returns>
     Task<GatewayConfiguration> GetConfigurationAsync();
-    
+
     /// <summary>
     /// Updates the gateway configuration.
     /// </summary>
     /// <param name="config">The new configuration.</param>
     /// <returns>A task that represents the asynchronous operation. The task result contains the updated <see cref="GatewayConfiguration"/>.</returns>
     Task<GatewayConfiguration> UpdateConfigurationAsync(GatewayConfiguration config);
-    
+
     /// <summary>
     /// Registers a new gRPC service.
     /// </summary>
     /// <param name="service">The service to register.</param>
     /// <returns>A task that represents the asynchronous operation.</returns>
     Task RegisterServiceAsync(GrpcService service);
-    
+
     /// <summary>
     /// Unregisters a gRPC service by ID.
     /// </summary>
     /// <param name="serviceId">The ID of the service.</param>
     /// <returns>A task that represents the asynchronous operation.</returns>
     Task UnregisterServiceAsync(int serviceId);
-    
+
     /// <summary>
     /// Gets a gRPC service by ID.
     /// </summary>
     /// <param name="serviceId">The ID of the service.</param>
     /// <returns>A task that represents the asynchronous operation. The task result contains the <see cref="GrpcService"/>.</returns>
     Task<GrpcService> GetServiceAsync(int serviceId);
-    
+
     /// <summary>
     /// Gets all registered gRPC services.
     /// </summary>
     /// <returns>A task that represents the asynchronous operation. The task result contains a list of <see cref="GrpcService"/>.</returns>
     Task<List<GrpcService>> GetAllServicesAsync();
-    
+
     /// <summary>
     /// Gets all healthy gRPC services.
     /// </summary>
     /// <returns>A task that represents the asynchronous operation. The task result contains a list of healthy <see cref="GrpcService"/>.</returns>
     Task<List<GrpcService>> GetHealthyServicesAsync();
-    
+
     /// <summary>
     /// Adds a new routing rule.
     /// </summary>
     /// <param name="route">The route to add.</param>
     /// <returns>A task that represents the asynchronous operation. The task result contains the added <see cref="GatewayRoute"/>.</returns>
     Task<GatewayRoute> AddRouteAsync(GatewayRoute route);
-    
+
     /// <summary>
     /// Removes a routing rule by ID.
     /// </summary>
     /// <param name="routeId">The ID of the route.</param>
     /// <returns>A task that represents the asynchronous operation.</returns>
     Task RemoveRouteAsync(int routeId);
-    
+
     /// <summary>
     /// Gets all active routing rules.
     /// </summary>
@@ -93,31 +93,38 @@ public class GatewayService : IGatewayService
 
     public async Task<GatewayConfiguration> GetConfigurationAsync()
     {
-        if (_currentConfig is not null)
-            return _currentConfig;
-
-        var configs = await _unitOfWork.Gateways.GetAllAsync();
-
-        if (configs.Count == 0)
+        try
         {
-            var defaultConfig = new GatewayConfiguration
+            if (_currentConfig is not null)
+                return _currentConfig;
+
+            var configs = await _unitOfWork.Gateways.GetAllAsync();
+
+            if (configs.Count == 0)
             {
-                Name = "Default Gateway",
-                Description = "Default gRPC-Web Gateway Configuration",
-                ListenAddress = "0.0.0.0",
-                Port = 5000,
-                EnableReflection = true,
-                EnableMetrics = true
-            };
+                var defaultConfig = new GatewayConfiguration
+                {
+                    Name = "Default Gateway",
+                    Description = "Default gRPC-Web Gateway Configuration",
+                    ListenAddress = "0.0.0.0",
+                    Port = 5000,
+                    EnableReflection = true,
+                    EnableMetrics = true
+                };
 
-            _currentConfig = await _unitOfWork.Gateways.CreateAsync(defaultConfig);
+                _currentConfig = await _unitOfWork.Gateways.CreateAsync(defaultConfig);
+            }
+            else
+            {
+                _currentConfig = configs.First(x => x.IsActive) ?? configs[0];
+            }
+
+            return _currentConfig;
         }
-        else
+        catch (Exception ex)
         {
-            _currentConfig = configs.First(x => x.IsActive) ?? configs[0];
+            throw new ConfigurationException("GetConfiguration", ex.Message);
         }
-
-        return _currentConfig;
     }
 
     public async Task<GatewayConfiguration> UpdateConfigurationAsync(GatewayConfiguration config)
@@ -134,7 +141,11 @@ public class GatewayService : IGatewayService
         }
         catch (InvalidOperationException ex)
         {
-            throw new ConfigurationException("GatewayConfiguration", ex.Message);
+            throw new ConfigurationException("UpdateConfiguration", ex.Message);
+        }
+        catch (Exception ex)
+        {
+            throw new ConfigurationException("UpdateConfiguration", ex.Message);
         }
     }
 
@@ -155,40 +166,82 @@ public class GatewayService : IGatewayService
         }
         catch (InvalidOperationException ex)
         {
-            throw new ConfigurationException("GrpcService", ex.Message);
+            throw new ConfigurationException("RegisterService", ex.Message);
+        }
+        catch (Exception ex)
+        {
+            throw new ConfigurationException("RegisterService", ex.Message);
         }
     }
 
     public async Task UnregisterServiceAsync(int serviceId)
     {
-        var service = await _unitOfWork.Services.GetByIdAsync(serviceId);
-        if (service is null)
-            throw new ServiceNotFoundException("unknown");
+        if (serviceId <= 0)
+            throw new ArgumentOutOfRangeException(nameof(serviceId), "Service ID must be greater than zero.");
 
-        // Remove all routes associated with this service
-        var routes = await _unitOfWork.Routes.GetByServiceIdAsync(serviceId);
-        foreach (var route in routes)
+        try
         {
-            await _unitOfWork.Routes.DeleteAsync(route.Id);
-        }
+            var service = await _unitOfWork.Services.GetByIdAsync(serviceId);
+            if (service is null)
+                throw new ServiceNotFoundException("unknown");
 
-        await _unitOfWork.Services.UnregisterAsync(serviceId);
+            // Remove all routes associated with this service
+            var routes = await _unitOfWork.Routes.GetByServiceIdAsync(serviceId);
+            foreach (var route in routes)
+            {
+                await _unitOfWork.Routes.DeleteAsync(route.Id);
+            }
+
+            await _unitOfWork.Services.UnregisterAsync(serviceId);
+        }
+        catch (ServiceNotFoundException)
+        {
+            throw;
+        }
+        catch (Exception ex)
+        {
+            throw new ConfigurationException("UnregisterService", ex.Message);
+        }
     }
 
     public async Task<GrpcService> GetServiceAsync(int serviceId)
     {
-        return await _unitOfWork.Services.GetByIdAsync(serviceId);
+        if (serviceId <= 0)
+            throw new ArgumentOutOfRangeException(nameof(serviceId), "Service ID must be greater than zero.");
+
+        try
+        {
+            return await _unitOfWork.Services.GetByIdAsync(serviceId);
+        }
+        catch (Exception ex)
+        {
+            throw new ConfigurationException("GetService", ex.Message);
+        }
     }
 
     public async Task<List<GrpcService>> GetAllServicesAsync()
     {
-        return await _unitOfWork.Services.GetAllAsync();
+        try
+        {
+            return await _unitOfWork.Services.GetAllAsync();
+        }
+        catch (Exception ex)
+        {
+            throw new ConfigurationException("GetAllServices", ex.Message);
+        }
     }
 
     public async Task<List<GrpcService>> GetHealthyServicesAsync()
     {
-        var services = await _unitOfWork.Services.GetAllAsync();
-        return services.Where(x => x.IsHealthy && x.IsActive).ToList();
+        try
+        {
+            var services = await _unitOfWork.Services.GetAllAsync();
+            return services.Where(x => x.IsHealthy && x.IsActive).ToList();
+        }
+        catch (Exception ex)
+        {
+            throw new ConfigurationException("GetHealthyServices", ex.Message);
+        }
     }
 
     public async Task<GatewayRoute> AddRouteAsync(GatewayRoute route)
@@ -209,17 +262,38 @@ public class GatewayService : IGatewayService
         }
         catch (InvalidOperationException ex)
         {
-            throw new ConfigurationException("GatewayRoute", ex.Message);
+            throw new ConfigurationException("AddRoute", ex.Message);
+        }
+        catch (Exception ex)
+        {
+            throw new ConfigurationException("AddRoute", ex.Message);
         }
     }
 
     public async Task RemoveRouteAsync(int routeId)
     {
-        await _unitOfWork.Routes.DeleteAsync(routeId);
+        if (routeId <= 0)
+            throw new ArgumentOutOfRangeException(nameof(routeId), "Route ID must be greater than zero.");
+
+        try
+        {
+            await _unitOfWork.Routes.DeleteAsync(routeId);
+        }
+        catch (Exception ex)
+        {
+            throw new ConfigurationException("RemoveRoute", ex.Message);
+        }
     }
 
     public async Task<List<GatewayRoute>> GetAllRoutesAsync()
     {
-        return await _unitOfWork.Routes.GetActiveAsync();
+        try
+        {
+            return await _unitOfWork.Routes.GetActiveAsync();
+        }
+        catch (Exception ex)
+        {
+            throw new ConfigurationException("GetAllRoutes", ex.Message);
+        }
     }
 }
