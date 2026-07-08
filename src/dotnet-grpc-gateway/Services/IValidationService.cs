@@ -151,7 +151,7 @@ public class ValidationService : IValidationService
     {
         if (string.IsNullOrWhiteSpace(token))
         {
-            _logger.LogWarning("Authentication attempted with empty token");
+            _logger.LogWarning("Authentication validation failed - Reason: {Reason}", "Empty token");
             return false;
         }
 
