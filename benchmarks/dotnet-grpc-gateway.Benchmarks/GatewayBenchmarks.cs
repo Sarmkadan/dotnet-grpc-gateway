@@ -13,18 +13,54 @@ namespace dotnet_grpc_gateway.Benchmarks
     [MemoryDiagnoser]
     [Orderer(BenchmarkDotNet.Order.SummaryOrderPolicy.FastestToSlowest)]
     [RankColumn]
+
+/// <summary>
+/// Benchmark suite for testing the performance and throughput of the gRPC gateway services.
+/// Measures various operations including route resolution, load balancing, caching, service management,
+/// and performance monitoring to identify performance bottlenecks and optimize the gateway implementation.
+/// </summary>
     public class GatewayBenchmarks
     {
-        private IServiceProvider _serviceProvider;
-        private IGatewayService _gatewayService;
-        private IRouteManagementService _routeManagementService;
-        private IPerformanceMonitor _performanceMonitor;
-        private IRouteResolutionService _routeResolutionService;
-        private ILoadBalancerService _loadBalancerService;
-        private ICacheService _cacheService;
-        private IGrpcClientFactory _grpcClientFactory;
-        private IServiceDiscoveryService _serviceDiscoveryService;
-        private IUnitOfWork _unitOfWork;
+        /// <summary>
+/// Service provider for resolving gateway dependencies during benchmark execution.
+/// </summary>
+private IServiceProvider _serviceProvider;
+        /// <summary>
+/// Gateway service for managing and routing gRPC requests to appropriate services.
+/// </summary>
+private IGatewayService _gatewayService;
+        /// <summary>
+/// Service for managing routes including registration, retrieval, and health status updates.
+/// </summary>
+private IRouteManagementService _routeManagementService;
+        /// <summary>
+/// Service for monitoring and recording performance metrics including request durations and throughput.
+/// </summary>
+private IPerformanceMonitor _performanceMonitor;
+        /// <summary>
+/// Service for resolving routes by matching service names and method paths to registered routes.
+/// </summary>
+private IRouteResolutionService _routeResolutionService;
+        /// <summary>
+/// Service for distributing requests across multiple endpoints using round-robin and weighted algorithms.
+/// </summary>
+private ILoadBalancerService _loadBalancerService;
+        /// <summary>
+/// Service for caching frequently accessed data and reducing backend service load.
+/// </summary>
+private ICacheService _cacheService;
+        /// <summary>
+/// Factory for creating gRPC HTTP clients to communicate with backend services.
+/// </summary>
+private IGrpcClientFactory _grpcClientFactory;
+        /// <summary>
+/// Service for discovering and monitoring the health status of registered backend services.
+/// </summary>
+private IServiceDiscoveryService _serviceDiscoveryService;
+        /// <summary>
+/// Unit of work for managing database transactions and coordinating multiple operations.
+/// </summary>
+private IUnitOfWork _unitOfWork;
 
         [GlobalSetup]
         public void Setup()
@@ -64,12 +100,22 @@ namespace dotnet_grpc_gateway.Benchmarks
             SetupTestEndpoints();
         }
 
+
+/// <summary>
+/// Initializes test routes in the gateway for benchmarking purposes.
+/// Ensures routes are available for resolution tests.
+/// </summary>
         private void SetupTestRoutes()
         {
             // Routes are already set up via the unit of work in the actual implementation
             // We just need to ensure there are routes available for benchmarking
         }
 
+
+/// <summary>
+/// Creates test services for benchmarking load balancing and service discovery.
+/// Registers 20 test services with varying ports and health statuses.
+/// </summary>
         private void SetupTestServices()
         {
             // Add test services
@@ -92,6 +138,11 @@ namespace dotnet_grpc_gateway.Benchmarks
             }
         }
 
+
+/// <summary>
+/// Registers test endpoints for load balancing benchmarking.
+/// Creates 10 endpoints for service ID 1 to test round-robin and weighted algorithms.
+/// </summary>
         private void SetupTestEndpoints()
         {
             // Register endpoints for load balancing
@@ -114,6 +165,11 @@ namespace dotnet_grpc_gateway.Benchmarks
 
         [Benchmark]
         [BenchmarkCategory("RouteResolution")]
+
+/// <summary>
+/// Benchmarks exact route matching where service name and method path match registered routes precisely.
+/// Measures the performance of finding routes with exact character-by-character matching.
+/// </summary>
         public void FindMatchingRoute_ExactMatch()
         {
             var result = _routeResolutionService.FindMatchingRouteAsync("test", "Route0.GetData");
@@ -125,6 +181,11 @@ namespace dotnet_grpc_gateway.Benchmarks
 
         [Benchmark]
         [BenchmarkCategory("RouteResolution")]
+
+/// <summary>
+/// Benchmarks wildcard route matching where service names are matched using pattern matching.
+/// Tests the ability to resolve routes with partial or pattern-based service name matching.
+/// </summary>
         public void FindMatchingRoute_WildcardMatch()
         {
             var result = _routeResolutionService.FindMatchingRouteAsync("test", "TestService1.GetData");
@@ -136,6 +197,11 @@ namespace dotnet_grpc_gateway.Benchmarks
 
         [Benchmark]
         [BenchmarkCategory("RouteResolution")]
+
+/// <summary>
+/// Benchmarks route resolution when no matching routes exist for the given service and method.
+/// Measures the performance of handling non-existent route requests and error cases.
+/// </summary>
         public void FindMatchingRoute_NoMatch()
         {
             var result = _routeResolutionService.FindMatchingRouteAsync("nonexistent", "path");
