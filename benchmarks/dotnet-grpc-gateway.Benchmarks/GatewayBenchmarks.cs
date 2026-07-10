@@ -14,54 +14,57 @@ namespace dotnet_grpc_gateway.Benchmarks
     [Orderer(BenchmarkDotNet.Order.SummaryOrderPolicy.FastestToSlowest)]
     [RankColumn]
 
-/// <summary>
-/// Benchmark suite for testing the performance and throughput of the gRPC gateway services.
-/// Measures various operations including route resolution, load balancing, caching, service management,
-/// and performance monitoring to identify performance bottlenecks and optimize the gateway implementation.
-/// </summary>
+    /// <summary>
+    /// Benchmark suite for testing the performance and throughput of the gRPC gateway services.
+    /// Measures various operations including route resolution, load balancing, caching, service management,
+    /// and performance monitoring to identify performance bottlenecks and optimize the gateway implementation.
+    /// </summary>
     public class GatewayBenchmarks
     {
         /// <summary>
-/// Service provider for resolving gateway dependencies during benchmark execution.
-/// </summary>
-private IServiceProvider _serviceProvider;
+        /// Service provider for resolving gateway dependencies during benchmark execution.
+        /// </summary>
+        private IServiceProvider _serviceProvider;
         /// <summary>
-/// Gateway service for managing and routing gRPC requests to appropriate services.
-/// </summary>
-private IGatewayService _gatewayService;
+        /// Gateway service for managing and routing gRPC requests to appropriate services.
+        /// </summary>
+        private IGatewayService _gatewayService;
         /// <summary>
-/// Service for managing routes including registration, retrieval, and health status updates.
-/// </summary>
-private IRouteManagementService _routeManagementService;
+        /// Service for managing routes including registration, retrieval, and health status updates.
+        /// </summary>
+        private IRouteManagementService _routeManagementService;
         /// <summary>
-/// Service for monitoring and recording performance metrics including request durations and throughput.
-/// </summary>
-private IPerformanceMonitor _performanceMonitor;
+        /// Service for monitoring and recording performance metrics including request durations and throughput.
+        /// </summary>
+        private IPerformanceMonitor _performanceMonitor;
         /// <summary>
-/// Service for resolving routes by matching service names and method paths to registered routes.
-/// </summary>
-private IRouteResolutionService _routeResolutionService;
+        /// Service for resolving routes by matching service names and method paths to registered routes.
+        /// </summary>
+        private IRouteResolutionService _routeResolutionService;
         /// <summary>
-/// Service for distributing requests across multiple endpoints using round-robin and weighted algorithms.
-/// </summary>
-private ILoadBalancerService _loadBalancerService;
+        /// Service for distributing requests across multiple endpoints using round-robin and weighted algorithms.
+        /// </summary>
+        private ILoadBalancerService _loadBalancerService;
         /// <summary>
-/// Service for caching frequently accessed data and reducing backend service load.
-/// </summary>
-private ICacheService _cacheService;
+        /// Service for caching frequently accessed data and reducing backend service load.
+        /// </summary>
+        private ICacheService _cacheService;
         /// <summary>
-/// Factory for creating gRPC HTTP clients to communicate with backend services.
-/// </summary>
-private IGrpcClientFactory _grpcClientFactory;
+        /// Factory for creating gRPC HTTP clients to communicate with backend services.
+        /// </summary>
+        private IGrpcClientFactory _grpcClientFactory;
         /// <summary>
-/// Service for discovering and monitoring the health status of registered backend services.
-/// </summary>
-private IServiceDiscoveryService _serviceDiscoveryService;
+        /// Service for discovering and monitoring the health status of registered backend services.
+        /// </summary>
+        private IServiceDiscoveryService _serviceDiscoveryService;
         /// <summary>
-/// Unit of work for managing database transactions and coordinating multiple operations.
-/// </summary>
-private IUnitOfWork _unitOfWork;
+        /// Unit of work for managing database transactions and coordinating multiple operations.
+        /// </summary>
+        private IUnitOfWork _unitOfWork;
 
+        /// <summary>
+        /// Performs global setup for benchmarks, configuring dependency injection and initializing test data.
+        /// </summary>
         [GlobalSetup]
         public void Setup()
         {
@@ -100,22 +103,20 @@ private IUnitOfWork _unitOfWork;
             SetupTestEndpoints();
         }
 
-
-/// <summary>
-/// Initializes test routes in the gateway for benchmarking purposes.
-/// Ensures routes are available for resolution tests.
-/// </summary>
+        /// <summary>
+        /// Initializes test routes in the gateway for benchmarking purposes.
+        /// Ensures routes are available for resolution tests.
+        /// </summary>
         private void SetupTestRoutes()
         {
             // Routes are already set up via the unit of work in the actual implementation
             // We just need to ensure there are routes available for benchmarking
         }
 
-
-/// <summary>
-/// Creates test services for benchmarking load balancing and service discovery.
-/// Registers 20 test services with varying ports and health statuses.
-/// </summary>
+        /// <summary>
+        /// Creates test services for benchmarking load balancing and service discovery.
+        /// Registers 20 test services with varying ports and health statuses.
+        /// </summary>
         private void SetupTestServices()
         {
             // Add test services
@@ -138,11 +139,10 @@ private IUnitOfWork _unitOfWork;
             }
         }
 
-
-/// <summary>
-/// Registers test endpoints for load balancing benchmarking.
-/// Creates 10 endpoints for service ID 1 to test round-robin and weighted algorithms.
-/// </summary>
+        /// <summary>
+        /// Registers test endpoints for load balancing benchmarking.
+        /// Creates 10 endpoints for service ID 1 to test round-robin and weighted algorithms.
+        /// </summary>
         private void SetupTestEndpoints()
         {
             // Register endpoints for load balancing
@@ -163,13 +163,12 @@ private IUnitOfWork _unitOfWork;
             }
         }
 
+        /// <summary>
+        /// Benchmarks exact route matching where service name and method path match registered routes precisely.
+        /// Measures the performance of finding routes with exact character-by-character matching.
+        /// </summary>
         [Benchmark]
         [BenchmarkCategory("RouteResolution")]
-
-/// <summary>
-/// Benchmarks exact route matching where service name and method path match registered routes precisely.
-/// Measures the performance of finding routes with exact character-by-character matching.
-/// </summary>
         public void FindMatchingRoute_ExactMatch()
         {
             var result = _routeResolutionService.FindMatchingRouteAsync("test", "Route0.GetData");
@@ -179,13 +178,12 @@ private IUnitOfWork _unitOfWork;
             }
         }
 
+        /// <summary>
+        /// Benchmarks wildcard route matching where service names are matched using pattern matching.
+        /// Tests the ability to resolve routes with partial or pattern-based service name matching.
+        /// </summary>
         [Benchmark]
         [BenchmarkCategory("RouteResolution")]
-
-/// <summary>
-/// Benchmarks wildcard route matching where service names are matched using pattern matching.
-/// Tests the ability to resolve routes with partial or pattern-based service name matching.
-/// </summary>
         public void FindMatchingRoute_WildcardMatch()
         {
             var result = _routeResolutionService.FindMatchingRouteAsync("test", "TestService1.GetData");
@@ -195,18 +193,21 @@ private IUnitOfWork _unitOfWork;
             }
         }
 
+        /// <summary>
+        /// Benchmarks route resolution when no matching routes exist for the given service and method.
+        /// Measures the performance of handling non-existent route requests and error cases.
+        /// </summary>
         [Benchmark]
         [BenchmarkCategory("RouteResolution")]
-
-/// <summary>
-/// Benchmarks route resolution when no matching routes exist for the given service and method.
-/// Measures the performance of handling non-existent route requests and error cases.
-/// </summary>
         public void FindMatchingRoute_NoMatch()
         {
             var result = _routeResolutionService.FindMatchingRouteAsync("nonexistent", "path");
         }
 
+        /// <summary>
+        /// Benchmarks route resolution when multiple routes could match the request.
+        /// Ensures the resolver correctly selects the appropriate route among many candidates.
+        /// </summary>
         [Benchmark]
         [BenchmarkCategory("RouteResolution")]
         public void FindMatchingRoute_MultipleMatches()
@@ -218,6 +219,9 @@ private IUnitOfWork _unitOfWork;
             }
         }
 
+        /// <summary>
+        /// Benchmarks the load balancer's ability to select the next endpoint for a given service.
+        /// </summary>
         [Benchmark]
         [BenchmarkCategory("LoadBalancing")]
         public void GetNextEndpoint()
@@ -229,6 +233,10 @@ private IUnitOfWork _unitOfWork;
             }
         }
 
+        /// <summary>
+        /// Benchmarks the registration of a new endpoint in the load balancer.
+        /// </summary>
+        /// <param name="endpoint">The endpoint to register.</param>
         [Benchmark]
         [BenchmarkCategory("LoadBalancing")]
         public void RegisterEndpoint()
@@ -247,6 +255,12 @@ private IUnitOfWork _unitOfWork;
             _loadBalancerService.RegisterEndpoint(endpoint);
         }
 
+        /// <summary>
+        /// Benchmarks updating the health status of an existing endpoint.
+        /// </summary>
+        /// <param name="serviceId">The identifier of the service containing the endpoint.</param>
+        /// <param name="endpointId">The identifier of the endpoint to update.</param>
+        /// <param name="isHealthy">The new health status to set.</param>
         [Benchmark]
         [BenchmarkCategory("LoadBalancing")]
         public void UpdateEndpointHealth()
@@ -254,6 +268,10 @@ private IUnitOfWork _unitOfWork;
             _loadBalancerService.UpdateEndpointHealth(1, 1, true);
         }
 
+        /// <summary>
+        /// Benchmarks a cache miss scenario where the requested key does not exist.
+        /// </summary>
+        /// <returns>A task representing the asynchronous operation.</returns>
         [Benchmark]
         [BenchmarkCategory("Caching")]
         public async Task GetFromCache_Miss()
@@ -261,6 +279,10 @@ private IUnitOfWork _unitOfWork;
             var result = await _cacheService.GetAsync<string>("nonexistent_key_" + Guid.NewGuid().ToString());
         }
 
+        /// <summary>
+        /// Benchmarks a cache hit scenario where the requested key exists.
+        /// </summary>
+        /// <returns>A task representing the asynchronous operation.</returns>
         [Benchmark]
         [BenchmarkCategory("Caching")]
         public async Task GetFromCache_Hit()
@@ -270,6 +292,10 @@ private IUnitOfWork _unitOfWork;
             var result = await _cacheService.GetAsync<string>(key);
         }
 
+        /// <summary>
+        /// Benchmarks setting a value in the cache.
+        /// </summary>
+        /// <returns>A task representing the asynchronous operation.</returns>
         [Benchmark]
         [BenchmarkCategory("Caching")]
         public async Task SetInCache()
@@ -277,6 +303,10 @@ private IUnitOfWork _unitOfWork;
             await _cacheService.SetAsync("test_key_" + Guid.NewGuid().ToString(), "test_value", TimeSpan.FromMinutes(5));
         }
 
+        /// <summary>
+        /// Benchmarks removing a value from the cache.
+        /// </summary>
+        /// <returns>A task representing the asynchronous operation.</returns>
         [Benchmark]
         [BenchmarkCategory("Caching")]
         public async Task RemoveFromCache()
@@ -284,6 +314,10 @@ private IUnitOfWork _unitOfWork;
             await _cacheService.RemoveAsync("test_key_" + Guid.NewGuid().ToString());
         }
 
+        /// <summary>
+        /// Benchmarks retrieving cache statistics.
+        /// </summary>
+        /// <returns>A task representing the asynchronous operation.</returns>
         [Benchmark]
         [BenchmarkCategory("Caching")]
         public async Task CacheStatistics()
@@ -291,6 +325,9 @@ private IUnitOfWork _unitOfWork;
             var stats = await _cacheService.GetStatisticsAsync();
         }
 
+        /// <summary>
+        /// Benchmarks recording a request duration in the performance monitor.
+        /// </summary>
         [Benchmark]
         [BenchmarkCategory("PerformanceMonitor")]
         public void RecordRequestDuration()
@@ -298,6 +335,10 @@ private IUnitOfWork _unitOfWork;
             _performanceMonitor.RecordRequestDuration("/test.TestService1.GetData", 15);
         }
 
+        /// <summary>
+        /// Benchmarks retrieving all routes for a specific service.
+        /// </summary>
+        /// <returns>A task representing the asynchronous operation.</returns>
         [Benchmark]
         [BenchmarkCategory("RouteManagement")]
         public async Task GetAllRoutes()
@@ -305,6 +346,10 @@ private IUnitOfWork _unitOfWork;
             var routes = await _routeManagementService.GetRoutesByServiceAsync(1);
         }
 
+        /// <summary>
+        /// Benchmarks registering a new gRPC service in the gateway.
+        /// </summary>
+        /// <returns>A task representing the asynchronous operation.</returns>
         [Benchmark]
         [BenchmarkCategory("ServiceManagement")]
         public async Task RegisterService()
@@ -325,6 +370,10 @@ private IUnitOfWork _unitOfWork;
             await _gatewayService.RegisterServiceAsync(service);
         }
 
+        /// <summary>
+        /// Benchmarks retrieving all registered services from the gateway.
+        /// </summary>
+        /// <returns>A task representing the asynchronous operation.</returns>
         [Benchmark]
         [BenchmarkCategory("ServiceManagement")]
         public async Task GetAllServices()
@@ -332,6 +381,10 @@ private IUnitOfWork _unitOfWork;
             var services = await _gatewayService.GetAllServicesAsync();
         }
 
+        /// <summary>
+        /// Benchmarks retrieving only the healthy services from the gateway.
+        /// </summary>
+        /// <returns>A task representing the asynchronous operation.</returns>
         [Benchmark]
         [BenchmarkCategory("ServiceManagement")]
         public async Task GetHealthyServices()
@@ -339,6 +392,10 @@ private IUnitOfWork _unitOfWork;
             var healthy = await _gatewayService.GetHealthyServicesAsync();
         }
 
+        /// <summary>
+        /// Benchmarks performing a health check for a specific service.
+        /// </summary>
+        /// <returns>A task representing the asynchronous operation.</returns>
         [Benchmark]
         [BenchmarkCategory("ServiceDiscovery")]
         public async Task PerformHealthCheck()
@@ -346,6 +403,10 @@ private IUnitOfWork _unitOfWork;
             await _serviceDiscoveryService.PerformHealthCheckAsync(1);
         }
 
+        /// <summary>
+        /// Benchmarks retrieving health information for all services.
+        /// </summary>
+        /// <returns>A task representing the asynchronous operation.</returns>
         [Benchmark]
         [BenchmarkCategory("ServiceDiscovery")]
         public async Task GetAllServicesHealth()
@@ -353,6 +414,9 @@ private IUnitOfWork _unitOfWork;
             var health = await _serviceDiscoveryService.GetAllServicesHealthAsync();
         }
 
+        /// <summary>
+        /// Benchmarks creating a gRPC HTTP client for a given service.
+        /// </summary>
         [Benchmark]
         [BenchmarkCategory("GrpcClient")]
         public void CreateGrpcClient()
@@ -368,6 +432,9 @@ private IUnitOfWork _unitOfWork;
             });
         }
 
+        /// <summary>
+        /// Benchmarks bulk route resolution by performing many lookups in a loop.
+        /// </summary>
         [Benchmark]
         [BenchmarkCategory("Throughput")]
         [IterationCount(5)]
@@ -380,6 +447,9 @@ private IUnitOfWork _unitOfWork;
             }
         }
 
+        /// <summary>
+        /// Benchmarks bulk cache operations: setting many keys then retrieving them.
+        /// </summary>
         [Benchmark]
         [BenchmarkCategory("Throughput")]
         [IterationCount(5)]
@@ -397,6 +467,9 @@ private IUnitOfWork _unitOfWork;
             }
         }
 
+        /// <summary>
+        /// Benchmarks bulk load balancing by repeatedly selecting the next endpoint.
+        /// </summary>
         [Benchmark]
         [BenchmarkCategory("Throughput")]
         [IterationCount(5)]
@@ -409,6 +482,9 @@ private IUnitOfWork _unitOfWork;
             }
         }
 
+        /// <summary>
+        /// Performs cleanup after benchmarks, disposing the service provider if necessary.
+        /// </summary>
         [GlobalCleanup]
         public void Cleanup()
         {
@@ -419,8 +495,15 @@ private IUnitOfWork _unitOfWork;
         }
     }
 
+    /// <summary>
+    /// Entry point for running the benchmark suite.
+    /// </summary>
     public class Program
     {
+        /// <summary>
+        /// Executes the benchmark runner for <see cref="GatewayBenchmarks"/>.
+        /// </summary>
+        /// <param name="args">Command-line arguments (unused).</param>
         public static void Main(string[] args)
         {
             BenchmarkRunner.Run<GatewayBenchmarks>();
