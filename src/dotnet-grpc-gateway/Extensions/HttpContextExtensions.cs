@@ -7,24 +7,25 @@
 namespace DotNetGrpcGateway.Extensions;
 
 /// <summary>
-/// Extension methods for HttpContext
+/// Extension methods for <see cref="HttpContext"/> providing common HTTP request utilities
 /// </summary>
 public static class HttpContextExtensions
 {
     /// <summary>
     /// Gets the client's IP address, accounting for proxies
     /// </summary>
+    /// <param name="context">The <see cref="HttpContext"/> instance</param>
+    /// <returns>The client IP address as a string, or "unknown" if not determinable</returns>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="context"/> is null</exception>
     public static string GetClientIpAddress(this HttpContext context)
     {
-        if (context is null)
-            throw new ArgumentNullException(nameof(context));
+        ArgumentNullException.ThrowIfNull(context);
 
         // Check for X-Forwarded-For header (set by proxies)
         if (context.Request.Headers.TryGetValue("X-Forwarded-For", out var forwarded))
         {
             var ips = forwarded.ToString().Split(',');
-            if (ips.Length > 0)
-                return ips[0].Trim();
+            return ips.Length > 0 ? ips[0].Trim() : context.Connection.RemoteIpAddress?.ToString() ?? "unknown";
         }
 
         // Fall back to RemoteIpAddress
@@ -34,13 +35,15 @@ public static class HttpContextExtensions
     /// <summary>
     /// Gets the value of a header, or null if not present
     /// </summary>
+    /// <param name="context">The <see cref="HttpContext"/> instance</param>
+    /// <param name="headerName">The name of the header to retrieve</param>
+    /// <returns>The header value if present, otherwise null</returns>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="context"/> is null</exception>
+    /// <exception cref="ArgumentException">Thrown when <paramref name="headerName"/> is null or empty</exception>
     public static string? GetHeader(this HttpContext context, string headerName)
     {
-        if (context is null)
-            throw new ArgumentNullException(nameof(context));
-
-        if (string.IsNullOrWhiteSpace(headerName))
-            return null;
+        ArgumentNullException.ThrowIfNull(context);
+        ArgumentException.ThrowIfNullOrEmpty(headerName);
 
         context.Request.Headers.TryGetValue(headerName, out var value);
         return value.FirstOrDefault();
@@ -49,55 +52,60 @@ public static class HttpContextExtensions
     /// <summary>
     /// Gets the authorization token from the Authorization header
     /// </summary>
+    /// <param name="context">The <see cref="HttpContext"/> instance</param>
+    /// <returns>The bearer token if present and valid, otherwise null</returns>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="context"/> is null</exception>
     public static string? GetAuthorizationToken(this HttpContext context)
     {
+        ArgumentNullException.ThrowIfNull(context);
+
         var authHeader = context.GetHeader("Authorization");
         if (string.IsNullOrWhiteSpace(authHeader))
             return null;
 
         var parts = authHeader.Split(' ');
-        if (parts.Length != 2 || parts[0] != "Bearer")
-            return null;
-
-        return parts[1];
+        return parts.Length == 2 && parts[0] == "Bearer" ? parts[1] : null;
     }
 
     /// <summary>
     /// Gets the request ID (or creates one if not present)
     /// </summary>
+    /// <param name="context">The <see cref="HttpContext"/> instance</param>
+    /// <returns>The request ID from X-Request-ID header or TraceIdentifier</returns>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="context"/> is null</exception>
     public static string GetRequestId(this HttpContext context)
     {
-        if (context is null)
-            throw new ArgumentNullException(nameof(context));
+        ArgumentNullException.ThrowIfNull(context);
 
         var requestId = context.GetHeader("X-Request-ID");
-        if (!string.IsNullOrWhiteSpace(requestId))
-            return requestId;
-
-        return context.TraceIdentifier;
+        return !string.IsNullOrWhiteSpace(requestId) ? requestId : context.TraceIdentifier;
     }
 
     /// <summary>
     /// Checks if the request is a gRPC request
     /// </summary>
+    /// <param name="context">The <see cref="HttpContext"/> instance</param>
+    /// <returns>True if the request is a gRPC request, otherwise false</returns>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="context"/> is null</exception>
     public static bool IsGrpcRequest(this HttpContext context)
     {
-        if (context is null)
-            throw new ArgumentNullException(nameof(context));
+        ArgumentNullException.ThrowIfNull(context);
 
-        var contentType = context.Request.ContentType ?? "";
-        return contentType.Contains("application/grpc");
+        var contentType = context.Request.ContentType ?? string.Empty;
+        return contentType.Contains("application/grpc", StringComparison.Ordinal);
     }
 
     /// <summary>
     /// Checks if the request is a gRPC-Web request
     /// </summary>
+    /// <param name="context">The <see cref="HttpContext"/> instance</param>
+    /// <returns>True if the request is a gRPC-Web request, otherwise false</returns>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="context"/> is null</exception>
     public static bool IsGrpcWebRequest(this HttpContext context)
     {
-        if (context is null)
-            throw new ArgumentNullException(nameof(context));
+        ArgumentNullException.ThrowIfNull(context);
 
-        var contentType = context.Request.ContentType ?? "";
-        return contentType.Contains("application/grpc-web");
+        var contentType = context.Request.ContentType ?? string.Empty;
+        return contentType.Contains("application/grpc-web", StringComparison.Ordinal);
     }
 }
