@@ -8,10 +8,16 @@ using FluentAssertions;
 using DotNetGrpcGateway.Domain;
 using Xunit;
 
+/// <summary>
+/// Tests for the RequestLogService.
+/// </summary>
 namespace DotNetGrpcGateway.Tests;
 
 public class RequestLogServiceTests
 {
+    /// <summary>
+    /// Tests that a valid request creates a log entry with the correct information.
+    /// </summary>
     [Fact]
     public void LogRequest_ValidRequest_CreatesLogEntry()
     {
@@ -35,6 +41,9 @@ public class RequestLogServiceTests
         logEntry.Message.Should().Contain("200");
     }
 
+    /// <summary>
+    /// Tests that a failed request creates a log entry with the correct information.
+    /// </summary>
     [Fact]
     public void LogRequest_FailedRequest_CreatesErrorLogEntry()
     {
@@ -59,6 +68,9 @@ public class RequestLogServiceTests
         logEntry.Message.Should().Contain("Internal server error");
     }
 
+    /// <summary>
+    /// Tests that a slow request creates a log entry with the correct information.
+    /// </summary>
     [Fact]
     public void LogRequest_SlowRequest_CreatesWarningLogEntry()
     {
@@ -80,6 +92,9 @@ public class RequestLogServiceTests
         logEntry.Message.Should().Contain("Slow request");
     }
 
+    /// <summary>
+    /// Tests that a large request creates a log entry with the correct information.
+    /// </summary>
     [Fact]
     public void LogRequest_LargeRequest_CreatesWarningLogEntry()
     {
@@ -101,6 +116,9 @@ public class RequestLogServiceTests
         logEntry.Message.Should().Contain("Large request/response");
     }
 
+    /// <summary>
+    /// Tests that a request with a cache hit creates a log entry with the correct information.
+    /// </summary>
     [Fact]
     public void LogRequest_WithCacheHit_CreatesInfoLogEntry()
     {
@@ -123,6 +141,9 @@ public class RequestLogServiceTests
         logEntry.Message.Should().Contain("Cache HIT");
     }
 
+    /// <summary>
+    /// Tests that a request with a cache miss creates a log entry with the correct information.
+    /// </summary>
     [Fact]
     public void LogRequest_WithCacheMiss_CreatesInfoLogEntry()
     {
@@ -145,6 +166,9 @@ public class RequestLogServiceTests
         logEntry.Message.Should().Contain("Cache MISS");
     }
 
+    /// <summary>
+    /// Tests that a request with retries creates a log entry with the correct information.
+    /// </summary>
     [Fact]
     public void LogRequest_WithRetries_CreatesWarningLogEntry()
     {
@@ -167,6 +191,9 @@ public class RequestLogServiceTests
         logEntry.Message.Should().Contain("Retry count: 3");
     }
 
+    /// <summary>
+    /// Tests that the default constructor sets default values.
+    /// </summary>
     [Fact]
     public void DefaultConstructor_SetsDefaultValues()
     {
