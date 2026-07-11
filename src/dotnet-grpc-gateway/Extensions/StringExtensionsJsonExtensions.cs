@@ -10,7 +10,7 @@ using System.Text.Json.Serialization;
 namespace DotNetGrpcGateway.Extensions;
 
 /// <summary>
-/// System.Text.Json extension methods for string serialization
+/// System.Text.Json extension methods for string serialization and deserialization
 /// </summary>
 public static class StringExtensionsJsonExtensions
 {
@@ -29,27 +29,30 @@ public static class StringExtensionsJsonExtensions
     };
 
     /// <summary>
-    /// Serializes a string to JSON
+    /// Serializes a string value to its JSON representation
     /// </summary>
-    /// <param name="value">The string to serialize</param>
+    /// <param name="value">The string value to serialize</param>
     /// <param name="indented">Whether to format the JSON with indentation</param>
-    /// <returns>JSON string representation</returns>
-    public static string ToJson(this string value, bool indented = false)
+    /// <returns>JSON string representation of the input value</returns>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="value"/> is null</exception>
+    public static string ToJsonString(this string? value, bool indented = false)
     {
-        if (value == null)
-            return "null";
+        ArgumentNullException.ThrowIfNull(value);
 
         var options = indented ? _jsonSerializerOptionsIndented : _jsonSerializerOptions;
         return JsonSerializer.Serialize(value, options);
     }
 
     /// <summary>
-    /// Deserializes a JSON string to a string
+    /// Deserializes a JSON string to a string value
     /// </summary>
     /// <param name="json">JSON string to deserialize</param>
     /// <returns>Deserialized string or null if parsing fails</returns>
-    public static string? FromJson(string json)
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="json"/> is null</exception>
+    public static string? FromJsonString(string? json)
     {
+        ArgumentNullException.ThrowIfNull(json);
+
         if (string.IsNullOrWhiteSpace(json))
             return null;
 
@@ -64,13 +67,16 @@ public static class StringExtensionsJsonExtensions
     }
 
     /// <summary>
-    /// Attempts to deserialize a JSON string to a string
+    /// Attempts to deserialize a JSON string to a string value
     /// </summary>
     /// <param name="json">JSON string to deserialize</param>
     /// <param name="value">Output parameter for the deserialized value</param>
     /// <returns>True if deserialization succeeded, false otherwise</returns>
-    public static bool TryFromJson(string json, out string? value)
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="json"/> is null</exception>
+    public static bool TryFromJsonString(string? json, out string? value)
     {
+        ArgumentNullException.ThrowIfNull(json);
+
         value = null;
 
         if (string.IsNullOrWhiteSpace(json))
