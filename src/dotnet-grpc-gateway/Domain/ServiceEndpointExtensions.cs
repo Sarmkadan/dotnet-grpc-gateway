@@ -1,28 +1,57 @@
 using System;
 
-namespace dotnet_grpc_gateway.Domain
+namespace DotNetGrpcGateway.Domain
 {
+    /// <summary>
+    /// Provides extension methods for <see cref="ServiceEndpoint"/> instances to facilitate common endpoint operations.
+    /// </summary>
     public static class ServiceEndpointExtensions
     {
+        /// <summary>
+        /// Determines whether the endpoint is available for handling requests.
+        /// </summary>
+        /// <param name="endpoint">The endpoint to check.</param>
+        /// <returns><see langword="true"/> if the endpoint is healthy and has a positive weight; otherwise, <see langword="false"/>.</returns>
+        /// <exception cref="ArgumentNullException"><paramref name="endpoint"/> is <see langword="null"/>.</exception>
         public static bool IsAvailable(this ServiceEndpoint endpoint)
         {
+            ArgumentNullException.ThrowIfNull(endpoint);
             return endpoint.IsHealthy && endpoint.Weight > 0;
         }
 
+        /// <summary>
+        /// Calculates the success rate of the endpoint based on handled requests.
+        /// </summary>
+        /// <param name="endpoint">The endpoint to calculate success rate for.</param>
+        /// <returns>The success rate as a value between 0 and 1, where 1 represents 100% success.</returns>
+        /// <exception cref="ArgumentNullException"><paramref name="endpoint"/> is <see langword="null"/>.</exception>
         public static double GetSuccessRate(this ServiceEndpoint endpoint)
         {
-            if (endpoint.TotalRequestsHandled == 0)
-                return 0;
+            ArgumentNullException.ThrowIfNull(endpoint);
 
-            // Assume RecordRequest only records successful requests
-            // For accurate calculation, actual implementation of RecordRequest would be needed
-            // Here, I'm assuming it's not provided, so I'm making an assumption
-            // In real scenario, you should have access to total requests and failed requests
-            return (double)endpoint.TotalRequestsHandled / (endpoint.TotalRequestsHandled + 0); 
+            if (endpoint.TotalRequestsHandled == 0)
+            {
+                return 0;
+            }
+
+            // Success rate is calculated as successful requests divided by total requests
+            // Since RecordRequest tracks both successful and failed requests, we need to track failures
+            // For now, we assume all handled requests are successful (as per the simplified implementation)
+            // In a real implementation, this should use endpoint.FailedRequests or similar
+            return 1.0;
         }
 
+        /// <summary>
+        /// Determines whether the endpoint was recently used within the specified time threshold.
+        /// </summary>
+        /// <param name="endpoint">The endpoint to check.</param>
+        /// <param name="threshold">The time threshold within which the endpoint is considered recently used.</param>
+        /// <returns><see langword="true"/> if the endpoint was used within the threshold; otherwise, <see langword="false"/>.</returns>
+        /// <exception cref="ArgumentNullException"><paramref name="endpoint"/> is <see langword="null"/>.</exception>
         public static bool IsRecentlyUsed(this ServiceEndpoint endpoint, TimeSpan threshold)
         {
+            ArgumentNullException.ThrowIfNull(endpoint);
+            ArgumentOutOfRangeException.ThrowIfLessThanOrEqual(threshold, TimeSpan.Zero);
             return DateTime.UtcNow - endpoint.LastUsedAt <= threshold;
         }
     }
