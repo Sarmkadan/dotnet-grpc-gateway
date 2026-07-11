@@ -10,8 +10,16 @@ using Xunit;
 
 namespace DotNetGrpcGateway.Tests;
 
+/// <summary>
+/// Contains unit tests for the <see cref="RequestMetric"/> class, verifying its
+/// validation logic, helper methods, and default state.
+/// </summary>
 public class RequestMetricTests
 {
+    /// <summary>
+    /// Validates that a fully populated <see cref="RequestMetric"/> does not
+    /// throw any exception when <c>Validate</c> is called.
+    /// </summary>
     [Fact]
     public void Validate_ValidMetric_DoesNotThrow()
     {
@@ -32,6 +40,10 @@ public class RequestMetricTests
         act.Should().NotThrow();
     }
 
+    /// <summary>
+    /// Ensures that validation throws <see cref="InvalidOperationException"/>
+    /// when <c>ServiceName</c> is empty.
+    /// </summary>
     [Fact]
     public void Validate_EmptyServiceName_ThrowsInvalidOperationException()
     {
@@ -48,6 +60,10 @@ public class RequestMetricTests
             .WithMessage("*Service name is required*");
     }
 
+    /// <summary>
+    /// Ensures that validation throws <see cref="InvalidOperationException"/>
+    /// when <c>MethodName</c> is null.
+    /// </summary>
     [Fact]
     public void Validate_NullMethodName_ThrowsInvalidOperationException()
     {
@@ -64,6 +80,10 @@ public class RequestMetricTests
             .WithMessage("*Method name is required*");
     }
 
+    /// <summary>
+    /// Ensures that validation throws <see cref="InvalidOperationException"/>
+    /// when <c>ClientIpAddress</c> is empty.
+    /// </summary>
     [Fact]
     public void Validate_EmptyClientIpAddress_ThrowsInvalidOperationException()
     {
@@ -80,6 +100,10 @@ public class RequestMetricTests
             .WithMessage("*Client IP address is required*");
     }
 
+    /// <summary>
+    /// Ensures that validation throws <see cref="InvalidOperationException"/>
+    /// when <c>DurationMs</c> is negative.
+    /// </summary>
     [Fact]
     public void Validate_NegativeDuration_ThrowsInvalidOperationException()
     {
@@ -97,6 +121,10 @@ public class RequestMetricTests
             .WithMessage("*Duration cannot be negative*");
     }
 
+    /// <summary>
+    /// Ensures that validation throws <see cref="InvalidOperationException"/>
+    /// when <c>RequestSizeBytes</c> is negative.
+    /// </summary>
     [Fact]
     public void Validate_NegativeRequestSize_ThrowsInvalidOperationException()
     {
@@ -115,6 +143,10 @@ public class RequestMetricTests
             .WithMessage("*Message sizes cannot be negative*");
     }
 
+    /// <summary>
+    /// Ensures that validation throws <see cref="InvalidOperationException"/>
+    /// when <c>ClientIpAddress</c> is null.
+    /// </summary>
     [Fact]
     public void Validate_NullClientIpAddress_ThrowsInvalidOperationException()
     {
@@ -131,6 +163,10 @@ public class RequestMetricTests
             .WithMessage("*Client IP address is required*");
     }
 
+    /// <summary>
+    /// Ensures that validation throws <see cref="InvalidOperationException"/>
+    /// when <c>ResponseSizeBytes</c> is negative.
+    /// </summary>
     [Fact]
     public void Validate_NegativeResponseSize_ThrowsInvalidOperationException()
     {
@@ -150,6 +186,10 @@ public class RequestMetricTests
             .WithMessage("*Message sizes cannot be negative*");
     }
 
+    /// <summary>
+    /// Verifies that <see cref="RequestMetric.IsSlowRequest"/> returns <c>false</c>
+    /// when the duration is below the supplied threshold.
+    /// </summary>
     [Fact]
     public void IsSlowRequest_BelowThreshold_ReturnsFalse()
     {
@@ -164,6 +204,10 @@ public class RequestMetricTests
         metric.IsSlowRequest(slowThresholdMs: 1000).Should().BeFalse();
     }
 
+    /// <summary>
+    /// Verifies that <see cref="RequestMetric.IsSlowRequest"/> returns <c>true</c>
+    /// when the duration exceeds the supplied threshold.
+    /// </summary>
     [Fact]
     public void IsSlowRequest_AboveThreshold_ReturnsTrue()
     {
@@ -178,6 +222,10 @@ public class RequestMetricTests
         metric.IsSlowRequest(slowThresholdMs: 1000).Should().BeTrue();
     }
 
+    /// <summary>
+    /// Checks that <see cref="RequestMetric.RecordError(string,string)"/> sets the
+    /// error-related properties and marks the metric as unsuccessful.
+    /// </summary>
     [Fact]
     public void RecordError_SetsErrorProperties()
     {
@@ -195,6 +243,10 @@ public class RequestMetricTests
         metric.StackTrace.Should().Be("Stack trace here");
     }
 
+    /// <summary>
+    /// Ensures that calling <see cref="RequestMetric.RecordRetry"/> increments the
+    /// retry count and sets <c>WasRetried</c> to true.
+    /// </summary>
     [Fact]
     public void RecordRetry_IncrementsRetryCount()
     {
@@ -212,6 +264,10 @@ public class RequestMetricTests
         metric.WasRetried.Should().BeTrue();
     }
 
+    /// <summary>
+    /// Verifies that <see cref="RequestMetric.RecordError(string)"/> without a stack
+    /// trace sets the error message and leaves <c>StackTrace</c> null.
+    /// </summary>
     [Fact]
     public void RecordError_WithoutStackTrace_SetsErrorProperties()
     {
@@ -229,6 +285,10 @@ public class RequestMetricTests
         metric.StackTrace.Should().BeNull();
     }
 
+    /// <summary>
+    /// Checks that <see cref="RequestMetric.SetCacheStatus(string)"/> correctly
+    /// records the cache hit status.
+    /// </summary>
     [Fact]
     public void SetCacheStatus_SetsCacheHitStatus()
     {
@@ -244,6 +304,10 @@ public class RequestMetricTests
         metric.CacheHitStatus.Should().Be("HIT");
     }
 
+    /// <summary>
+    /// Verifies that the default constructor initializes all properties with their
+    /// expected default values.
+    /// </summary>
     [Fact]
     public void DefaultConstructor_SetsDefaultValues()
     {
