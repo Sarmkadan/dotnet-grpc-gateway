@@ -16,6 +16,7 @@ public static class RequestLogEntryExtensions
     /// </summary>
     /// <param name="entry">The log entry.</param>
     /// <returns>True if the request was served from cache; otherwise false.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="entry"/> is <see langword="null"/>.</exception>
     public static bool WasCacheHit(this RequestLogEntry entry)
     {
         ArgumentNullException.ThrowIfNull(entry);
@@ -27,6 +28,7 @@ public static class RequestLogEntryExtensions
     /// </summary>
     /// <param name="entry">The log entry.</param>
     /// <returns>True if the request was successful; otherwise false.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="entry"/> is <see langword="null"/>.</exception>
     public static bool WasSuccessful(this RequestLogEntry entry)
     {
         ArgumentNullException.ThrowIfNull(entry);
@@ -38,6 +40,7 @@ public static class RequestLogEntryExtensions
     /// </summary>
     /// <param name="entry">The log entry.</param>
     /// <returns>The duration in seconds.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="entry"/> is <see langword="null"/>.</exception>
     public static double DurationSeconds(this RequestLogEntry entry)
     {
         ArgumentNullException.ThrowIfNull(entry);
@@ -49,6 +52,7 @@ public static class RequestLogEntryExtensions
     /// </summary>
     /// <param name="entry">The log entry.</param>
     /// <returns>The combined size in bytes.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="entry"/> is <see langword="null"/>.</exception>
     public static long TotalSizeBytes(this RequestLogEntry entry)
     {
         ArgumentNullException.ThrowIfNull(entry);
@@ -60,18 +64,16 @@ public static class RequestLogEntryExtensions
     /// </summary>
     /// <param name="entry">The log entry.</param>
     /// <returns>A formatted duration string (e.g., "125ms", "2.3s").</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="entry"/> is <see langword="null"/>.</exception>
     public static string FormattedDuration(this RequestLogEntry entry)
     {
         ArgumentNullException.ThrowIfNull(entry);
 
-        if (entry.DurationMs < 1000)
+        return entry.DurationMs switch
         {
-            return $"{entry.DurationMs}ms";
-        }
-        else
-        {
-            return $"{entry.DurationSeconds():0.##}s";
-        }
+            < 1000 => $"{entry.DurationMs}ms",
+            _ => $"{entry.DurationSeconds():0.##}s"
+        };
     }
 
     /// <summary>
@@ -79,10 +81,10 @@ public static class RequestLogEntryExtensions
     /// </summary>
     /// <param name="entry">The log entry.</param>
     /// <returns>A formatted size string (e.g., "1.2KB", "5MB").</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="entry"/> is <see langword="null"/>.</exception>
     public static string FormattedSize(this RequestLogEntry entry)
     {
         ArgumentNullException.ThrowIfNull(entry);
-
         var totalBytes = entry.TotalSizeBytes();
         return FormatBytes(totalBytes);
     }
@@ -92,10 +94,10 @@ public static class RequestLogEntryExtensions
     /// </summary>
     /// <param name="entry">The log entry.</param>
     /// <returns>The status code category.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="entry"/> is <see langword="null"/>.</exception>
     public static string StatusCodeCategory(this RequestLogEntry entry)
     {
         ArgumentNullException.ThrowIfNull(entry);
-
         var category = entry.HttpStatusCode / 100;
         return $"{category}xx";
     }
@@ -105,10 +107,11 @@ public static class RequestLogEntryExtensions
     /// </summary>
     /// <param name="entry">The log entry.</param>
     /// <returns>True if the status code is in the 4xx range; otherwise false.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="entry"/> is <see langword="null"/>.</exception>
     public static bool IsClientError(this RequestLogEntry entry)
     {
         ArgumentNullException.ThrowIfNull(entry);
-        return entry.HttpStatusCode >= 400 && entry.HttpStatusCode < 500;
+        return entry.HttpStatusCode is >= 400 and < 500;
     }
 
     /// <summary>
@@ -116,6 +119,7 @@ public static class RequestLogEntryExtensions
     /// </summary>
     /// <param name="entry">The log entry.</param>
     /// <returns>True if the status code is in the 5xx range; otherwise false.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="entry"/> is <see langword="null"/>.</exception>
     public static bool IsServerError(this RequestLogEntry entry)
     {
         ArgumentNullException.ThrowIfNull(entry);
@@ -127,6 +131,7 @@ public static class RequestLogEntryExtensions
     /// </summary>
     /// <param name="entry">The log entry.</param>
     /// <returns>A formatted summary string.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="entry"/> is <see langword="null"/>.</exception>
     public static string GetSummary(this RequestLogEntry entry)
     {
         ArgumentNullException.ThrowIfNull(entry);
@@ -134,10 +139,8 @@ public static class RequestLogEntryExtensions
         var status = entry.WasSuccessful() ? "✓" : "✗";
         var duration = entry.FormattedDuration();
         var size = entry.FormattedSize();
-        var method = entry.Method;
-        var path = entry.Path;
 
-        return $"[{entry.Timestamp:yyyy-MM-dd HH:mm:ss}] {status} {method} {path} - {entry.HttpStatusCode} ({entry.StatusCodeCategory()}) - {duration} - {size}";
+        return $"[{entry.Timestamp:yyyy-MM-dd HH:mm:ss}] {status} {entry.Method} {entry.Path} - {entry.HttpStatusCode} ({entry.StatusCodeCategory()}) - {duration} - {size}";
     }
 
     /// <summary>
@@ -145,6 +148,7 @@ public static class RequestLogEntryExtensions
     /// </summary>
     /// <param name="entry">The log entry.</param>
     /// <returns>The upstream address or client IP.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="entry"/> is <see langword="null"/>.</exception>
     public static string GetTargetAddress(this RequestLogEntry entry)
     {
         ArgumentNullException.ThrowIfNull(entry);
@@ -156,15 +160,26 @@ public static class RequestLogEntryExtensions
     /// </summary>
     /// <param name="entry">The log entry.</param>
     /// <returns>The error message if available; otherwise null.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="entry"/> is <see langword="null"/>.</exception>
     public static string? GetErrorDetails(this RequestLogEntry entry)
     {
         ArgumentNullException.ThrowIfNull(entry);
         return entry.IsSuccessful ? null : entry.ErrorMessage ?? "Unknown error";
     }
 
+    /// <summary>
+    /// Formats a byte count into a human-readable string with appropriate units.
+    /// </summary>
+    /// <param name="bytes">The number of bytes to format.</param>
+    /// <returns>A formatted string (e.g., "1.2KB", "5MB").</returns>
     private static string FormatBytes(long bytes)
     {
-        string[] suffixes = { "B", "KB", "MB", "GB", "TB" };
+        if (bytes < 0)
+        {
+            return "0B";
+        }
+
+        string[] suffixes = ["B", "KB", "MB", "GB", "TB"];
         int counter = 0;
         double value = bytes;
 
