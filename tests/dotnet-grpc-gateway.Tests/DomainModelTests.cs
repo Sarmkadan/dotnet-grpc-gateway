@@ -8,10 +8,17 @@ using FluentAssertions;
 using DotNetGrpcGateway.Domain;
 using Xunit;
 
+/// <summary>
+/// Contains unit tests for the GrpcService class.
+/// </summary>
 namespace DotNetGrpcGateway.Tests;
 
 public class GrpcServiceTests
 {
+    /// <summary>
+    /// Creates a new instance of GrpcService with valid properties.
+    /// </summary>
+    /// <returns>A new instance of GrpcService.</returns>
     private static GrpcService ValidService() => new()
     {
         Name = "UserService",
@@ -20,6 +27,9 @@ public class GrpcServiceTests
         Port = 5001
     };
 
+    /// <summary>
+    /// Verifies that the GetEndpointUri method returns the correct URI when TLS is enabled.
+    /// </summary>
     [Fact]
     public void GetEndpointUri_TlsEnabled_ReturnsHttpsScheme()
     {
@@ -32,6 +42,9 @@ public class GrpcServiceTests
         uri.Should().Be("https://localhost:5001");
     }
 
+    /// <summary>
+    /// Verifies that the GetEndpointUri method returns the correct URI when TLS is disabled.
+    /// </summary>
     [Fact]
     public void GetEndpointUri_TlsDisabled_ReturnsHttpScheme()
     {
@@ -43,6 +56,9 @@ public class GrpcServiceTests
         uri.Should().Be("http://localhost:5001");
     }
 
+    /// <summary>
+    /// Verifies that the RecordRequestMetric method maintains the running average of response times.
+    /// </summary>
     [Fact]
     public void RecordRequestMetric_MultipleRequests_MaintainsRunningAverage()
     {
@@ -56,6 +72,9 @@ public class GrpcServiceTests
         service.AverageResponseTimeMs.Should().BeApproximately(150, 0.001);
     }
 
+    /// <summary>
+    /// Verifies that the RecordRequestMetric method increments the failure count when a request fails.
+    /// </summary>
     [Fact]
     public void RecordRequestMetric_FailedRequest_IncrementsFailureCount()
     {
@@ -67,6 +86,9 @@ public class GrpcServiceTests
         service.FailedRequestsCount.Should().Be(1);
     }
 
+    /// <summary>
+    /// Verifies that the Validate method throws an InvalidOperationException when the port is invalid.
+    /// </summary>
     [Fact]
     public void Validate_InvalidPort_ThrowsInvalidOperationException()
     {
