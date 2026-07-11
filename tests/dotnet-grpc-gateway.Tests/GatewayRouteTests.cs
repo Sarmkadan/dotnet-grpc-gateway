@@ -10,8 +10,16 @@ using Xunit;
 
 namespace DotNetGrpcGateway.Tests;
 
+/// <summary>
+/// Tests for the <see cref="GatewayRoute"/> class, covering validation,
+/// matching logic, and default property values.
+/// </summary>
 public class GatewayRouteTests
 {
+    /// <summary>
+    /// Verifies that a route with valid properties does not throw an exception
+    /// when <see cref="GatewayRoute.Validate"/> is called.
+    /// </summary>
     [Fact]
     public void Validate_ValidRoute_DoesNotThrow()
     {
@@ -30,6 +38,10 @@ public class GatewayRouteTests
         act.Should().NotThrow();
     }
 
+    /// <summary>
+    /// Ensures that a route with an empty <c>Pattern</c> throws an
+    /// <see cref="InvalidOperationException"/> with an appropriate message.
+    /// </summary>
     [Fact]
     public void Validate_EmptyPattern_ThrowsInvalidOperationException()
     {
@@ -45,6 +57,10 @@ public class GatewayRouteTests
             .WithMessage("*Route pattern is required*");
     }
 
+    /// <summary>
+    /// Ensures that a route with a non‑positive <c>TargetServiceId</c> throws an
+    /// <see cref="InvalidOperationException"/> with an appropriate message.
+    /// </summary>
     [Fact]
     public void Validate_InvalidTargetServiceId_ThrowsInvalidOperationException()
     {
@@ -60,6 +76,9 @@ public class GatewayRouteTests
             .WithMessage("*Target service ID must be valid*");
     }
 
+    /// <summary>
+    /// Verifies that a negative <c>Priority</c> value causes validation to fail.
+    /// </summary>
     [Fact]
     public void Validate_NegativePriority_ThrowsInvalidOperationException()
     {
@@ -76,6 +95,10 @@ public class GatewayRouteTests
             .WithMessage("*Priority must be between 0 and 1000*");
     }
 
+    /// <summary>
+    /// Verifies that a priority value greater than the allowed maximum causes
+    /// validation to fail.
+    /// </summary>
     [Fact]
     public void Validate_TooHighPriority_ThrowsInvalidOperationException()
     {
@@ -92,6 +115,9 @@ public class GatewayRouteTests
             .WithMessage("*Priority must be between 0 and 1000*");
     }
 
+    /// <summary>
+    /// Ensures that a zero <c>RateLimitPerMinute</c> triggers a validation error.
+    /// </summary>
     [Fact]
     public void Validate_ZeroRateLimit_ThrowsInvalidOperationException()
     {
@@ -108,6 +134,9 @@ public class GatewayRouteTests
             .WithMessage("*Rate limit must be greater than 0*");
     }
 
+    /// <summary>
+    /// Ensures that a negative cache duration triggers a validation error.
+    /// </summary>
     [Fact]
     public void Validate_NegativeCacheDuration_ThrowsInvalidOperationException()
     {
@@ -124,6 +153,10 @@ public class GatewayRouteTests
             .WithMessage("*Cache duration cannot be negative*");
     }
 
+    /// <summary>
+    /// Tests that <see cref="GatewayRoute.MatchesRequest"/> returns <c>true</c>
+    /// for an exact match and <c>false</c> for non‑matching service or method names.
+    /// </summary>
     [Fact]
     public void MatchesRequest_ExactMatch_ReturnsTrue()
     {
@@ -138,6 +171,10 @@ public class GatewayRouteTests
         route.MatchesRequest("OrderService", "GetUser").Should().BeFalse();
     }
 
+    /// <summary>
+    /// Tests that a prefix match returns <c>true</c> for method names that start
+    /// with the specified prefix and <c>false</c> for other services.
+    /// </summary>
     [Fact]
     public void MatchesRequest_PrefixMatch_ReturnsTrue()
     {
@@ -153,6 +190,9 @@ public class GatewayRouteTests
         route.MatchesRequest("OrderService", "GetUser").Should().BeFalse();
     }
 
+    /// <summary>
+    /// Tests that a regular‑expression match works as expected for allowed patterns.
+    /// </summary>
     [Fact]
     public void MatchesRequest_RegexMatch_ReturnsTrue()
     {
@@ -168,6 +208,9 @@ public class GatewayRouteTests
         route.MatchesRequest("OrderService", "GetUser").Should().BeFalse();
     }
 
+    /// <summary>
+    /// Verifies that an undefined <c>MatchType</c> value results in a non‑match.
+    /// </summary>
     [Fact]
     public void MatchesRequest_InvalidMatchType_ReturnsFalse()
     {
@@ -180,6 +223,10 @@ public class GatewayRouteTests
         route.MatchesRequest("UserService", "GetUser").Should().BeFalse();
     }
 
+    /// <summary>
+    /// Confirms that <see cref="GatewayRoute.UpdateModifiedDate"/> updates the
+    /// <c>ModifiedAt</c> timestamp to a later value.
+    /// </summary>
     [Fact]
     public void UpdateModifiedDate_UpdatesModifiedAt()
     {
@@ -197,6 +244,10 @@ public class GatewayRouteTests
         route.ModifiedAt.Should().BeAfter(originalModifiedAt);
     }
 
+    /// <summary>
+    /// Checks that the default constructor initializes all properties with their
+    /// expected default values.
+    /// </summary>
     [Fact]
     public void DefaultConstructor_SetsDefaultValues()
     {
@@ -224,6 +275,10 @@ public class GatewayRouteTests
         route.IsActive.Should().BeTrue();
     }
 
+    /// <summary>
+    /// Validates that calling <see cref="GatewayRoute.Validate"/> on a default
+    /// instance throws an <see cref="InvalidOperationException"/>.
+    /// </summary>
     [Fact]
     public void Validate_DefaultRoute_DoesNotThrow()
     {
@@ -234,6 +289,10 @@ public class GatewayRouteTests
         act.Should().Throw<InvalidOperationException>();
     }
 
+    /// <summary>
+    /// Verifies that a fully populated route passes validation and that all
+    /// explicitly set properties retain their assigned values.
+    /// </summary>
     [Fact]
     public void Validate_ValidRouteWithAllProperties_SetCorrectly()
     {
