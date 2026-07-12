@@ -214,7 +214,9 @@ public class GatewayController : ControllerBase
     [ProducesResponseType(typeof(GatewayStatistics), StatusCodes.Status200OK)]
     public async Task<ActionResult<GatewayStatistics>> GetStatistics(string date)
     {
-        if (!DateTime.TryParse(date, out var parsedDate))
+        if (!DateTime.TryParse(date, System.Globalization.CultureInfo.InvariantCulture,
+                System.Globalization.DateTimeStyles.AssumeUniversal | System.Globalization.DateTimeStyles.AdjustToUniversal,
+                out var parsedDate))
             return BadRequest("Invalid date format");
 
         var stats = await _metricsService.GetStatisticsAsync(parsedDate);

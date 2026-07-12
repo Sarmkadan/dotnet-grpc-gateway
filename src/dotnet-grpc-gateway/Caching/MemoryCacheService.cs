@@ -64,12 +64,16 @@ public class MemoryCacheService : ICacheService
 
     public async Task ClearAsync()
     {
-        // Note: IMemoryCache doesn't have a built-in Clear method
-        // In a real implementation, you'd maintain a list of keys or use MemoryCache.Compact
+        // IMemoryCache has no built-in Clear, so evict every key tracked in metadata.
         await Task.CompletedTask;
-        _metadata.Clear();
-        _hitCount = 0;
-        _missCount = 0;
+        foreach (var key in _metadata.Keys)
+        {
+            _cache.Remove(key);
+            _metadata.TryRemove(key, out _);
+        }
+
+        Interlocked.Exchange(ref _hitCount, 0);
+        Interlocked.Exchange(ref _missCount, 0);
         _logger.LogInformation("Cache cleared");
     }
 
@@ -162,13 +166,40 @@ public class MemoryCacheService : ICacheService
         if (value is null)
             return 0;
 
-        // Rough estimation of object size in bytes
-        return value switch
+        // Rough estimation of object size in bytes.
+        // Marshal.SizeOf throws for arbitrary managed types, so only handle
+        // shapes that can be measured safely and fall back to a serialized length.
+        switch (value)
         {
-            string s => s.Length * 2, // UTF-16
-            byte[] b => b.Length,
-            _ => System.Runtime.InteropServices.Marshal.SizeOf(value)
-        };
+            case string s:
+                return s.Length * 2; // UTF-16
+            case byte[] b:
+                return b.Length;
+            case bool:
+                return sizeof(bool);
+            case char:
+                return sizeof(char);
+            case byte or sbyte:
+                return sizeof(byte);
+            case short or ushort:
+                return sizeof(short);
+            case int or uint or float:
+                return sizeof(int);
+            case long or ulong or double or DateTime or TimeSpan:
+                return sizeof(long);
+            case decimal or Guid:
+                return sizeof(decimal);
+        }
+
+        try
+        {
+            return System.Text.Json.JsonSerializer.SerializeToUtf8Bytes(value, value.GetType()).Length;
+        }
+        catch (Exception)
+        {
+            // Non-serializable object graph; use a conservative fixed estimate.
+            return IntPtr.Size * 8;
+        }
     }
 
     private class CacheEntryMetadata

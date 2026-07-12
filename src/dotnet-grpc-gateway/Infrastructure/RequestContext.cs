@@ -92,8 +92,8 @@ public class RequestContext
     /// </summary>
     private static string GenerateRequestId()
     {
-        var timestamp = DateTime.UtcNow.ToString("yyyyMMddHHmmss");
-        var random = new Random().Next(100000, 999999);
+        var timestamp = DateTime.UtcNow.ToString("yyyyMMddHHmmss", System.Globalization.CultureInfo.InvariantCulture);
+        var random = Random.Shared.Next(100000, 999999);
         return $"{timestamp}-{random}";
     }
 }

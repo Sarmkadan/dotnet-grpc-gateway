@@ -108,7 +108,7 @@ public class RequestLoggingMiddleware
             case RequestLoggingVerbosity.Minimal:
                 _logger.Log(logLevel,
                     "[{Timestamp}] gRPC {GrpcMethod} {Status} {ElapsedMs}ms",
-                    DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ss.fffZ"),
+                    DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ss.fffZ", System.Globalization.CultureInfo.InvariantCulture),
                     grpcMethod,
                     response.StatusCode,
                     elapsedMs);
@@ -117,7 +117,7 @@ public class RequestLoggingMiddleware
             case RequestLoggingVerbosity.Normal:
                 _logger.Log(logLevel,
                     "[{Timestamp}] gRPC {GrpcMethod} upstream={Upstream} {Status} {ElapsedMs}ms {@RequestHeaders}",
-                    DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ss.fffZ"),
+                    DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ss.fffZ", System.Globalization.CultureInfo.InvariantCulture),
                     grpcMethod,
                     upstream,
                     response.StatusCode,
@@ -131,7 +131,7 @@ public class RequestLoggingMiddleware
                 _logger.Log(logLevel,
                     "[{Timestamp}] gRPC {GrpcMethod} upstream={Upstream} {Status} {ElapsedMs}ms " +
                     "req_bytes={RequestBytes} res_bytes={ResponseBytes} {@RequestHeaders}",
-                    DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ss.fffZ"),
+                    DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ss.fffZ", System.Globalization.CultureInfo.InvariantCulture),
                     grpcMethod,
                     upstream,
                     response.StatusCode,
