@@ -37,9 +37,9 @@ public class ServiceHealthReport
 
     public double HealthCheckSuccessRate { get; set; } = 0.0;
 
-    public DateTime LastCheckAt { get; set; }
+    public DateTime LastCheckAt { get; set; } = DateTime.UtcNow;
 
-    public DateTime NextCheckScheduledAt { get; set; }
+    public DateTime NextCheckScheduledAt { get; set; } = DateTime.UtcNow;
 
     public string? HealthCheckEndpoint { get; set; }
 
@@ -51,6 +51,9 @@ public class ServiceHealthReport
     {
         if (ServiceId <= 0)
             throw new InvalidOperationException("Service ID must be valid");
+
+        if (string.IsNullOrWhiteSpace(HealthStatus))
+            throw new InvalidOperationException("Health status is required");
 
         if (HealthCheckSuccessRate < 0 || HealthCheckSuccessRate > 100)
             throw new InvalidOperationException("Success rate must be between 0 and 100");
@@ -92,10 +95,11 @@ public class ServiceHealthReport
         if (DiagnosticMessages.Count >= 10)
             DiagnosticMessages.RemoveAt(0);
 
-        DiagnosticMessages.Add($"[{DateTime.UtcNow:O}] {message}");
+        DiagnosticMessages.Add(message);
     }
 
     public bool ShouldBeMarkedUnhealthy => FailedChecksInARow >= 3;
 
-    public double GetAvailabilityPercentage => HealthCheckSuccessRate;
+    public double GetAvailabilityPercentage =>
+        TotalHealthChecks == 0 ? 0.0 : (double)SuccessfulHealthChecks / TotalHealthChecks * 100;
 }

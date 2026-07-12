@@ -17,14 +17,32 @@ public class RequestLogEntry
 
 	public DateTime Timestamp { get; set; } = DateTime.UtcNow;
 
-	/// <summary>Log level for this entry.</summary>
-	public string? LogLevel { get; set; }
+	private string? _logLevel;
+	private string? _message;
 
-	/// <summary>Log message.</summary>
-	public string? Message { get; set; }
+	/// <summary>
+	/// Log level for this entry. When not set explicitly, it is derived from the
+	/// entry state: ERROR for failed requests, WARN for slow, oversized, or retried
+	/// requests, and INFO otherwise.
+	/// </summary>
+	public string? LogLevel
+	{
+		get => _logLevel ?? ComputeLogLevel();
+		set => _logLevel = value;
+	}
+
+	/// <summary>
+	/// Log message. When not set explicitly, it is composed from the entry state
+	/// (outcome, service/method, status, duration, cache, retry, and size details).
+	/// </summary>
+	public string? Message
+	{
+		get => _message ?? ComposeMessage();
+		set => _message = value;
+	}
 
 	/// <summary>Request ID.</summary>
-	public string? RequestId { get; set; }
+	public string? RequestId { get; set; } = Guid.NewGuid().ToString();
 
 	/// <summary>Service name.</summary>
 	public string? ServiceName { get; set; }
@@ -66,7 +84,7 @@ public class RequestLogEntry
 	public string? ErrorMessage { get; set; }
 
 	/// <summary>Whether the request completed successfully (status &lt; 400).</summary>
-	public bool IsSuccessful { get; set; }
+	public bool IsSuccessful { get; set; } = true;
 
 	/// <summary>Whether the request was served from cache.</summary>
 	public bool CacheHit { get; set; }
@@ -115,5 +133,56 @@ public class RequestLogEntry
 	{
 		get => IsSuccessful;
 		set => IsSuccessful = value;
+	}
+
+	/// <summary>Duration above which a request is considered slow (milliseconds).</summary>
+	private const long SlowRequestThresholdMs = 1000;
+
+	/// <summary>Combined payload size above which a request is considered large (bytes).</summary>
+	private const long LargePayloadThresholdBytes = 1024 * 1024;
+
+	private string ComputeLogLevel()
+	{
+		if (!IsSuccessful)
+			return "ERROR";
+
+		if (RetryCount > 0 ||
+			DurationMs > SlowRequestThresholdMs ||
+			RequestSizeBytes + ResponseSizeBytes > LargePayloadThresholdBytes)
+		{
+			return "WARN";
+		}
+
+		return "INFO";
+	}
+
+	private string ComposeMessage()
+	{
+		var target = string.IsNullOrEmpty(ServiceName) && string.IsNullOrEmpty(MethodName)
+			? GrpcMethod ?? Path ?? "unknown"
+			: $"{ServiceName}.{MethodName}";
+
+		var parts = new List<string>
+		{
+			IsSuccessful ? $"Request completed - {target}" : $"Request failed - {target}",
+			$"Status: {HttpStatusCode}",
+			$"Duration: {DurationMs}ms"
+		};
+
+		if (!IsSuccessful && !string.IsNullOrEmpty(ErrorMessage))
+			parts.Add(ErrorMessage);
+
+		if (DurationMs > SlowRequestThresholdMs)
+			parts.Add($"Slow request ({DurationMs}ms)");
+
+		if (RequestSizeBytes + ResponseSizeBytes > LargePayloadThresholdBytes)
+			parts.Add($"Large request/response ({RequestSizeBytes + ResponseSizeBytes} bytes)");
+
+		if (RetryCount > 0)
+			parts.Add($"Retry count: {RetryCount}");
+
+		parts.Add(CacheHit ? "Cache HIT" : "Cache MISS");
+
+		return string.Join(" - ", parts);
 	}
 }
