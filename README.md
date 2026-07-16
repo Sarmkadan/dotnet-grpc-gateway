@@ -62,3 +62,49 @@ class Program
     }
 }
 ```
+
+## ServiceReflectionInfo
+
+The `ServiceReflectionInfo` class holds metadata about a gRPC service discovered through Server Reflection. It provides information about the service's methods, response times, and availability.
+
+### Example Usage
+
+```csharp
+using System;
+using System.Collections.Generic;
+using DotNetGrpcGateway.Domain;
+
+class Program
+{
+    static void Main()
+    {
+        var reflectionInfo = new ServiceReflectionInfo
+        {
+            ServiceId = 10,
+            ServiceName = "MyService",
+            ServiceFullName = "MyPackage.MyService",
+            Methods = new List<ServiceMethodDescriptor>
+            {
+                new ServiceMethodDescriptor
+                {
+                    Name = "MyMethod",
+                    RequestType = "MyPackage.MyRequest",
+                    ResponseType = "MyPackage.MyResponse",
+                    IsClientStreaming = false,
+                    IsServerStreaming = false
+                }
+            },
+            ReflectedAt = DateTime.UtcNow,
+            IsAvailable = true
+        };
+
+        Console.WriteLine($"Service {reflectionInfo.ServiceName} ({reflectionInfo.ServiceFullName}) has {reflectionInfo.MethodCount} methods.");
+        Console.WriteLine($"  - Available: {reflectionInfo.IsAvailable}");
+        Console.WriteLine($"  - Reflected at: {reflectionInfo.ReflectedAt}");
+
+        foreach (var method in reflectionInfo.Methods)
+        {
+            Console.WriteLine($"  - Method: {method.Name} ({method.RequestType} -> {method.ResponseType}) - {method.StreamingMode}");
+        }
+    }
+}
