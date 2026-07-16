@@ -1,3 +1,8 @@
+// src/dotnet-grpc-gateway/README.md
+// =============================================================================
+// Author: Vladyslav Zaiets | https://sarmkadan.com
+// CTO & Software Architect
+// =============================================================================
 
 ## ServiceHealthReport
 
@@ -144,3 +149,44 @@ class Program
         Console.WriteLine($"Healthy: {endpoint.IsHealthy}");
     }
 }
+```
+
+## IGrpcClientFactory
+
+`IGrpcClientFactory` is a factory for creating and caching HTTP clients for downstream gRPC service communication. It manages per-service client lifecycle, TLS configuration, and provides both unary and server-streaming invocation methods.
+
+### Example Usage
+
+```csharp
+using System;
+using System.Threading.Tasks;
+using DotNetGrpcGateway.Domain;
+
+class Program
+{
+    static async Task Main()
+    {
+        var factory = new GrpcClientFactory(new HttpClient(), new Logger<GrpcClientFactory>());
+        var service = new GrpcService
+        {
+            Id = 10,
+            Name = "MyService",
+            ServiceFullName = "MyPackage.MyService",
+            UseTls = true,
+            Host = "localhost",
+            Port = 5001
+        };
+
+        var client = factory.CreateHttpClient(service);
+        var response = await client.GetAsync("/MyService/MyMethod");
+        Console.WriteLine($"Response status: {response.StatusCode}");
+
+        var result = await factory.InvokeAsync<int>(service, "MyMethod", new object(), default);
+        Console.WriteLine($"Result: {result}");
+
+        var stream = await factory.InvokeStreamingAsync(service, "MyMethod", new object(), default);
+        Console.WriteLine($"Stream: {stream}");
+    }
+}
+```
+
