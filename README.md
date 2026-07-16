@@ -416,6 +416,40 @@ if (clientToken is not null)
 }
 ```
 
+## DynamicRouteConfigurationExample
+
+`DynamicRouteConfigurationExample` demonstrates how to configure routes dynamically in the gRPC gateway, including pattern-based routing, priority-based matching, rate limiting, and response caching. This example shows how to create routes with different patterns and priorities, display all configured routes, test route matching for specific requests, and detect potential route conflicts.
+
+### Example Usage
+
+```csharp
+using DotNetGrpcGateway.Examples;
+
+// 1. Create an instance of the dynamic route configuration example
+var example = new DynamicRouteConfigurationExample();
+
+Console.WriteLine("=== Dynamic Route Configuration Example ===\n");
+
+// 2. Configure routes with different patterns and priorities
+Console.WriteLine("Step 1: Creating routes...");
+await example.ConfigureRoutesAsync(1);
+await Task.Delay(1000);
+
+// 3. Display all configured routes
+Console.WriteLine("\nStep 2: Displaying all routes...");
+await example.DisplayAllRoutesAsync();
+await Task.Delay(1000);
+
+// 4. Test route matching for a specific service/method
+Console.WriteLine("\nStep 3: Testing route matching...");
+await example.TestRouteMatchingAsync("user.UserService", "GetUser");
+await Task.Delay(1000);
+
+// 5. Detect potential route conflicts
+Console.WriteLine("\nStep 4: Detecting potential conflicts...");
+await example.DetectConflictsAsync();
+```
+
 ## MetricsAndMonitoringExample
 
 `MetricsAndMonitoringExample` demonstrates how to collect and analyze comprehensive metrics from the gRPC gateway, including performance statistics, slow request detection, error tracking, and endpoint analysis. This example is essential for monitoring gateway health, identifying performance bottlenecks, and making data-driven optimization decisions.
