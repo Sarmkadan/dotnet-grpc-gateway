@@ -151,6 +151,51 @@ class Program
 }
 ```
 
+## IRouteResolutionService
+
+`IRouteResolutionService` is responsible for mapping incoming gRPC requests to the appropriate target backend service based on configured routes. It manages route lookup, validation, and caching to ensure efficient request routing within the gateway.
+
+### Example Usage
+
+```csharp
+using System;
+using System.Collections.Generic;
+using System.Threading.Tasks;
+using DotNetGrpcGateway.Domain;
+using DotNetGrpcGateway.Services;
+
+class Program
+{
+    static async Task Main(IServiceProvider serviceProvider)
+    {
+        var routeResolutionService = serviceProvider.GetRequiredService<IRouteResolutionService>();
+
+        // 1. Resolve a route for a request
+        var route = await routeResolutionService.ResolveRouteAsync("MyService", "MyMethod");
+        Console.WriteLine($"Resolved route to service ID: {route.TargetServiceId}");
+
+        // 2. Resolve the actual target service details
+        var targetService = await routeResolutionService.ResolveTargetServiceAsync(route.TargetServiceId);
+        Console.WriteLine($"Target service: {targetService.Name} at {targetService.Host}:{targetService.Port}");
+
+        // 3. Find a matching route (returns null if not found)
+        var matchingRoute = await routeResolutionService.FindMatchingRouteAsync("MyService", "MyMethod");
+        if (matchingRoute != null)
+        {
+            Console.WriteLine($"Matching route priority: {matchingRoute.Priority}");
+        }
+
+        // 4. Validate access to a specific route
+        await routeResolutionService.ValidateRouteAccessAsync(route, "client-123");
+
+        // 5. Manage cache
+        Console.WriteLine($"Cached routes count: {routeResolutionService.GetCachedRouteCount()}");
+        routeResolutionService.ClearRouteCache();
+        Console.WriteLine("Route cache cleared.");
+    }
+}
+```
+
 ## IGrpcClientFactory
 
 `IGrpcClientFactory` is a factory for creating and caching HTTP clients for downstream gRPC service communication. It manages per-service client lifecycle, TLS configuration, and provides both unary and server-streaming invocation methods.
