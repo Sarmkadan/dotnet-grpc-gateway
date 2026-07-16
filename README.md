@@ -1377,6 +1377,68 @@ class GatewayMiddleware
 }
 ```
 
+## JsonSerializationUtility
+
+`JsonSerializationUtility` provides consistent JSON serialization and deserialization utilities with configurable formatting options. It ensures uniform JSON formatting across the application using standardized `System.Text.Json` settings with camelCase property naming, null value handling, and error resilience. The utility supports both compact and pretty-printed serialization, safe deserialization with error reporting, JSON validation, formatting, object merging, and path-based value extraction.
+
+### Example Usage
+
+```csharp
+using System;
+using DotNetGrpcGateway.Utilities;
+
+class Program
+{
+    static void Main()
+    {
+        var jsonUtility = new JsonSerializationUtility();
+
+        // 1. Serialize an object to compact JSON
+        var user = new { Id = 123, Name = "John Doe", Email = "john@example.com", IsActive = true };
+        var compactJson = jsonUtility.Serialize(user);
+        Console.WriteLine($"Compact JSON: {compactJson}");
+
+        // 2. Serialize an object to pretty-printed JSON
+        var prettyJson = jsonUtility.SerializePretty(user);
+        Console.WriteLine($"\nPretty JSON:\n{prettyJson}");
+
+        // 3. Deserialize JSON back to an object
+        var deserializedUser = jsonUtility.Deserialize<object>(compactJson);
+        Console.WriteLine($"\nDeserialized: {deserializedUser}");
+
+        // 4. Try deserialize with error handling
+        var (success, data, error) = jsonUtility.TryDeserialize<object>("{\"Id\":123}");
+        if (success)
+        {
+            Console.WriteLine($"\nTryDeserialize succeeded: {data}");
+        }
+        else
+        {
+            Console.WriteLine($"\nTryDeserialize failed: {error}");
+        }
+
+        // 5. Check if a string is valid JSON
+        var isValid = jsonUtility.IsValidJson(compactJson);
+        Console.WriteLine($"\nIs valid JSON: {isValid}");
+
+        // 6. Format existing JSON for consistent indentation
+        var formattedJson = jsonUtility.FormatJson(compactJson);
+        Console.WriteLine($"\nFormatted JSON:\n{formattedJson}");
+
+        // 7. Merge two JSON objects
+        var user1 = new { Id = 1, Name = "Alice" };
+        var user2 = new { Email = "alice@example.com", IsActive = true };
+        var mergedUser = jsonUtility.MergeObjects(user1, user2);
+        Console.WriteLine($"\nMerged object: {mergedUser}");
+
+        // 8. Extract a value by JSON path
+        var jsonWithPath = "{\"user\":{\"profile\":{\"name\":\"Bob\",\"age\":30}}}";
+        var nameValue = jsonUtility.GetValueByPath(jsonWithPath, "user.profile.name");
+        Console.WriteLine($"\nValue at path 'user.profile.name': {nameValue}");
+    }
+}
+```
+
 ## MemoryCacheService
 
 `MemoryCacheService` provides an in-memory caching implementation using `IMemoryCache`. It offers thread-safe caching operations with support for expiration, statistics tracking, and cache management. The service tracks cache hits/misses, maintains metadata about cached entries, and provides methods for checking cache existence, clearing the cache, and retrieving cache statistics.
