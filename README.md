@@ -372,5 +372,59 @@ class Program
   }
 }
 ```
+
+## IRequestMetricsAnalyzerService
+
+`IRequestMetricsAnalyzerService` analyzes request metrics to identify patterns, trends, and potential issues. It provides methods for analyzing overall request patterns, evaluating individual endpoint health, and detecting anomalies in service behavior. This service helps identify performance bottlenecks, track service health, and generate actionable insights from gateway metrics.
+
+### Example Usage
+
+```csharp
+using System;
+using System.Threading.Tasks;
+using DotNetGrpcGateway.Domain;
+using DotNetGrpcGateway.Services;
+using Microsoft.Extensions.DependencyInjection;
+
+class Program
+{
+static async Task Main()
+{
+// Setup dependency injection
+var services = new ServiceCollection();
+services.AddSingleton<IRequestMetricsAnalyzerService, RequestMetricsAnalyzerService>();
+services.AddSingleton<IMetricsCollectionService, MetricsCollectionService>();
+services.AddLogging();
+
+var serviceProvider = services.BuildServiceProvider();
+var analyzerService = serviceProvider.GetRequiredService<IRequestMetricsAnalyzerService>();
+
+// 1. Analyze overall request patterns
+var patternAnalysis = await analyzerService.AnalyzeRequestPatternsAsync();
+Console.WriteLine($"Total requests: {patternAnalysis.TotalRequests}");
+Console.WriteLine($"Success rate: {patternAnalysis.SuccessRate:P}");
+Console.WriteLine($"Average response time: {patternAnalysis.AverageResponseTime:F1}ms");
+Console.WriteLine($"Most accessed endpoint: {patternAnalysis.MostAccessedEndpoint ?? "N/A"}");
+Console.WriteLine($"Slowest endpoint: {patternAnalysis.SlowestEndpoint ?? "N/A"}");
+
+// 2. Analyze specific endpoint health
+var endpointHealth = await analyzerService.AnalyzeEndpointHealthAsync("UserService/GetUserById");
+Console.WriteLine($"\nEndpoint: {endpointHealth.Endpoint}");
+Console.WriteLine($"Health score: {endpointHealth.HealthScore:F1}/100");
+Console.WriteLine($"Status: {endpointHealth.Status}");
+Console.WriteLine($"Request count: {endpointHealth.RequestCount}");
+Console.WriteLine($"Success rate: {endpointHealth.SuccessRate:P}");
+Console.WriteLine($"Average response time: {endpointHealth.AverageResponseTime:F1}ms");
+
+// 3. Detect anomalies
+var anomalies = await analyzerService.DetectAnomaliesAsync();
+Console.WriteLine($"\nDetected {anomalies.Count} anomalies:");
+foreach (var alert in anomalies)
+{
+Console.WriteLine($" - [{alert.Severity}] {alert.AlertType}: {alert.Message}");
+Console.WriteLine($"   Detected at: {alert.DetectedAt}");
+}
+}
+}
 ```
 
