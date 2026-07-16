@@ -68,6 +68,169 @@ class Program
 }
 ```
 
+## IRequestLogService
+
+`IRequestLogService` stores and provides queryable access to recent gateway request/response log entries. It maintains a fixed-capacity ring buffer of request logs that can be queried by method, status code, or time range. The service provides aggregate statistics including success rate, response times, and entry timestamps, making it ideal for monitoring, debugging, and performance analysis of gRPC gateway traffic.
+
+### Example Usage
+
+```csharp
+using System;
+using System.Linq;
+using DotNetGrpcGateway.Domain;
+using DotNetGrpcGateway.Services;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
+
+class Program
+{
+    static void Main()
+    {
+        // Setup dependency injection
+        var services = new ServiceCollection();
+        services.AddLogging(configure => configure.AddConsole());
+        services.AddSingleton<IRequestLogService, RequestLogService>();
+        
+        var serviceProvider = services.BuildServiceProvider();
+        var requestLogService = serviceProvider.GetRequiredService<IRequestLogService>();
+
+        // 1. Log a successful request
+        var successfulEntry = new RequestLogEntry
+        {
+            GrpcMethod = "UserService/GetUserById",
+            StatusCode = 0, // OK
+            DurationMs = 23.5,
+            IsSuccess = true,
+            RequestSizeBytes = 1024,
+            ResponseSizeBytes = 2048,
+            Timestamp = DateTime.UtcNow,
+            ClientIpAddress = "192.168.1.100"
+        };
+        requestLogService.Append(successfulEntry);
+
+        // 2. Log a failed request
+        var failedEntry = new RequestLogEntry
+        {
+            GrpcMethod = "PaymentService/ProcessPayment",
+            StatusCode = 3, // INVALID_ARGUMENT
+            DurationMs = 156.8,
+            IsSuccess = false,
+            RequestSizeBytes = 512,
+            ResponseSizeBytes = 128,
+            Timestamp = DateTime.UtcNow.AddSeconds(-10),
+            ClientIpAddress = "192.168.1.101",
+            ErrorMessage = "Insufficient funds"
+        };
+        requestLogService.Append(failedEntry);
+
+        // 3. Get recent log entries
+        var recentEntries = requestLogService.GetRecent(limit: 10);
+        Console.WriteLine($"Recent entries: {recentEntries.Count}");
+        foreach (var entry in recentEntries.Take(3))
+        {
+            Console.WriteLine($" - {entry.Timestamp:HH:mm:ss} | {entry.GrpcMethod} | {entry.DurationMs}ms | {(entry.IsSuccess ? "SUCCESS" : "FAILED")}");
+        }
+
+        // 4. Search logs by method
+        var userServiceEntries = requestLogService.Search(methodFilter: "UserService");
+        Console.WriteLine($"\nUserService entries: {userServiceEntries.Count}");
+
+        // 5. Get aggregate statistics
+        var summary = requestLogService.GetSummary();
+        Console.WriteLine($"\nStatistics:");
+        Console.WriteLine($" - Total entries: {summary.TotalEntries}");
+        Console.WriteLine($" - Success count: {summary.SuccessCount}");
+        Console.WriteLine($" - Error count: {summary.ErrorCount}");
+        Console.WriteLine($" - Success rate: {summary.SuccessRatePct:F1}%");
+        Console.WriteLine($" - Average duration: {summary.AverageDurationMs:F1}ms");
+        Console.WriteLine($" - Min duration: {summary.MinDurationMs}ms");
+        Console.WriteLine($" - Max duration: {summary.MaxDurationMs}ms");
+        Console.WriteLine($" - Oldest entry: {summary.OldestEntry?.ToString("yyyy-MM-dd HH:mm:ss")}");
+        Console.WriteLine($" - Newest entry: {summary.NewestEntry?.ToString("yyyy-MM-dd HH:mm:ss")}");
+
+        // 6. Search logs by status code
+        var errorEntries = requestLogService.Search(statusCode: 3);
+        Console.WriteLine($"\nError entries (status code 3): {errorEntries.Count}");
+
+        // 7. Search logs by time range
+        var oneHourAgo = DateTime.UtcNow.AddHours(-1);
+        var recentSuccessfulEntries = requestLogService.Search(
+            methodFilter: "UserService",
+            from: oneHourAgo,
+            limit: 50
+        );
+        Console.WriteLine($"\nRecent successful UserService entries: {recentSuccessfulEntries.Count(re => re.IsSuccess)}");
+
+        // 8. Clear all logs
+        requestLogService.Clear();
+        Console.WriteLine($"\nAfter clearing - Total entries: {requestLogService.GetSummary().TotalEntries}");
+    }
+}
+```
+
+### Example Usage
+
+```csharp
+using System;
+using System.Threading.Tasks;
+using DotNetGrpcGateway.Domain;
+using DotNetGrpcGateway.Services;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
+
+class Program
+{
+    static async Task Main(IServiceProvider serviceProvider)
+    {
+        var requestLogService = serviceProvider.GetRequiredService<IRequestLogService>();
+
+        // Simulate logging requests from a gateway middleware
+        var gatewayMiddleware = new GatewayMiddleware(requestLogService);
+        
+        // Process a successful request
+        await gatewayMiddleware.ProcessRequestAsync("UserService", "GetUserById", 23.5, true);
+        
+        // Process a failed request
+        await gatewayMiddleware.ProcessRequestAsync("PaymentService", "ProcessPayment", 156.8, false);
+        
+        // Get performance metrics
+        var summary = requestLogService.GetSummary();
+        Console.WriteLine($"Gateway performance - Success rate: {summary.SuccessRatePct:F1}%");
+        Console.WriteLine($"Average response time: {summary.AverageDurationMs:F1}ms");
+    }
+}
+
+class GatewayMiddleware
+{
+    private readonly IRequestLogService _requestLogService;
+    
+    public GatewayMiddleware(IRequestLogService requestLogService)
+    {
+        _requestLogService = requestLogService;
+    }
+    
+    public async Task ProcessRequestAsync(string serviceName, string methodName, double durationMs, bool isSuccess)
+    {
+        var entry = new RequestLogEntry
+        {
+            GrpcMethod = $"{serviceName}/{methodName}",
+            StatusCode = isSuccess ? 0 : 3,
+            DurationMs = durationMs,
+            IsSuccess = isSuccess,
+            Timestamp = DateTime.UtcNow,
+            ClientIpAddress = "192.168.1.100"
+        };
+        
+        _requestLogService.Append(entry);
+        
+        if (!isSuccess)
+        {
+            Console.WriteLine($"Request failed: {serviceName}/{methodName} in {durationMs}ms");
+        }
+    }
+}
+```
+
 ## ServiceReflectionInfo
 
 The `ServiceReflectionInfo` class holds metadata about a gRPC service discovered through Server Reflection. It provides information about the service's methods, response times, and availability.
@@ -115,6 +278,169 @@ class Program
 }
 ```
 
+## IRequestLogService
+
+`IRequestLogService` stores and provides queryable access to recent gateway request/response log entries. It maintains a fixed-capacity ring buffer of request logs that can be queried by method, status code, or time range. The service provides aggregate statistics including success rate, response times, and entry timestamps, making it ideal for monitoring, debugging, and performance analysis of gRPC gateway traffic.
+
+### Example Usage
+
+```csharp
+using System;
+using System.Linq;
+using DotNetGrpcGateway.Domain;
+using DotNetGrpcGateway.Services;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
+
+class Program
+{
+    static void Main()
+    {
+        // Setup dependency injection
+        var services = new ServiceCollection();
+        services.AddLogging(configure => configure.AddConsole());
+        services.AddSingleton<IRequestLogService, RequestLogService>();
+        
+        var serviceProvider = services.BuildServiceProvider();
+        var requestLogService = serviceProvider.GetRequiredService<IRequestLogService>();
+
+        // 1. Log a successful request
+        var successfulEntry = new RequestLogEntry
+        {
+            GrpcMethod = "UserService/GetUserById",
+            StatusCode = 0, // OK
+            DurationMs = 23.5,
+            IsSuccess = true,
+            RequestSizeBytes = 1024,
+            ResponseSizeBytes = 2048,
+            Timestamp = DateTime.UtcNow,
+            ClientIpAddress = "192.168.1.100"
+        };
+        requestLogService.Append(successfulEntry);
+
+        // 2. Log a failed request
+        var failedEntry = new RequestLogEntry
+        {
+            GrpcMethod = "PaymentService/ProcessPayment",
+            StatusCode = 3, // INVALID_ARGUMENT
+            DurationMs = 156.8,
+            IsSuccess = false,
+            RequestSizeBytes = 512,
+            ResponseSizeBytes = 128,
+            Timestamp = DateTime.UtcNow.AddSeconds(-10),
+            ClientIpAddress = "192.168.1.101",
+            ErrorMessage = "Insufficient funds"
+        };
+        requestLogService.Append(failedEntry);
+
+        // 3. Get recent log entries
+        var recentEntries = requestLogService.GetRecent(limit: 10);
+        Console.WriteLine($"Recent entries: {recentEntries.Count}");
+        foreach (var entry in recentEntries.Take(3))
+        {
+            Console.WriteLine($" - {entry.Timestamp:HH:mm:ss} | {entry.GrpcMethod} | {entry.DurationMs}ms | {(entry.IsSuccess ? "SUCCESS" : "FAILED")}");
+        }
+
+        // 4. Search logs by method
+        var userServiceEntries = requestLogService.Search(methodFilter: "UserService");
+        Console.WriteLine($"\nUserService entries: {userServiceEntries.Count}");
+
+        // 5. Get aggregate statistics
+        var summary = requestLogService.GetSummary();
+        Console.WriteLine($"\nStatistics:");
+        Console.WriteLine($" - Total entries: {summary.TotalEntries}");
+        Console.WriteLine($" - Success count: {summary.SuccessCount}");
+        Console.WriteLine($" - Error count: {summary.ErrorCount}");
+        Console.WriteLine($" - Success rate: {summary.SuccessRatePct:F1}%");
+        Console.WriteLine($" - Average duration: {summary.AverageDurationMs:F1}ms");
+        Console.WriteLine($" - Min duration: {summary.MinDurationMs}ms");
+        Console.WriteLine($" - Max duration: {summary.MaxDurationMs}ms");
+        Console.WriteLine($" - Oldest entry: {summary.OldestEntry?.ToString("yyyy-MM-dd HH:mm:ss")}");
+        Console.WriteLine($" - Newest entry: {summary.NewestEntry?.ToString("yyyy-MM-dd HH:mm:ss")}");
+
+        // 6. Search logs by status code
+        var errorEntries = requestLogService.Search(statusCode: 3);
+        Console.WriteLine($"\nError entries (status code 3): {errorEntries.Count}");
+
+        // 7. Search logs by time range
+        var oneHourAgo = DateTime.UtcNow.AddHours(-1);
+        var recentSuccessfulEntries = requestLogService.Search(
+            methodFilter: "UserService",
+            from: oneHourAgo,
+            limit: 50
+        );
+        Console.WriteLine($"\nRecent successful UserService entries: {recentSuccessfulEntries.Count(re => re.IsSuccess)}");
+
+        // 8. Clear all logs
+        requestLogService.Clear();
+        Console.WriteLine($"\nAfter clearing - Total entries: {requestLogService.GetSummary().TotalEntries}");
+    }
+}
+```
+
+### Example Usage
+
+```csharp
+using System;
+using System.Threading.Tasks;
+using DotNetGrpcGateway.Domain;
+using DotNetGrpcGateway.Services;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
+
+class Program
+{
+    static async Task Main(IServiceProvider serviceProvider)
+    {
+        var requestLogService = serviceProvider.GetRequiredService<IRequestLogService>();
+
+        // Simulate logging requests from a gateway middleware
+        var gatewayMiddleware = new GatewayMiddleware(requestLogService);
+        
+        // Process a successful request
+        await gatewayMiddleware.ProcessRequestAsync("UserService", "GetUserById", 23.5, true);
+        
+        // Process a failed request
+        await gatewayMiddleware.ProcessRequestAsync("PaymentService", "ProcessPayment", 156.8, false);
+        
+        // Get performance metrics
+        var summary = requestLogService.GetSummary();
+        Console.WriteLine($"Gateway performance - Success rate: {summary.SuccessRatePct:F1}%");
+        Console.WriteLine($"Average response time: {summary.AverageDurationMs:F1}ms");
+    }
+}
+
+class GatewayMiddleware
+{
+    private readonly IRequestLogService _requestLogService;
+    
+    public GatewayMiddleware(IRequestLogService requestLogService)
+    {
+        _requestLogService = requestLogService;
+    }
+    
+    public async Task ProcessRequestAsync(string serviceName, string methodName, double durationMs, bool isSuccess)
+    {
+        var entry = new RequestLogEntry
+        {
+            GrpcMethod = $"{serviceName}/{methodName}",
+            StatusCode = isSuccess ? 0 : 3,
+            DurationMs = durationMs,
+            IsSuccess = isSuccess,
+            Timestamp = DateTime.UtcNow,
+            ClientIpAddress = "192.168.1.100"
+        };
+        
+        _requestLogService.Append(entry);
+        
+        if (!isSuccess)
+        {
+            Console.WriteLine($"Request failed: {serviceName}/{methodName} in {durationMs}ms");
+        }
+    }
+}
+```
+
 ## ServiceEndpoint
 
 The `ServiceEndpoint` class represents a single addressable endpoint for a registered gRPC service. It tracks endpoint health, load balancing weights, and request statistics.
@@ -147,6 +473,169 @@ class Program
 
         endpoint.IsHealthy = false;
         Console.WriteLine($"Healthy: {endpoint.IsHealthy}");
+    }
+}
+```
+
+## IRequestLogService
+
+`IRequestLogService` stores and provides queryable access to recent gateway request/response log entries. It maintains a fixed-capacity ring buffer of request logs that can be queried by method, status code, or time range. The service provides aggregate statistics including success rate, response times, and entry timestamps, making it ideal for monitoring, debugging, and performance analysis of gRPC gateway traffic.
+
+### Example Usage
+
+```csharp
+using System;
+using System.Linq;
+using DotNetGrpcGateway.Domain;
+using DotNetGrpcGateway.Services;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
+
+class Program
+{
+    static void Main()
+    {
+        // Setup dependency injection
+        var services = new ServiceCollection();
+        services.AddLogging(configure => configure.AddConsole());
+        services.AddSingleton<IRequestLogService, RequestLogService>();
+        
+        var serviceProvider = services.BuildServiceProvider();
+        var requestLogService = serviceProvider.GetRequiredService<IRequestLogService>();
+
+        // 1. Log a successful request
+        var successfulEntry = new RequestLogEntry
+        {
+            GrpcMethod = "UserService/GetUserById",
+            StatusCode = 0, // OK
+            DurationMs = 23.5,
+            IsSuccess = true,
+            RequestSizeBytes = 1024,
+            ResponseSizeBytes = 2048,
+            Timestamp = DateTime.UtcNow,
+            ClientIpAddress = "192.168.1.100"
+        };
+        requestLogService.Append(successfulEntry);
+
+        // 2. Log a failed request
+        var failedEntry = new RequestLogEntry
+        {
+            GrpcMethod = "PaymentService/ProcessPayment",
+            StatusCode = 3, // INVALID_ARGUMENT
+            DurationMs = 156.8,
+            IsSuccess = false,
+            RequestSizeBytes = 512,
+            ResponseSizeBytes = 128,
+            Timestamp = DateTime.UtcNow.AddSeconds(-10),
+            ClientIpAddress = "192.168.1.101",
+            ErrorMessage = "Insufficient funds"
+        };
+        requestLogService.Append(failedEntry);
+
+        // 3. Get recent log entries
+        var recentEntries = requestLogService.GetRecent(limit: 10);
+        Console.WriteLine($"Recent entries: {recentEntries.Count}");
+        foreach (var entry in recentEntries.Take(3))
+        {
+            Console.WriteLine($" - {entry.Timestamp:HH:mm:ss} | {entry.GrpcMethod} | {entry.DurationMs}ms | {(entry.IsSuccess ? "SUCCESS" : "FAILED")}");
+        }
+
+        // 4. Search logs by method
+        var userServiceEntries = requestLogService.Search(methodFilter: "UserService");
+        Console.WriteLine($"\nUserService entries: {userServiceEntries.Count}");
+
+        // 5. Get aggregate statistics
+        var summary = requestLogService.GetSummary();
+        Console.WriteLine($"\nStatistics:");
+        Console.WriteLine($" - Total entries: {summary.TotalEntries}");
+        Console.WriteLine($" - Success count: {summary.SuccessCount}");
+        Console.WriteLine($" - Error count: {summary.ErrorCount}");
+        Console.WriteLine($" - Success rate: {summary.SuccessRatePct:F1}%");
+        Console.WriteLine($" - Average duration: {summary.AverageDurationMs:F1}ms");
+        Console.WriteLine($" - Min duration: {summary.MinDurationMs}ms");
+        Console.WriteLine($" - Max duration: {summary.MaxDurationMs}ms");
+        Console.WriteLine($" - Oldest entry: {summary.OldestEntry?.ToString("yyyy-MM-dd HH:mm:ss")}");
+        Console.WriteLine($" - Newest entry: {summary.NewestEntry?.ToString("yyyy-MM-dd HH:mm:ss")}");
+
+        // 6. Search logs by status code
+        var errorEntries = requestLogService.Search(statusCode: 3);
+        Console.WriteLine($"\nError entries (status code 3): {errorEntries.Count}");
+
+        // 7. Search logs by time range
+        var oneHourAgo = DateTime.UtcNow.AddHours(-1);
+        var recentSuccessfulEntries = requestLogService.Search(
+            methodFilter: "UserService",
+            from: oneHourAgo,
+            limit: 50
+        );
+        Console.WriteLine($"\nRecent successful UserService entries: {recentSuccessfulEntries.Count(re => re.IsSuccess)}");
+
+        // 8. Clear all logs
+        requestLogService.Clear();
+        Console.WriteLine($"\nAfter clearing - Total entries: {requestLogService.GetSummary().TotalEntries}");
+    }
+}
+```
+
+### Example Usage
+
+```csharp
+using System;
+using System.Threading.Tasks;
+using DotNetGrpcGateway.Domain;
+using DotNetGrpcGateway.Services;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
+
+class Program
+{
+    static async Task Main(IServiceProvider serviceProvider)
+    {
+        var requestLogService = serviceProvider.GetRequiredService<IRequestLogService>();
+
+        // Simulate logging requests from a gateway middleware
+        var gatewayMiddleware = new GatewayMiddleware(requestLogService);
+        
+        // Process a successful request
+        await gatewayMiddleware.ProcessRequestAsync("UserService", "GetUserById", 23.5, true);
+        
+        // Process a failed request
+        await gatewayMiddleware.ProcessRequestAsync("PaymentService", "ProcessPayment", 156.8, false);
+        
+        // Get performance metrics
+        var summary = requestLogService.GetSummary();
+        Console.WriteLine($"Gateway performance - Success rate: {summary.SuccessRatePct:F1}%");
+        Console.WriteLine($"Average response time: {summary.AverageDurationMs:F1}ms");
+    }
+}
+
+class GatewayMiddleware
+{
+    private readonly IRequestLogService _requestLogService;
+    
+    public GatewayMiddleware(IRequestLogService requestLogService)
+    {
+        _requestLogService = requestLogService;
+    }
+    
+    public async Task ProcessRequestAsync(string serviceName, string methodName, double durationMs, bool isSuccess)
+    {
+        var entry = new RequestLogEntry
+        {
+            GrpcMethod = $"{serviceName}/{methodName}",
+            StatusCode = isSuccess ? 0 : 3,
+            DurationMs = durationMs,
+            IsSuccess = isSuccess,
+            Timestamp = DateTime.UtcNow,
+            ClientIpAddress = "192.168.1.100"
+        };
+        
+        _requestLogService.Append(entry);
+        
+        if (!isSuccess)
+        {
+            Console.WriteLine($"Request failed: {serviceName}/{methodName} in {durationMs}ms");
+        }
     }
 }
 ```
@@ -196,6 +685,169 @@ class Program
 }
 ```
 
+## IRequestLogService
+
+`IRequestLogService` stores and provides queryable access to recent gateway request/response log entries. It maintains a fixed-capacity ring buffer of request logs that can be queried by method, status code, or time range. The service provides aggregate statistics including success rate, response times, and entry timestamps, making it ideal for monitoring, debugging, and performance analysis of gRPC gateway traffic.
+
+### Example Usage
+
+```csharp
+using System;
+using System.Linq;
+using DotNetGrpcGateway.Domain;
+using DotNetGrpcGateway.Services;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
+
+class Program
+{
+    static void Main()
+    {
+        // Setup dependency injection
+        var services = new ServiceCollection();
+        services.AddLogging(configure => configure.AddConsole());
+        services.AddSingleton<IRequestLogService, RequestLogService>();
+        
+        var serviceProvider = services.BuildServiceProvider();
+        var requestLogService = serviceProvider.GetRequiredService<IRequestLogService>();
+
+        // 1. Log a successful request
+        var successfulEntry = new RequestLogEntry
+        {
+            GrpcMethod = "UserService/GetUserById",
+            StatusCode = 0, // OK
+            DurationMs = 23.5,
+            IsSuccess = true,
+            RequestSizeBytes = 1024,
+            ResponseSizeBytes = 2048,
+            Timestamp = DateTime.UtcNow,
+            ClientIpAddress = "192.168.1.100"
+        };
+        requestLogService.Append(successfulEntry);
+
+        // 2. Log a failed request
+        var failedEntry = new RequestLogEntry
+        {
+            GrpcMethod = "PaymentService/ProcessPayment",
+            StatusCode = 3, // INVALID_ARGUMENT
+            DurationMs = 156.8,
+            IsSuccess = false,
+            RequestSizeBytes = 512,
+            ResponseSizeBytes = 128,
+            Timestamp = DateTime.UtcNow.AddSeconds(-10),
+            ClientIpAddress = "192.168.1.101",
+            ErrorMessage = "Insufficient funds"
+        };
+        requestLogService.Append(failedEntry);
+
+        // 3. Get recent log entries
+        var recentEntries = requestLogService.GetRecent(limit: 10);
+        Console.WriteLine($"Recent entries: {recentEntries.Count}");
+        foreach (var entry in recentEntries.Take(3))
+        {
+            Console.WriteLine($" - {entry.Timestamp:HH:mm:ss} | {entry.GrpcMethod} | {entry.DurationMs}ms | {(entry.IsSuccess ? "SUCCESS" : "FAILED")}");
+        }
+
+        // 4. Search logs by method
+        var userServiceEntries = requestLogService.Search(methodFilter: "UserService");
+        Console.WriteLine($"\nUserService entries: {userServiceEntries.Count}");
+
+        // 5. Get aggregate statistics
+        var summary = requestLogService.GetSummary();
+        Console.WriteLine($"\nStatistics:");
+        Console.WriteLine($" - Total entries: {summary.TotalEntries}");
+        Console.WriteLine($" - Success count: {summary.SuccessCount}");
+        Console.WriteLine($" - Error count: {summary.ErrorCount}");
+        Console.WriteLine($" - Success rate: {summary.SuccessRatePct:F1}%");
+        Console.WriteLine($" - Average duration: {summary.AverageDurationMs:F1}ms");
+        Console.WriteLine($" - Min duration: {summary.MinDurationMs}ms");
+        Console.WriteLine($" - Max duration: {summary.MaxDurationMs}ms");
+        Console.WriteLine($" - Oldest entry: {summary.OldestEntry?.ToString("yyyy-MM-dd HH:mm:ss")}");
+        Console.WriteLine($" - Newest entry: {summary.NewestEntry?.ToString("yyyy-MM-dd HH:mm:ss")}");
+
+        // 6. Search logs by status code
+        var errorEntries = requestLogService.Search(statusCode: 3);
+        Console.WriteLine($"\nError entries (status code 3): {errorEntries.Count}");
+
+        // 7. Search logs by time range
+        var oneHourAgo = DateTime.UtcNow.AddHours(-1);
+        var recentSuccessfulEntries = requestLogService.Search(
+            methodFilter: "UserService",
+            from: oneHourAgo,
+            limit: 50
+        );
+        Console.WriteLine($"\nRecent successful UserService entries: {recentSuccessfulEntries.Count(re => re.IsSuccess)}");
+
+        // 8. Clear all logs
+        requestLogService.Clear();
+        Console.WriteLine($"\nAfter clearing - Total entries: {requestLogService.GetSummary().TotalEntries}");
+    }
+}
+```
+
+### Example Usage
+
+```csharp
+using System;
+using System.Threading.Tasks;
+using DotNetGrpcGateway.Domain;
+using DotNetGrpcGateway.Services;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
+
+class Program
+{
+    static async Task Main(IServiceProvider serviceProvider)
+    {
+        var requestLogService = serviceProvider.GetRequiredService<IRequestLogService>();
+
+        // Simulate logging requests from a gateway middleware
+        var gatewayMiddleware = new GatewayMiddleware(requestLogService);
+        
+        // Process a successful request
+        await gatewayMiddleware.ProcessRequestAsync("UserService", "GetUserById", 23.5, true);
+        
+        // Process a failed request
+        await gatewayMiddleware.ProcessRequestAsync("PaymentService", "ProcessPayment", 156.8, false);
+        
+        // Get performance metrics
+        var summary = requestLogService.GetSummary();
+        Console.WriteLine($"Gateway performance - Success rate: {summary.SuccessRatePct:F1}%");
+        Console.WriteLine($"Average response time: {summary.AverageDurationMs:F1}ms");
+    }
+}
+
+class GatewayMiddleware
+{
+    private readonly IRequestLogService _requestLogService;
+    
+    public GatewayMiddleware(IRequestLogService requestLogService)
+    {
+        _requestLogService = requestLogService;
+    }
+    
+    public async Task ProcessRequestAsync(string serviceName, string methodName, double durationMs, bool isSuccess)
+    {
+        var entry = new RequestLogEntry
+        {
+            GrpcMethod = $"{serviceName}/{methodName}",
+            StatusCode = isSuccess ? 0 : 3,
+            DurationMs = durationMs,
+            IsSuccess = isSuccess,
+            Timestamp = DateTime.UtcNow,
+            ClientIpAddress = "192.168.1.100"
+        };
+        
+        _requestLogService.Append(entry);
+        
+        if (!isSuccess)
+        {
+            Console.WriteLine($"Request failed: {serviceName}/{methodName} in {durationMs}ms");
+        }
+    }
+}
+```
+
 ## IGrpcClientFactory
 
 `IGrpcClientFactory` is a factory for creating and caching HTTP clients for downstream gRPC service communication. It manages per-service client lifecycle, TLS configuration, and provides both unary and server-streaming invocation methods.
@@ -231,6 +883,169 @@ class Program
 
         var stream = await factory.InvokeStreamingAsync(service, "MyMethod", new object(), default);
         Console.WriteLine($"Stream: {stream}");
+    }
+}
+```
+
+## IRequestLogService
+
+`IRequestLogService` stores and provides queryable access to recent gateway request/response log entries. It maintains a fixed-capacity ring buffer of request logs that can be queried by method, status code, or time range. The service provides aggregate statistics including success rate, response times, and entry timestamps, making it ideal for monitoring, debugging, and performance analysis of gRPC gateway traffic.
+
+### Example Usage
+
+```csharp
+using System;
+using System.Linq;
+using DotNetGrpcGateway.Domain;
+using DotNetGrpcGateway.Services;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
+
+class Program
+{
+    static void Main()
+    {
+        // Setup dependency injection
+        var services = new ServiceCollection();
+        services.AddLogging(configure => configure.AddConsole());
+        services.AddSingleton<IRequestLogService, RequestLogService>();
+        
+        var serviceProvider = services.BuildServiceProvider();
+        var requestLogService = serviceProvider.GetRequiredService<IRequestLogService>();
+
+        // 1. Log a successful request
+        var successfulEntry = new RequestLogEntry
+        {
+            GrpcMethod = "UserService/GetUserById",
+            StatusCode = 0, // OK
+            DurationMs = 23.5,
+            IsSuccess = true,
+            RequestSizeBytes = 1024,
+            ResponseSizeBytes = 2048,
+            Timestamp = DateTime.UtcNow,
+            ClientIpAddress = "192.168.1.100"
+        };
+        requestLogService.Append(successfulEntry);
+
+        // 2. Log a failed request
+        var failedEntry = new RequestLogEntry
+        {
+            GrpcMethod = "PaymentService/ProcessPayment",
+            StatusCode = 3, // INVALID_ARGUMENT
+            DurationMs = 156.8,
+            IsSuccess = false,
+            RequestSizeBytes = 512,
+            ResponseSizeBytes = 128,
+            Timestamp = DateTime.UtcNow.AddSeconds(-10),
+            ClientIpAddress = "192.168.1.101",
+            ErrorMessage = "Insufficient funds"
+        };
+        requestLogService.Append(failedEntry);
+
+        // 3. Get recent log entries
+        var recentEntries = requestLogService.GetRecent(limit: 10);
+        Console.WriteLine($"Recent entries: {recentEntries.Count}");
+        foreach (var entry in recentEntries.Take(3))
+        {
+            Console.WriteLine($" - {entry.Timestamp:HH:mm:ss} | {entry.GrpcMethod} | {entry.DurationMs}ms | {(entry.IsSuccess ? "SUCCESS" : "FAILED")}");
+        }
+
+        // 4. Search logs by method
+        var userServiceEntries = requestLogService.Search(methodFilter: "UserService");
+        Console.WriteLine($"\nUserService entries: {userServiceEntries.Count}");
+
+        // 5. Get aggregate statistics
+        var summary = requestLogService.GetSummary();
+        Console.WriteLine($"\nStatistics:");
+        Console.WriteLine($" - Total entries: {summary.TotalEntries}");
+        Console.WriteLine($" - Success count: {summary.SuccessCount}");
+        Console.WriteLine($" - Error count: {summary.ErrorCount}");
+        Console.WriteLine($" - Success rate: {summary.SuccessRatePct:F1}%");
+        Console.WriteLine($" - Average duration: {summary.AverageDurationMs:F1}ms");
+        Console.WriteLine($" - Min duration: {summary.MinDurationMs}ms");
+        Console.WriteLine($" - Max duration: {summary.MaxDurationMs}ms");
+        Console.WriteLine($" - Oldest entry: {summary.OldestEntry?.ToString("yyyy-MM-dd HH:mm:ss")}");
+        Console.WriteLine($" - Newest entry: {summary.NewestEntry?.ToString("yyyy-MM-dd HH:mm:ss")}");
+
+        // 6. Search logs by status code
+        var errorEntries = requestLogService.Search(statusCode: 3);
+        Console.WriteLine($"\nError entries (status code 3): {errorEntries.Count}");
+
+        // 7. Search logs by time range
+        var oneHourAgo = DateTime.UtcNow.AddHours(-1);
+        var recentSuccessfulEntries = requestLogService.Search(
+            methodFilter: "UserService",
+            from: oneHourAgo,
+            limit: 50
+        );
+        Console.WriteLine($"\nRecent successful UserService entries: {recentSuccessfulEntries.Count(re => re.IsSuccess)}");
+
+        // 8. Clear all logs
+        requestLogService.Clear();
+        Console.WriteLine($"\nAfter clearing - Total entries: {requestLogService.GetSummary().TotalEntries}");
+    }
+}
+```
+
+### Example Usage
+
+```csharp
+using System;
+using System.Threading.Tasks;
+using DotNetGrpcGateway.Domain;
+using DotNetGrpcGateway.Services;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
+
+class Program
+{
+    static async Task Main(IServiceProvider serviceProvider)
+    {
+        var requestLogService = serviceProvider.GetRequiredService<IRequestLogService>();
+
+        // Simulate logging requests from a gateway middleware
+        var gatewayMiddleware = new GatewayMiddleware(requestLogService);
+        
+        // Process a successful request
+        await gatewayMiddleware.ProcessRequestAsync("UserService", "GetUserById", 23.5, true);
+        
+        // Process a failed request
+        await gatewayMiddleware.ProcessRequestAsync("PaymentService", "ProcessPayment", 156.8, false);
+        
+        // Get performance metrics
+        var summary = requestLogService.GetSummary();
+        Console.WriteLine($"Gateway performance - Success rate: {summary.SuccessRatePct:F1}%");
+        Console.WriteLine($"Average response time: {summary.AverageDurationMs:F1}ms");
+    }
+}
+
+class GatewayMiddleware
+{
+    private readonly IRequestLogService _requestLogService;
+    
+    public GatewayMiddleware(IRequestLogService requestLogService)
+    {
+        _requestLogService = requestLogService;
+    }
+    
+    public async Task ProcessRequestAsync(string serviceName, string methodName, double durationMs, bool isSuccess)
+    {
+        var entry = new RequestLogEntry
+        {
+            GrpcMethod = $"{serviceName}/{methodName}",
+            StatusCode = isSuccess ? 0 : 3,
+            DurationMs = durationMs,
+            IsSuccess = isSuccess,
+            Timestamp = DateTime.UtcNow,
+            ClientIpAddress = "192.168.1.100"
+        };
+        
+        _requestLogService.Append(entry);
+        
+        if (!isSuccess)
+        {
+            Console.WriteLine($"Request failed: {serviceName}/{methodName} in {durationMs}ms");
+        }
     }
 }
 ```
@@ -310,6 +1125,169 @@ class Program
 }
 ```
 
+## IRequestLogService
+
+`IRequestLogService` stores and provides queryable access to recent gateway request/response log entries. It maintains a fixed-capacity ring buffer of request logs that can be queried by method, status code, or time range. The service provides aggregate statistics including success rate, response times, and entry timestamps, making it ideal for monitoring, debugging, and performance analysis of gRPC gateway traffic.
+
+### Example Usage
+
+```csharp
+using System;
+using System.Linq;
+using DotNetGrpcGateway.Domain;
+using DotNetGrpcGateway.Services;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
+
+class Program
+{
+    static void Main()
+    {
+        // Setup dependency injection
+        var services = new ServiceCollection();
+        services.AddLogging(configure => configure.AddConsole());
+        services.AddSingleton<IRequestLogService, RequestLogService>();
+        
+        var serviceProvider = services.BuildServiceProvider();
+        var requestLogService = serviceProvider.GetRequiredService<IRequestLogService>();
+
+        // 1. Log a successful request
+        var successfulEntry = new RequestLogEntry
+        {
+            GrpcMethod = "UserService/GetUserById",
+            StatusCode = 0, // OK
+            DurationMs = 23.5,
+            IsSuccess = true,
+            RequestSizeBytes = 1024,
+            ResponseSizeBytes = 2048,
+            Timestamp = DateTime.UtcNow,
+            ClientIpAddress = "192.168.1.100"
+        };
+        requestLogService.Append(successfulEntry);
+
+        // 2. Log a failed request
+        var failedEntry = new RequestLogEntry
+        {
+            GrpcMethod = "PaymentService/ProcessPayment",
+            StatusCode = 3, // INVALID_ARGUMENT
+            DurationMs = 156.8,
+            IsSuccess = false,
+            RequestSizeBytes = 512,
+            ResponseSizeBytes = 128,
+            Timestamp = DateTime.UtcNow.AddSeconds(-10),
+            ClientIpAddress = "192.168.1.101",
+            ErrorMessage = "Insufficient funds"
+        };
+        requestLogService.Append(failedEntry);
+
+        // 3. Get recent log entries
+        var recentEntries = requestLogService.GetRecent(limit: 10);
+        Console.WriteLine($"Recent entries: {recentEntries.Count}");
+        foreach (var entry in recentEntries.Take(3))
+        {
+            Console.WriteLine($" - {entry.Timestamp:HH:mm:ss} | {entry.GrpcMethod} | {entry.DurationMs}ms | {(entry.IsSuccess ? "SUCCESS" : "FAILED")}");
+        }
+
+        // 4. Search logs by method
+        var userServiceEntries = requestLogService.Search(methodFilter: "UserService");
+        Console.WriteLine($"\nUserService entries: {userServiceEntries.Count}");
+
+        // 5. Get aggregate statistics
+        var summary = requestLogService.GetSummary();
+        Console.WriteLine($"\nStatistics:");
+        Console.WriteLine($" - Total entries: {summary.TotalEntries}");
+        Console.WriteLine($" - Success count: {summary.SuccessCount}");
+        Console.WriteLine($" - Error count: {summary.ErrorCount}");
+        Console.WriteLine($" - Success rate: {summary.SuccessRatePct:F1}%");
+        Console.WriteLine($" - Average duration: {summary.AverageDurationMs:F1}ms");
+        Console.WriteLine($" - Min duration: {summary.MinDurationMs}ms");
+        Console.WriteLine($" - Max duration: {summary.MaxDurationMs}ms");
+        Console.WriteLine($" - Oldest entry: {summary.OldestEntry?.ToString("yyyy-MM-dd HH:mm:ss")}");
+        Console.WriteLine($" - Newest entry: {summary.NewestEntry?.ToString("yyyy-MM-dd HH:mm:ss")}");
+
+        // 6. Search logs by status code
+        var errorEntries = requestLogService.Search(statusCode: 3);
+        Console.WriteLine($"\nError entries (status code 3): {errorEntries.Count}");
+
+        // 7. Search logs by time range
+        var oneHourAgo = DateTime.UtcNow.AddHours(-1);
+        var recentSuccessfulEntries = requestLogService.Search(
+            methodFilter: "UserService",
+            from: oneHourAgo,
+            limit: 50
+        );
+        Console.WriteLine($"\nRecent successful UserService entries: {recentSuccessfulEntries.Count(re => re.IsSuccess)}");
+
+        // 8. Clear all logs
+        requestLogService.Clear();
+        Console.WriteLine($"\nAfter clearing - Total entries: {requestLogService.GetSummary().TotalEntries}");
+    }
+}
+```
+
+### Example Usage
+
+```csharp
+using System;
+using System.Threading.Tasks;
+using DotNetGrpcGateway.Domain;
+using DotNetGrpcGateway.Services;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
+
+class Program
+{
+    static async Task Main(IServiceProvider serviceProvider)
+    {
+        var requestLogService = serviceProvider.GetRequiredService<IRequestLogService>();
+
+        // Simulate logging requests from a gateway middleware
+        var gatewayMiddleware = new GatewayMiddleware(requestLogService);
+        
+        // Process a successful request
+        await gatewayMiddleware.ProcessRequestAsync("UserService", "GetUserById", 23.5, true);
+        
+        // Process a failed request
+        await gatewayMiddleware.ProcessRequestAsync("PaymentService", "ProcessPayment", 156.8, false);
+        
+        // Get performance metrics
+        var summary = requestLogService.GetSummary();
+        Console.WriteLine($"Gateway performance - Success rate: {summary.SuccessRatePct:F1}%");
+        Console.WriteLine($"Average response time: {summary.AverageDurationMs:F1}ms");
+    }
+}
+
+class GatewayMiddleware
+{
+    private readonly IRequestLogService _requestLogService;
+    
+    public GatewayMiddleware(IRequestLogService requestLogService)
+    {
+        _requestLogService = requestLogService;
+    }
+    
+    public async Task ProcessRequestAsync(string serviceName, string methodName, double durationMs, bool isSuccess)
+    {
+        var entry = new RequestLogEntry
+        {
+            GrpcMethod = $"{serviceName}/{methodName}",
+            StatusCode = isSuccess ? 0 : 3,
+            DurationMs = durationMs,
+            IsSuccess = isSuccess,
+            Timestamp = DateTime.UtcNow,
+            ClientIpAddress = "192.168.1.100"
+        };
+        
+        _requestLogService.Append(entry);
+        
+        if (!isSuccess)
+        {
+            Console.WriteLine($"Request failed: {serviceName}/{methodName} in {durationMs}ms");
+        }
+    }
+}
+```
+
 ## IReflectionService
 
 `IReflectionService` provides gRPC Server Reflection support — discovers and caches the method descriptors of registered back-end services so callers can inspect the API surface at runtime without direct access to .proto source files. It enables runtime discovery of gRPC service methods, their request/response types, and streaming capabilities through HTTP-based Server Reflection endpoints.
@@ -360,6 +1338,169 @@ class Program
         // 5. Refresh reflection for all services
         await reflectionService.RefreshAllReflectionsAsync();
         Console.WriteLine("All service reflections refreshed");
+    }
+}
+```
+
+## IRequestLogService
+
+`IRequestLogService` stores and provides queryable access to recent gateway request/response log entries. It maintains a fixed-capacity ring buffer of request logs that can be queried by method, status code, or time range. The service provides aggregate statistics including success rate, response times, and entry timestamps, making it ideal for monitoring, debugging, and performance analysis of gRPC gateway traffic.
+
+### Example Usage
+
+```csharp
+using System;
+using System.Linq;
+using DotNetGrpcGateway.Domain;
+using DotNetGrpcGateway.Services;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
+
+class Program
+{
+    static void Main()
+    {
+        // Setup dependency injection
+        var services = new ServiceCollection();
+        services.AddLogging(configure => configure.AddConsole());
+        services.AddSingleton<IRequestLogService, RequestLogService>();
+        
+        var serviceProvider = services.BuildServiceProvider();
+        var requestLogService = serviceProvider.GetRequiredService<IRequestLogService>();
+
+        // 1. Log a successful request
+        var successfulEntry = new RequestLogEntry
+        {
+            GrpcMethod = "UserService/GetUserById",
+            StatusCode = 0, // OK
+            DurationMs = 23.5,
+            IsSuccess = true,
+            RequestSizeBytes = 1024,
+            ResponseSizeBytes = 2048,
+            Timestamp = DateTime.UtcNow,
+            ClientIpAddress = "192.168.1.100"
+        };
+        requestLogService.Append(successfulEntry);
+
+        // 2. Log a failed request
+        var failedEntry = new RequestLogEntry
+        {
+            GrpcMethod = "PaymentService/ProcessPayment",
+            StatusCode = 3, // INVALID_ARGUMENT
+            DurationMs = 156.8,
+            IsSuccess = false,
+            RequestSizeBytes = 512,
+            ResponseSizeBytes = 128,
+            Timestamp = DateTime.UtcNow.AddSeconds(-10),
+            ClientIpAddress = "192.168.1.101",
+            ErrorMessage = "Insufficient funds"
+        };
+        requestLogService.Append(failedEntry);
+
+        // 3. Get recent log entries
+        var recentEntries = requestLogService.GetRecent(limit: 10);
+        Console.WriteLine($"Recent entries: {recentEntries.Count}");
+        foreach (var entry in recentEntries.Take(3))
+        {
+            Console.WriteLine($" - {entry.Timestamp:HH:mm:ss} | {entry.GrpcMethod} | {entry.DurationMs}ms | {(entry.IsSuccess ? "SUCCESS" : "FAILED")}");
+        }
+
+        // 4. Search logs by method
+        var userServiceEntries = requestLogService.Search(methodFilter: "UserService");
+        Console.WriteLine($"\nUserService entries: {userServiceEntries.Count}");
+
+        // 5. Get aggregate statistics
+        var summary = requestLogService.GetSummary();
+        Console.WriteLine($"\nStatistics:");
+        Console.WriteLine($" - Total entries: {summary.TotalEntries}");
+        Console.WriteLine($" - Success count: {summary.SuccessCount}");
+        Console.WriteLine($" - Error count: {summary.ErrorCount}");
+        Console.WriteLine($" - Success rate: {summary.SuccessRatePct:F1}%");
+        Console.WriteLine($" - Average duration: {summary.AverageDurationMs:F1}ms");
+        Console.WriteLine($" - Min duration: {summary.MinDurationMs}ms");
+        Console.WriteLine($" - Max duration: {summary.MaxDurationMs}ms");
+        Console.WriteLine($" - Oldest entry: {summary.OldestEntry?.ToString("yyyy-MM-dd HH:mm:ss")}");
+        Console.WriteLine($" - Newest entry: {summary.NewestEntry?.ToString("yyyy-MM-dd HH:mm:ss")}");
+
+        // 6. Search logs by status code
+        var errorEntries = requestLogService.Search(statusCode: 3);
+        Console.WriteLine($"\nError entries (status code 3): {errorEntries.Count}");
+
+        // 7. Search logs by time range
+        var oneHourAgo = DateTime.UtcNow.AddHours(-1);
+        var recentSuccessfulEntries = requestLogService.Search(
+            methodFilter: "UserService",
+            from: oneHourAgo,
+            limit: 50
+        );
+        Console.WriteLine($"\nRecent successful UserService entries: {recentSuccessfulEntries.Count(re => re.IsSuccess)}");
+
+        // 8. Clear all logs
+        requestLogService.Clear();
+        Console.WriteLine($"\nAfter clearing - Total entries: {requestLogService.GetSummary().TotalEntries}");
+    }
+}
+```
+
+### Example Usage
+
+```csharp
+using System;
+using System.Threading.Tasks;
+using DotNetGrpcGateway.Domain;
+using DotNetGrpcGateway.Services;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
+
+class Program
+{
+    static async Task Main(IServiceProvider serviceProvider)
+    {
+        var requestLogService = serviceProvider.GetRequiredService<IRequestLogService>();
+
+        // Simulate logging requests from a gateway middleware
+        var gatewayMiddleware = new GatewayMiddleware(requestLogService);
+        
+        // Process a successful request
+        await gatewayMiddleware.ProcessRequestAsync("UserService", "GetUserById", 23.5, true);
+        
+        // Process a failed request
+        await gatewayMiddleware.ProcessRequestAsync("PaymentService", "ProcessPayment", 156.8, false);
+        
+        // Get performance metrics
+        var summary = requestLogService.GetSummary();
+        Console.WriteLine($"Gateway performance - Success rate: {summary.SuccessRatePct:F1}%");
+        Console.WriteLine($"Average response time: {summary.AverageDurationMs:F1}ms");
+    }
+}
+
+class GatewayMiddleware
+{
+    private readonly IRequestLogService _requestLogService;
+    
+    public GatewayMiddleware(IRequestLogService requestLogService)
+    {
+        _requestLogService = requestLogService;
+    }
+    
+    public async Task ProcessRequestAsync(string serviceName, string methodName, double durationMs, bool isSuccess)
+    {
+        var entry = new RequestLogEntry
+        {
+            GrpcMethod = $"{serviceName}/{methodName}",
+            StatusCode = isSuccess ? 0 : 3,
+            DurationMs = durationMs,
+            IsSuccess = isSuccess,
+            Timestamp = DateTime.UtcNow,
+            ClientIpAddress = "192.168.1.100"
+        };
+        
+        _requestLogService.Append(entry);
+        
+        if (!isSuccess)
+        {
+            Console.WriteLine($"Request failed: {serviceName}/{methodName} in {durationMs}ms");
+        }
     }
 }
 ```
@@ -454,6 +1595,169 @@ class Program
 }
 ```
 
+## IRequestLogService
+
+`IRequestLogService` stores and provides queryable access to recent gateway request/response log entries. It maintains a fixed-capacity ring buffer of request logs that can be queried by method, status code, or time range. The service provides aggregate statistics including success rate, response times, and entry timestamps, making it ideal for monitoring, debugging, and performance analysis of gRPC gateway traffic.
+
+### Example Usage
+
+```csharp
+using System;
+using System.Linq;
+using DotNetGrpcGateway.Domain;
+using DotNetGrpcGateway.Services;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
+
+class Program
+{
+    static void Main()
+    {
+        // Setup dependency injection
+        var services = new ServiceCollection();
+        services.AddLogging(configure => configure.AddConsole());
+        services.AddSingleton<IRequestLogService, RequestLogService>();
+        
+        var serviceProvider = services.BuildServiceProvider();
+        var requestLogService = serviceProvider.GetRequiredService<IRequestLogService>();
+
+        // 1. Log a successful request
+        var successfulEntry = new RequestLogEntry
+        {
+            GrpcMethod = "UserService/GetUserById",
+            StatusCode = 0, // OK
+            DurationMs = 23.5,
+            IsSuccess = true,
+            RequestSizeBytes = 1024,
+            ResponseSizeBytes = 2048,
+            Timestamp = DateTime.UtcNow,
+            ClientIpAddress = "192.168.1.100"
+        };
+        requestLogService.Append(successfulEntry);
+
+        // 2. Log a failed request
+        var failedEntry = new RequestLogEntry
+        {
+            GrpcMethod = "PaymentService/ProcessPayment",
+            StatusCode = 3, // INVALID_ARGUMENT
+            DurationMs = 156.8,
+            IsSuccess = false,
+            RequestSizeBytes = 512,
+            ResponseSizeBytes = 128,
+            Timestamp = DateTime.UtcNow.AddSeconds(-10),
+            ClientIpAddress = "192.168.1.101",
+            ErrorMessage = "Insufficient funds"
+        };
+        requestLogService.Append(failedEntry);
+
+        // 3. Get recent log entries
+        var recentEntries = requestLogService.GetRecent(limit: 10);
+        Console.WriteLine($"Recent entries: {recentEntries.Count}");
+        foreach (var entry in recentEntries.Take(3))
+        {
+            Console.WriteLine($" - {entry.Timestamp:HH:mm:ss} | {entry.GrpcMethod} | {entry.DurationMs}ms | {(entry.IsSuccess ? "SUCCESS" : "FAILED")}");
+        }
+
+        // 4. Search logs by method
+        var userServiceEntries = requestLogService.Search(methodFilter: "UserService");
+        Console.WriteLine($"\nUserService entries: {userServiceEntries.Count}");
+
+        // 5. Get aggregate statistics
+        var summary = requestLogService.GetSummary();
+        Console.WriteLine($"\nStatistics:");
+        Console.WriteLine($" - Total entries: {summary.TotalEntries}");
+        Console.WriteLine($" - Success count: {summary.SuccessCount}");
+        Console.WriteLine($" - Error count: {summary.ErrorCount}");
+        Console.WriteLine($" - Success rate: {summary.SuccessRatePct:F1}%");
+        Console.WriteLine($" - Average duration: {summary.AverageDurationMs:F1}ms");
+        Console.WriteLine($" - Min duration: {summary.MinDurationMs}ms");
+        Console.WriteLine($" - Max duration: {summary.MaxDurationMs}ms");
+        Console.WriteLine($" - Oldest entry: {summary.OldestEntry?.ToString("yyyy-MM-dd HH:mm:ss")}");
+        Console.WriteLine($" - Newest entry: {summary.NewestEntry?.ToString("yyyy-MM-dd HH:mm:ss")}");
+
+        // 6. Search logs by status code
+        var errorEntries = requestLogService.Search(statusCode: 3);
+        Console.WriteLine($"\nError entries (status code 3): {errorEntries.Count}");
+
+        // 7. Search logs by time range
+        var oneHourAgo = DateTime.UtcNow.AddHours(-1);
+        var recentSuccessfulEntries = requestLogService.Search(
+            methodFilter: "UserService",
+            from: oneHourAgo,
+            limit: 50
+        );
+        Console.WriteLine($"\nRecent successful UserService entries: {recentSuccessfulEntries.Count(re => re.IsSuccess)}");
+
+        // 8. Clear all logs
+        requestLogService.Clear();
+        Console.WriteLine($"\nAfter clearing - Total entries: {requestLogService.GetSummary().TotalEntries}");
+    }
+}
+```
+
+### Example Usage
+
+```csharp
+using System;
+using System.Threading.Tasks;
+using DotNetGrpcGateway.Domain;
+using DotNetGrpcGateway.Services;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
+
+class Program
+{
+    static async Task Main(IServiceProvider serviceProvider)
+    {
+        var requestLogService = serviceProvider.GetRequiredService<IRequestLogService>();
+
+        // Simulate logging requests from a gateway middleware
+        var gatewayMiddleware = new GatewayMiddleware(requestLogService);
+        
+        // Process a successful request
+        await gatewayMiddleware.ProcessRequestAsync("UserService", "GetUserById", 23.5, true);
+        
+        // Process a failed request
+        await gatewayMiddleware.ProcessRequestAsync("PaymentService", "ProcessPayment", 156.8, false);
+        
+        // Get performance metrics
+        var summary = requestLogService.GetSummary();
+        Console.WriteLine($"Gateway performance - Success rate: {summary.SuccessRatePct:F1}%");
+        Console.WriteLine($"Average response time: {summary.AverageDurationMs:F1}ms");
+    }
+}
+
+class GatewayMiddleware
+{
+    private readonly IRequestLogService _requestLogService;
+    
+    public GatewayMiddleware(IRequestLogService requestLogService)
+    {
+        _requestLogService = requestLogService;
+    }
+    
+    public async Task ProcessRequestAsync(string serviceName, string methodName, double durationMs, bool isSuccess)
+    {
+        var entry = new RequestLogEntry
+        {
+            GrpcMethod = $"{serviceName}/{methodName}",
+            StatusCode = isSuccess ? 0 : 3,
+            DurationMs = durationMs,
+            IsSuccess = isSuccess,
+            Timestamp = DateTime.UtcNow,
+            ClientIpAddress = "192.168.1.100"
+        };
+        
+        _requestLogService.Append(entry);
+        
+        if (!isSuccess)
+        {
+            Console.WriteLine($"Request failed: {serviceName}/{methodName} in {durationMs}ms");
+        }
+    }
+}
+```
+
 ## IRouteManagementService
 
 `IRouteManagementService` is responsible for advanced route management operations in the gRPC gateway. It handles retrieving routes by service, finding matching routes for incoming requests, identifying conflicting route patterns, and validating route configurations to ensure proper routing and prevent conflicts.
@@ -544,6 +1848,169 @@ class Program
 }
 ```
 
+## IRequestLogService
+
+`IRequestLogService` stores and provides queryable access to recent gateway request/response log entries. It maintains a fixed-capacity ring buffer of request logs that can be queried by method, status code, or time range. The service provides aggregate statistics including success rate, response times, and entry timestamps, making it ideal for monitoring, debugging, and performance analysis of gRPC gateway traffic.
+
+### Example Usage
+
+```csharp
+using System;
+using System.Linq;
+using DotNetGrpcGateway.Domain;
+using DotNetGrpcGateway.Services;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
+
+class Program
+{
+    static void Main()
+    {
+        // Setup dependency injection
+        var services = new ServiceCollection();
+        services.AddLogging(configure => configure.AddConsole());
+        services.AddSingleton<IRequestLogService, RequestLogService>();
+        
+        var serviceProvider = services.BuildServiceProvider();
+        var requestLogService = serviceProvider.GetRequiredService<IRequestLogService>();
+
+        // 1. Log a successful request
+        var successfulEntry = new RequestLogEntry
+        {
+            GrpcMethod = "UserService/GetUserById",
+            StatusCode = 0, // OK
+            DurationMs = 23.5,
+            IsSuccess = true,
+            RequestSizeBytes = 1024,
+            ResponseSizeBytes = 2048,
+            Timestamp = DateTime.UtcNow,
+            ClientIpAddress = "192.168.1.100"
+        };
+        requestLogService.Append(successfulEntry);
+
+        // 2. Log a failed request
+        var failedEntry = new RequestLogEntry
+        {
+            GrpcMethod = "PaymentService/ProcessPayment",
+            StatusCode = 3, // INVALID_ARGUMENT
+            DurationMs = 156.8,
+            IsSuccess = false,
+            RequestSizeBytes = 512,
+            ResponseSizeBytes = 128,
+            Timestamp = DateTime.UtcNow.AddSeconds(-10),
+            ClientIpAddress = "192.168.1.101",
+            ErrorMessage = "Insufficient funds"
+        };
+        requestLogService.Append(failedEntry);
+
+        // 3. Get recent log entries
+        var recentEntries = requestLogService.GetRecent(limit: 10);
+        Console.WriteLine($"Recent entries: {recentEntries.Count}");
+        foreach (var entry in recentEntries.Take(3))
+        {
+            Console.WriteLine($" - {entry.Timestamp:HH:mm:ss} | {entry.GrpcMethod} | {entry.DurationMs}ms | {(entry.IsSuccess ? "SUCCESS" : "FAILED")}");
+        }
+
+        // 4. Search logs by method
+        var userServiceEntries = requestLogService.Search(methodFilter: "UserService");
+        Console.WriteLine($"\nUserService entries: {userServiceEntries.Count}");
+
+        // 5. Get aggregate statistics
+        var summary = requestLogService.GetSummary();
+        Console.WriteLine($"\nStatistics:");
+        Console.WriteLine($" - Total entries: {summary.TotalEntries}");
+        Console.WriteLine($" - Success count: {summary.SuccessCount}");
+        Console.WriteLine($" - Error count: {summary.ErrorCount}");
+        Console.WriteLine($" - Success rate: {summary.SuccessRatePct:F1}%");
+        Console.WriteLine($" - Average duration: {summary.AverageDurationMs:F1}ms");
+        Console.WriteLine($" - Min duration: {summary.MinDurationMs}ms");
+        Console.WriteLine($" - Max duration: {summary.MaxDurationMs}ms");
+        Console.WriteLine($" - Oldest entry: {summary.OldestEntry?.ToString("yyyy-MM-dd HH:mm:ss")}");
+        Console.WriteLine($" - Newest entry: {summary.NewestEntry?.ToString("yyyy-MM-dd HH:mm:ss")}");
+
+        // 6. Search logs by status code
+        var errorEntries = requestLogService.Search(statusCode: 3);
+        Console.WriteLine($"\nError entries (status code 3): {errorEntries.Count}");
+
+        // 7. Search logs by time range
+        var oneHourAgo = DateTime.UtcNow.AddHours(-1);
+        var recentSuccessfulEntries = requestLogService.Search(
+            methodFilter: "UserService",
+            from: oneHourAgo,
+            limit: 50
+        );
+        Console.WriteLine($"\nRecent successful UserService entries: {recentSuccessfulEntries.Count(re => re.IsSuccess)}");
+
+        // 8. Clear all logs
+        requestLogService.Clear();
+        Console.WriteLine($"\nAfter clearing - Total entries: {requestLogService.GetSummary().TotalEntries}");
+    }
+}
+```
+
+### Example Usage
+
+```csharp
+using System;
+using System.Threading.Tasks;
+using DotNetGrpcGateway.Domain;
+using DotNetGrpcGateway.Services;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
+
+class Program
+{
+    static async Task Main(IServiceProvider serviceProvider)
+    {
+        var requestLogService = serviceProvider.GetRequiredService<IRequestLogService>();
+
+        // Simulate logging requests from a gateway middleware
+        var gatewayMiddleware = new GatewayMiddleware(requestLogService);
+        
+        // Process a successful request
+        await gatewayMiddleware.ProcessRequestAsync("UserService", "GetUserById", 23.5, true);
+        
+        // Process a failed request
+        await gatewayMiddleware.ProcessRequestAsync("PaymentService", "ProcessPayment", 156.8, false);
+        
+        // Get performance metrics
+        var summary = requestLogService.GetSummary();
+        Console.WriteLine($"Gateway performance - Success rate: {summary.SuccessRatePct:F1}%");
+        Console.WriteLine($"Average response time: {summary.AverageDurationMs:F1}ms");
+    }
+}
+
+class GatewayMiddleware
+{
+    private readonly IRequestLogService _requestLogService;
+    
+    public GatewayMiddleware(IRequestLogService requestLogService)
+    {
+        _requestLogService = requestLogService;
+    }
+    
+    public async Task ProcessRequestAsync(string serviceName, string methodName, double durationMs, bool isSuccess)
+    {
+        var entry = new RequestLogEntry
+        {
+            GrpcMethod = $"{serviceName}/{methodName}",
+            StatusCode = isSuccess ? 0 : 3,
+            DurationMs = durationMs,
+            IsSuccess = isSuccess,
+            Timestamp = DateTime.UtcNow,
+            ClientIpAddress = "192.168.1.100"
+        };
+        
+        _requestLogService.Append(entry);
+        
+        if (!isSuccess)
+        {
+            Console.WriteLine($"Request failed: {serviceName}/{methodName} in {durationMs}ms");
+        }
+    }
+}
+```
+
 ### Example Usage
 
 ```csharp
@@ -630,6 +2097,169 @@ class Program
 }
 ```
 
+## IRequestLogService
+
+`IRequestLogService` stores and provides queryable access to recent gateway request/response log entries. It maintains a fixed-capacity ring buffer of request logs that can be queried by method, status code, or time range. The service provides aggregate statistics including success rate, response times, and entry timestamps, making it ideal for monitoring, debugging, and performance analysis of gRPC gateway traffic.
+
+### Example Usage
+
+```csharp
+using System;
+using System.Linq;
+using DotNetGrpcGateway.Domain;
+using DotNetGrpcGateway.Services;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
+
+class Program
+{
+    static void Main()
+    {
+        // Setup dependency injection
+        var services = new ServiceCollection();
+        services.AddLogging(configure => configure.AddConsole());
+        services.AddSingleton<IRequestLogService, RequestLogService>();
+        
+        var serviceProvider = services.BuildServiceProvider();
+        var requestLogService = serviceProvider.GetRequiredService<IRequestLogService>();
+
+        // 1. Log a successful request
+        var successfulEntry = new RequestLogEntry
+        {
+            GrpcMethod = "UserService/GetUserById",
+            StatusCode = 0, // OK
+            DurationMs = 23.5,
+            IsSuccess = true,
+            RequestSizeBytes = 1024,
+            ResponseSizeBytes = 2048,
+            Timestamp = DateTime.UtcNow,
+            ClientIpAddress = "192.168.1.100"
+        };
+        requestLogService.Append(successfulEntry);
+
+        // 2. Log a failed request
+        var failedEntry = new RequestLogEntry
+        {
+            GrpcMethod = "PaymentService/ProcessPayment",
+            StatusCode = 3, // INVALID_ARGUMENT
+            DurationMs = 156.8,
+            IsSuccess = false,
+            RequestSizeBytes = 512,
+            ResponseSizeBytes = 128,
+            Timestamp = DateTime.UtcNow.AddSeconds(-10),
+            ClientIpAddress = "192.168.1.101",
+            ErrorMessage = "Insufficient funds"
+        };
+        requestLogService.Append(failedEntry);
+
+        // 3. Get recent log entries
+        var recentEntries = requestLogService.GetRecent(limit: 10);
+        Console.WriteLine($"Recent entries: {recentEntries.Count}");
+        foreach (var entry in recentEntries.Take(3))
+        {
+            Console.WriteLine($" - {entry.Timestamp:HH:mm:ss} | {entry.GrpcMethod} | {entry.DurationMs}ms | {(entry.IsSuccess ? "SUCCESS" : "FAILED")}");
+        }
+
+        // 4. Search logs by method
+        var userServiceEntries = requestLogService.Search(methodFilter: "UserService");
+        Console.WriteLine($"\nUserService entries: {userServiceEntries.Count}");
+
+        // 5. Get aggregate statistics
+        var summary = requestLogService.GetSummary();
+        Console.WriteLine($"\nStatistics:");
+        Console.WriteLine($" - Total entries: {summary.TotalEntries}");
+        Console.WriteLine($" - Success count: {summary.SuccessCount}");
+        Console.WriteLine($" - Error count: {summary.ErrorCount}");
+        Console.WriteLine($" - Success rate: {summary.SuccessRatePct:F1}%");
+        Console.WriteLine($" - Average duration: {summary.AverageDurationMs:F1}ms");
+        Console.WriteLine($" - Min duration: {summary.MinDurationMs}ms");
+        Console.WriteLine($" - Max duration: {summary.MaxDurationMs}ms");
+        Console.WriteLine($" - Oldest entry: {summary.OldestEntry?.ToString("yyyy-MM-dd HH:mm:ss")}");
+        Console.WriteLine($" - Newest entry: {summary.NewestEntry?.ToString("yyyy-MM-dd HH:mm:ss")}");
+
+        // 6. Search logs by status code
+        var errorEntries = requestLogService.Search(statusCode: 3);
+        Console.WriteLine($"\nError entries (status code 3): {errorEntries.Count}");
+
+        // 7. Search logs by time range
+        var oneHourAgo = DateTime.UtcNow.AddHours(-1);
+        var recentSuccessfulEntries = requestLogService.Search(
+            methodFilter: "UserService",
+            from: oneHourAgo,
+            limit: 50
+        );
+        Console.WriteLine($"\nRecent successful UserService entries: {recentSuccessfulEntries.Count(re => re.IsSuccess)}");
+
+        // 8. Clear all logs
+        requestLogService.Clear();
+        Console.WriteLine($"\nAfter clearing - Total entries: {requestLogService.GetSummary().TotalEntries}");
+    }
+}
+```
+
+### Example Usage
+
+```csharp
+using System;
+using System.Threading.Tasks;
+using DotNetGrpcGateway.Domain;
+using DotNetGrpcGateway.Services;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
+
+class Program
+{
+    static async Task Main(IServiceProvider serviceProvider)
+    {
+        var requestLogService = serviceProvider.GetRequiredService<IRequestLogService>();
+
+        // Simulate logging requests from a gateway middleware
+        var gatewayMiddleware = new GatewayMiddleware(requestLogService);
+        
+        // Process a successful request
+        await gatewayMiddleware.ProcessRequestAsync("UserService", "GetUserById", 23.5, true);
+        
+        // Process a failed request
+        await gatewayMiddleware.ProcessRequestAsync("PaymentService", "ProcessPayment", 156.8, false);
+        
+        // Get performance metrics
+        var summary = requestLogService.GetSummary();
+        Console.WriteLine($"Gateway performance - Success rate: {summary.SuccessRatePct:F1}%");
+        Console.WriteLine($"Average response time: {summary.AverageDurationMs:F1}ms");
+    }
+}
+
+class GatewayMiddleware
+{
+    private readonly IRequestLogService _requestLogService;
+    
+    public GatewayMiddleware(IRequestLogService requestLogService)
+    {
+        _requestLogService = requestLogService;
+    }
+    
+    public async Task ProcessRequestAsync(string serviceName, string methodName, double durationMs, bool isSuccess)
+    {
+        var entry = new RequestLogEntry
+        {
+            GrpcMethod = $"{serviceName}/{methodName}",
+            StatusCode = isSuccess ? 0 : 3,
+            DurationMs = durationMs,
+            IsSuccess = isSuccess,
+            Timestamp = DateTime.UtcNow,
+            ClientIpAddress = "192.168.1.100"
+        };
+        
+        _requestLogService.Append(entry);
+        
+        if (!isSuccess)
+        {
+            Console.WriteLine($"Request failed: {serviceName}/{methodName} in {durationMs}ms");
+        }
+    }
+}
+```
+
 ## ICircuitBreakerRegistry
 
 `ICircuitBreakerRegistry` manages a registry of circuit breakers, one per registered service, providing lifecycle operations and aggregate status queries. It allows retrieving circuit breakers by service ID, creating them on-demand, resetting their state, and inspecting the state of all registered circuit breakers.
@@ -698,6 +2328,169 @@ class Program
 }
 ```
 
+## IRequestLogService
+
+`IRequestLogService` stores and provides queryable access to recent gateway request/response log entries. It maintains a fixed-capacity ring buffer of request logs that can be queried by method, status code, or time range. The service provides aggregate statistics including success rate, response times, and entry timestamps, making it ideal for monitoring, debugging, and performance analysis of gRPC gateway traffic.
+
+### Example Usage
+
+```csharp
+using System;
+using System.Linq;
+using DotNetGrpcGateway.Domain;
+using DotNetGrpcGateway.Services;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
+
+class Program
+{
+    static void Main()
+    {
+        // Setup dependency injection
+        var services = new ServiceCollection();
+        services.AddLogging(configure => configure.AddConsole());
+        services.AddSingleton<IRequestLogService, RequestLogService>();
+        
+        var serviceProvider = services.BuildServiceProvider();
+        var requestLogService = serviceProvider.GetRequiredService<IRequestLogService>();
+
+        // 1. Log a successful request
+        var successfulEntry = new RequestLogEntry
+        {
+            GrpcMethod = "UserService/GetUserById",
+            StatusCode = 0, // OK
+            DurationMs = 23.5,
+            IsSuccess = true,
+            RequestSizeBytes = 1024,
+            ResponseSizeBytes = 2048,
+            Timestamp = DateTime.UtcNow,
+            ClientIpAddress = "192.168.1.100"
+        };
+        requestLogService.Append(successfulEntry);
+
+        // 2. Log a failed request
+        var failedEntry = new RequestLogEntry
+        {
+            GrpcMethod = "PaymentService/ProcessPayment",
+            StatusCode = 3, // INVALID_ARGUMENT
+            DurationMs = 156.8,
+            IsSuccess = false,
+            RequestSizeBytes = 512,
+            ResponseSizeBytes = 128,
+            Timestamp = DateTime.UtcNow.AddSeconds(-10),
+            ClientIpAddress = "192.168.1.101",
+            ErrorMessage = "Insufficient funds"
+        };
+        requestLogService.Append(failedEntry);
+
+        // 3. Get recent log entries
+        var recentEntries = requestLogService.GetRecent(limit: 10);
+        Console.WriteLine($"Recent entries: {recentEntries.Count}");
+        foreach (var entry in recentEntries.Take(3))
+        {
+            Console.WriteLine($" - {entry.Timestamp:HH:mm:ss} | {entry.GrpcMethod} | {entry.DurationMs}ms | {(entry.IsSuccess ? "SUCCESS" : "FAILED")}");
+        }
+
+        // 4. Search logs by method
+        var userServiceEntries = requestLogService.Search(methodFilter: "UserService");
+        Console.WriteLine($"\nUserService entries: {userServiceEntries.Count}");
+
+        // 5. Get aggregate statistics
+        var summary = requestLogService.GetSummary();
+        Console.WriteLine($"\nStatistics:");
+        Console.WriteLine($" - Total entries: {summary.TotalEntries}");
+        Console.WriteLine($" - Success count: {summary.SuccessCount}");
+        Console.WriteLine($" - Error count: {summary.ErrorCount}");
+        Console.WriteLine($" - Success rate: {summary.SuccessRatePct:F1}%");
+        Console.WriteLine($" - Average duration: {summary.AverageDurationMs:F1}ms");
+        Console.WriteLine($" - Min duration: {summary.MinDurationMs}ms");
+        Console.WriteLine($" - Max duration: {summary.MaxDurationMs}ms");
+        Console.WriteLine($" - Oldest entry: {summary.OldestEntry?.ToString("yyyy-MM-dd HH:mm:ss")}");
+        Console.WriteLine($" - Newest entry: {summary.NewestEntry?.ToString("yyyy-MM-dd HH:mm:ss")}");
+
+        // 6. Search logs by status code
+        var errorEntries = requestLogService.Search(statusCode: 3);
+        Console.WriteLine($"\nError entries (status code 3): {errorEntries.Count}");
+
+        // 7. Search logs by time range
+        var oneHourAgo = DateTime.UtcNow.AddHours(-1);
+        var recentSuccessfulEntries = requestLogService.Search(
+            methodFilter: "UserService",
+            from: oneHourAgo,
+            limit: 50
+        );
+        Console.WriteLine($"\nRecent successful UserService entries: {recentSuccessfulEntries.Count(re => re.IsSuccess)}");
+
+        // 8. Clear all logs
+        requestLogService.Clear();
+        Console.WriteLine($"\nAfter clearing - Total entries: {requestLogService.GetSummary().TotalEntries}");
+    }
+}
+```
+
+### Example Usage
+
+```csharp
+using System;
+using System.Threading.Tasks;
+using DotNetGrpcGateway.Domain;
+using DotNetGrpcGateway.Services;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
+
+class Program
+{
+    static async Task Main(IServiceProvider serviceProvider)
+    {
+        var requestLogService = serviceProvider.GetRequiredService<IRequestLogService>();
+
+        // Simulate logging requests from a gateway middleware
+        var gatewayMiddleware = new GatewayMiddleware(requestLogService);
+        
+        // Process a successful request
+        await gatewayMiddleware.ProcessRequestAsync("UserService", "GetUserById", 23.5, true);
+        
+        // Process a failed request
+        await gatewayMiddleware.ProcessRequestAsync("PaymentService", "ProcessPayment", 156.8, false);
+        
+        // Get performance metrics
+        var summary = requestLogService.GetSummary();
+        Console.WriteLine($"Gateway performance - Success rate: {summary.SuccessRatePct:F1}%");
+        Console.WriteLine($"Average response time: {summary.AverageDurationMs:F1}ms");
+    }
+}
+
+class GatewayMiddleware
+{
+    private readonly IRequestLogService _requestLogService;
+    
+    public GatewayMiddleware(IRequestLogService requestLogService)
+    {
+        _requestLogService = requestLogService;
+    }
+    
+    public async Task ProcessRequestAsync(string serviceName, string methodName, double durationMs, bool isSuccess)
+    {
+        var entry = new RequestLogEntry
+        {
+            GrpcMethod = $"{serviceName}/{methodName}",
+            StatusCode = isSuccess ? 0 : 3,
+            DurationMs = durationMs,
+            IsSuccess = isSuccess,
+            Timestamp = DateTime.UtcNow,
+            ClientIpAddress = "192.168.1.100"
+        };
+        
+        _requestLogService.Append(entry);
+        
+        if (!isSuccess)
+        {
+            Console.WriteLine($"Request failed: {serviceName}/{methodName} in {durationMs}ms");
+        }
+    }
+}
+```
+
 ## IMetricsCollectionService
 
 `IMetricsCollectionService` is responsible for collecting, aggregating, and analyzing metrics related to gateway requests and service performance. It provides methods for recording request metrics, retrieving statistics, identifying slow requests, and analyzing service usage patterns.
@@ -761,6 +2554,169 @@ class Program
 }
 ```
 
+## IRequestLogService
+
+`IRequestLogService` stores and provides queryable access to recent gateway request/response log entries. It maintains a fixed-capacity ring buffer of request logs that can be queried by method, status code, or time range. The service provides aggregate statistics including success rate, response times, and entry timestamps, making it ideal for monitoring, debugging, and performance analysis of gRPC gateway traffic.
+
+### Example Usage
+
+```csharp
+using System;
+using System.Linq;
+using DotNetGrpcGateway.Domain;
+using DotNetGrpcGateway.Services;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
+
+class Program
+{
+    static void Main()
+    {
+        // Setup dependency injection
+        var services = new ServiceCollection();
+        services.AddLogging(configure => configure.AddConsole());
+        services.AddSingleton<IRequestLogService, RequestLogService>();
+        
+        var serviceProvider = services.BuildServiceProvider();
+        var requestLogService = serviceProvider.GetRequiredService<IRequestLogService>();
+
+        // 1. Log a successful request
+        var successfulEntry = new RequestLogEntry
+        {
+            GrpcMethod = "UserService/GetUserById",
+            StatusCode = 0, // OK
+            DurationMs = 23.5,
+            IsSuccess = true,
+            RequestSizeBytes = 1024,
+            ResponseSizeBytes = 2048,
+            Timestamp = DateTime.UtcNow,
+            ClientIpAddress = "192.168.1.100"
+        };
+        requestLogService.Append(successfulEntry);
+
+        // 2. Log a failed request
+        var failedEntry = new RequestLogEntry
+        {
+            GrpcMethod = "PaymentService/ProcessPayment",
+            StatusCode = 3, // INVALID_ARGUMENT
+            DurationMs = 156.8,
+            IsSuccess = false,
+            RequestSizeBytes = 512,
+            ResponseSizeBytes = 128,
+            Timestamp = DateTime.UtcNow.AddSeconds(-10),
+            ClientIpAddress = "192.168.1.101",
+            ErrorMessage = "Insufficient funds"
+        };
+        requestLogService.Append(failedEntry);
+
+        // 3. Get recent log entries
+        var recentEntries = requestLogService.GetRecent(limit: 10);
+        Console.WriteLine($"Recent entries: {recentEntries.Count}");
+        foreach (var entry in recentEntries.Take(3))
+        {
+            Console.WriteLine($" - {entry.Timestamp:HH:mm:ss} | {entry.GrpcMethod} | {entry.DurationMs}ms | {(entry.IsSuccess ? "SUCCESS" : "FAILED")}");
+        }
+
+        // 4. Search logs by method
+        var userServiceEntries = requestLogService.Search(methodFilter: "UserService");
+        Console.WriteLine($"\nUserService entries: {userServiceEntries.Count}");
+
+        // 5. Get aggregate statistics
+        var summary = requestLogService.GetSummary();
+        Console.WriteLine($"\nStatistics:");
+        Console.WriteLine($" - Total entries: {summary.TotalEntries}");
+        Console.WriteLine($" - Success count: {summary.SuccessCount}");
+        Console.WriteLine($" - Error count: {summary.ErrorCount}");
+        Console.WriteLine($" - Success rate: {summary.SuccessRatePct:F1}%");
+        Console.WriteLine($" - Average duration: {summary.AverageDurationMs:F1}ms");
+        Console.WriteLine($" - Min duration: {summary.MinDurationMs}ms");
+        Console.WriteLine($" - Max duration: {summary.MaxDurationMs}ms");
+        Console.WriteLine($" - Oldest entry: {summary.OldestEntry?.ToString("yyyy-MM-dd HH:mm:ss")}");
+        Console.WriteLine($" - Newest entry: {summary.NewestEntry?.ToString("yyyy-MM-dd HH:mm:ss")}");
+
+        // 6. Search logs by status code
+        var errorEntries = requestLogService.Search(statusCode: 3);
+        Console.WriteLine($"\nError entries (status code 3): {errorEntries.Count}");
+
+        // 7. Search logs by time range
+        var oneHourAgo = DateTime.UtcNow.AddHours(-1);
+        var recentSuccessfulEntries = requestLogService.Search(
+            methodFilter: "UserService",
+            from: oneHourAgo,
+            limit: 50
+        );
+        Console.WriteLine($"\nRecent successful UserService entries: {recentSuccessfulEntries.Count(re => re.IsSuccess)}");
+
+        // 8. Clear all logs
+        requestLogService.Clear();
+        Console.WriteLine($"\nAfter clearing - Total entries: {requestLogService.GetSummary().TotalEntries}");
+    }
+}
+```
+
+### Example Usage
+
+```csharp
+using System;
+using System.Threading.Tasks;
+using DotNetGrpcGateway.Domain;
+using DotNetGrpcGateway.Services;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
+
+class Program
+{
+    static async Task Main(IServiceProvider serviceProvider)
+    {
+        var requestLogService = serviceProvider.GetRequiredService<IRequestLogService>();
+
+        // Simulate logging requests from a gateway middleware
+        var gatewayMiddleware = new GatewayMiddleware(requestLogService);
+        
+        // Process a successful request
+        await gatewayMiddleware.ProcessRequestAsync("UserService", "GetUserById", 23.5, true);
+        
+        // Process a failed request
+        await gatewayMiddleware.ProcessRequestAsync("PaymentService", "ProcessPayment", 156.8, false);
+        
+        // Get performance metrics
+        var summary = requestLogService.GetSummary();
+        Console.WriteLine($"Gateway performance - Success rate: {summary.SuccessRatePct:F1}%");
+        Console.WriteLine($"Average response time: {summary.AverageDurationMs:F1}ms");
+    }
+}
+
+class GatewayMiddleware
+{
+    private readonly IRequestLogService _requestLogService;
+    
+    public GatewayMiddleware(IRequestLogService requestLogService)
+    {
+        _requestLogService = requestLogService;
+    }
+    
+    public async Task ProcessRequestAsync(string serviceName, string methodName, double durationMs, bool isSuccess)
+    {
+        var entry = new RequestLogEntry
+        {
+            GrpcMethod = $"{serviceName}/{methodName}",
+            StatusCode = isSuccess ? 0 : 3,
+            DurationMs = durationMs,
+            IsSuccess = isSuccess,
+            Timestamp = DateTime.UtcNow,
+            ClientIpAddress = "192.168.1.100"
+        };
+        
+        _requestLogService.Append(entry);
+        
+        if (!isSuccess)
+        {
+            Console.WriteLine($"Request failed: {serviceName}/{methodName} in {durationMs}ms");
+        }
+    }
+}
+```
+
 ## IValidationService
 
 `IValidationService` provides validation capabilities for gateway configuration, gRPC services, routes, and authentication tokens. It validates gateway settings, service configurations, route definitions, IP addresses, and authentication/authorization tokens to ensure the gateway operates with valid and secure configurations.
@@ -815,6 +2771,169 @@ class Program
 }
 ```
 
+## IRequestLogService
+
+`IRequestLogService` stores and provides queryable access to recent gateway request/response log entries. It maintains a fixed-capacity ring buffer of request logs that can be queried by method, status code, or time range. The service provides aggregate statistics including success rate, response times, and entry timestamps, making it ideal for monitoring, debugging, and performance analysis of gRPC gateway traffic.
+
+### Example Usage
+
+```csharp
+using System;
+using System.Linq;
+using DotNetGrpcGateway.Domain;
+using DotNetGrpcGateway.Services;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
+
+class Program
+{
+    static void Main()
+    {
+        // Setup dependency injection
+        var services = new ServiceCollection();
+        services.AddLogging(configure => configure.AddConsole());
+        services.AddSingleton<IRequestLogService, RequestLogService>();
+        
+        var serviceProvider = services.BuildServiceProvider();
+        var requestLogService = serviceProvider.GetRequiredService<IRequestLogService>();
+
+        // 1. Log a successful request
+        var successfulEntry = new RequestLogEntry
+        {
+            GrpcMethod = "UserService/GetUserById",
+            StatusCode = 0, // OK
+            DurationMs = 23.5,
+            IsSuccess = true,
+            RequestSizeBytes = 1024,
+            ResponseSizeBytes = 2048,
+            Timestamp = DateTime.UtcNow,
+            ClientIpAddress = "192.168.1.100"
+        };
+        requestLogService.Append(successfulEntry);
+
+        // 2. Log a failed request
+        var failedEntry = new RequestLogEntry
+        {
+            GrpcMethod = "PaymentService/ProcessPayment",
+            StatusCode = 3, // INVALID_ARGUMENT
+            DurationMs = 156.8,
+            IsSuccess = false,
+            RequestSizeBytes = 512,
+            ResponseSizeBytes = 128,
+            Timestamp = DateTime.UtcNow.AddSeconds(-10),
+            ClientIpAddress = "192.168.1.101",
+            ErrorMessage = "Insufficient funds"
+        };
+        requestLogService.Append(failedEntry);
+
+        // 3. Get recent log entries
+        var recentEntries = requestLogService.GetRecent(limit: 10);
+        Console.WriteLine($"Recent entries: {recentEntries.Count}");
+        foreach (var entry in recentEntries.Take(3))
+        {
+            Console.WriteLine($" - {entry.Timestamp:HH:mm:ss} | {entry.GrpcMethod} | {entry.DurationMs}ms | {(entry.IsSuccess ? "SUCCESS" : "FAILED")}");
+        }
+
+        // 4. Search logs by method
+        var userServiceEntries = requestLogService.Search(methodFilter: "UserService");
+        Console.WriteLine($"\nUserService entries: {userServiceEntries.Count}");
+
+        // 5. Get aggregate statistics
+        var summary = requestLogService.GetSummary();
+        Console.WriteLine($"\nStatistics:");
+        Console.WriteLine($" - Total entries: {summary.TotalEntries}");
+        Console.WriteLine($" - Success count: {summary.SuccessCount}");
+        Console.WriteLine($" - Error count: {summary.ErrorCount}");
+        Console.WriteLine($" - Success rate: {summary.SuccessRatePct:F1}%");
+        Console.WriteLine($" - Average duration: {summary.AverageDurationMs:F1}ms");
+        Console.WriteLine($" - Min duration: {summary.MinDurationMs}ms");
+        Console.WriteLine($" - Max duration: {summary.MaxDurationMs}ms");
+        Console.WriteLine($" - Oldest entry: {summary.OldestEntry?.ToString("yyyy-MM-dd HH:mm:ss")}");
+        Console.WriteLine($" - Newest entry: {summary.NewestEntry?.ToString("yyyy-MM-dd HH:mm:ss")}");
+
+        // 6. Search logs by status code
+        var errorEntries = requestLogService.Search(statusCode: 3);
+        Console.WriteLine($"\nError entries (status code 3): {errorEntries.Count}");
+
+        // 7. Search logs by time range
+        var oneHourAgo = DateTime.UtcNow.AddHours(-1);
+        var recentSuccessfulEntries = requestLogService.Search(
+            methodFilter: "UserService",
+            from: oneHourAgo,
+            limit: 50
+        );
+        Console.WriteLine($"\nRecent successful UserService entries: {recentSuccessfulEntries.Count(re => re.IsSuccess)}");
+
+        // 8. Clear all logs
+        requestLogService.Clear();
+        Console.WriteLine($"\nAfter clearing - Total entries: {requestLogService.GetSummary().TotalEntries}");
+    }
+}
+```
+
+### Example Usage
+
+```csharp
+using System;
+using System.Threading.Tasks;
+using DotNetGrpcGateway.Domain;
+using DotNetGrpcGateway.Services;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
+
+class Program
+{
+    static async Task Main(IServiceProvider serviceProvider)
+    {
+        var requestLogService = serviceProvider.GetRequiredService<IRequestLogService>();
+
+        // Simulate logging requests from a gateway middleware
+        var gatewayMiddleware = new GatewayMiddleware(requestLogService);
+        
+        // Process a successful request
+        await gatewayMiddleware.ProcessRequestAsync("UserService", "GetUserById", 23.5, true);
+        
+        // Process a failed request
+        await gatewayMiddleware.ProcessRequestAsync("PaymentService", "ProcessPayment", 156.8, false);
+        
+        // Get performance metrics
+        var summary = requestLogService.GetSummary();
+        Console.WriteLine($"Gateway performance - Success rate: {summary.SuccessRatePct:F1}%");
+        Console.WriteLine($"Average response time: {summary.AverageDurationMs:F1}ms");
+    }
+}
+
+class GatewayMiddleware
+{
+    private readonly IRequestLogService _requestLogService;
+    
+    public GatewayMiddleware(IRequestLogService requestLogService)
+    {
+        _requestLogService = requestLogService;
+    }
+    
+    public async Task ProcessRequestAsync(string serviceName, string methodName, double durationMs, bool isSuccess)
+    {
+        var entry = new RequestLogEntry
+        {
+            GrpcMethod = $"{serviceName}/{methodName}",
+            StatusCode = isSuccess ? 0 : 3,
+            DurationMs = durationMs,
+            IsSuccess = isSuccess,
+            Timestamp = DateTime.UtcNow,
+            ClientIpAddress = "192.168.1.100"
+        };
+        
+        _requestLogService.Append(entry);
+        
+        if (!isSuccess)
+        {
+            Console.WriteLine($"Request failed: {serviceName}/{methodName} in {durationMs}ms");
+        }
+    }
+}
+```
+
 ### Example Usage
 
 ```csharp
@@ -863,6 +2982,169 @@ Console.WriteLine($" - [{alert.Severity}] {alert.AlertType}: {alert.Message}");
 Console.WriteLine($"   Detected at: {alert.DetectedAt}");
 }
 }
+}
+```
+
+## IRequestLogService
+
+`IRequestLogService` stores and provides queryable access to recent gateway request/response log entries. It maintains a fixed-capacity ring buffer of request logs that can be queried by method, status code, or time range. The service provides aggregate statistics including success rate, response times, and entry timestamps, making it ideal for monitoring, debugging, and performance analysis of gRPC gateway traffic.
+
+### Example Usage
+
+```csharp
+using System;
+using System.Linq;
+using DotNetGrpcGateway.Domain;
+using DotNetGrpcGateway.Services;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
+
+class Program
+{
+    static void Main()
+    {
+        // Setup dependency injection
+        var services = new ServiceCollection();
+        services.AddLogging(configure => configure.AddConsole());
+        services.AddSingleton<IRequestLogService, RequestLogService>();
+        
+        var serviceProvider = services.BuildServiceProvider();
+        var requestLogService = serviceProvider.GetRequiredService<IRequestLogService>();
+
+        // 1. Log a successful request
+        var successfulEntry = new RequestLogEntry
+        {
+            GrpcMethod = "UserService/GetUserById",
+            StatusCode = 0, // OK
+            DurationMs = 23.5,
+            IsSuccess = true,
+            RequestSizeBytes = 1024,
+            ResponseSizeBytes = 2048,
+            Timestamp = DateTime.UtcNow,
+            ClientIpAddress = "192.168.1.100"
+        };
+        requestLogService.Append(successfulEntry);
+
+        // 2. Log a failed request
+        var failedEntry = new RequestLogEntry
+        {
+            GrpcMethod = "PaymentService/ProcessPayment",
+            StatusCode = 3, // INVALID_ARGUMENT
+            DurationMs = 156.8,
+            IsSuccess = false,
+            RequestSizeBytes = 512,
+            ResponseSizeBytes = 128,
+            Timestamp = DateTime.UtcNow.AddSeconds(-10),
+            ClientIpAddress = "192.168.1.101",
+            ErrorMessage = "Insufficient funds"
+        };
+        requestLogService.Append(failedEntry);
+
+        // 3. Get recent log entries
+        var recentEntries = requestLogService.GetRecent(limit: 10);
+        Console.WriteLine($"Recent entries: {recentEntries.Count}");
+        foreach (var entry in recentEntries.Take(3))
+        {
+            Console.WriteLine($" - {entry.Timestamp:HH:mm:ss} | {entry.GrpcMethod} | {entry.DurationMs}ms | {(entry.IsSuccess ? "SUCCESS" : "FAILED")}");
+        }
+
+        // 4. Search logs by method
+        var userServiceEntries = requestLogService.Search(methodFilter: "UserService");
+        Console.WriteLine($"\nUserService entries: {userServiceEntries.Count}");
+
+        // 5. Get aggregate statistics
+        var summary = requestLogService.GetSummary();
+        Console.WriteLine($"\nStatistics:");
+        Console.WriteLine($" - Total entries: {summary.TotalEntries}");
+        Console.WriteLine($" - Success count: {summary.SuccessCount}");
+        Console.WriteLine($" - Error count: {summary.ErrorCount}");
+        Console.WriteLine($" - Success rate: {summary.SuccessRatePct:F1}%");
+        Console.WriteLine($" - Average duration: {summary.AverageDurationMs:F1}ms");
+        Console.WriteLine($" - Min duration: {summary.MinDurationMs}ms");
+        Console.WriteLine($" - Max duration: {summary.MaxDurationMs}ms");
+        Console.WriteLine($" - Oldest entry: {summary.OldestEntry?.ToString("yyyy-MM-dd HH:mm:ss")}");
+        Console.WriteLine($" - Newest entry: {summary.NewestEntry?.ToString("yyyy-MM-dd HH:mm:ss")}");
+
+        // 6. Search logs by status code
+        var errorEntries = requestLogService.Search(statusCode: 3);
+        Console.WriteLine($"\nError entries (status code 3): {errorEntries.Count}");
+
+        // 7. Search logs by time range
+        var oneHourAgo = DateTime.UtcNow.AddHours(-1);
+        var recentSuccessfulEntries = requestLogService.Search(
+            methodFilter: "UserService",
+            from: oneHourAgo,
+            limit: 50
+        );
+        Console.WriteLine($"\nRecent successful UserService entries: {recentSuccessfulEntries.Count(re => re.IsSuccess)}");
+
+        // 8. Clear all logs
+        requestLogService.Clear();
+        Console.WriteLine($"\nAfter clearing - Total entries: {requestLogService.GetSummary().TotalEntries}");
+    }
+}
+```
+
+### Example Usage
+
+```csharp
+using System;
+using System.Threading.Tasks;
+using DotNetGrpcGateway.Domain;
+using DotNetGrpcGateway.Services;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
+
+class Program
+{
+    static async Task Main(IServiceProvider serviceProvider)
+    {
+        var requestLogService = serviceProvider.GetRequiredService<IRequestLogService>();
+
+        // Simulate logging requests from a gateway middleware
+        var gatewayMiddleware = new GatewayMiddleware(requestLogService);
+        
+        // Process a successful request
+        await gatewayMiddleware.ProcessRequestAsync("UserService", "GetUserById", 23.5, true);
+        
+        // Process a failed request
+        await gatewayMiddleware.ProcessRequestAsync("PaymentService", "ProcessPayment", 156.8, false);
+        
+        // Get performance metrics
+        var summary = requestLogService.GetSummary();
+        Console.WriteLine($"Gateway performance - Success rate: {summary.SuccessRatePct:F1}%");
+        Console.WriteLine($"Average response time: {summary.AverageDurationMs:F1}ms");
+    }
+}
+
+class GatewayMiddleware
+{
+    private readonly IRequestLogService _requestLogService;
+    
+    public GatewayMiddleware(IRequestLogService requestLogService)
+    {
+        _requestLogService = requestLogService;
+    }
+    
+    public async Task ProcessRequestAsync(string serviceName, string methodName, double durationMs, bool isSuccess)
+    {
+        var entry = new RequestLogEntry
+        {
+            GrpcMethod = $"{serviceName}/{methodName}",
+            StatusCode = isSuccess ? 0 : 3,
+            DurationMs = durationMs,
+            IsSuccess = isSuccess,
+            Timestamp = DateTime.UtcNow,
+            ClientIpAddress = "192.168.1.100"
+        };
+        
+        _requestLogService.Append(entry);
+        
+        if (!isSuccess)
+        {
+            Console.WriteLine($"Request failed: {serviceName}/{methodName} in {durationMs}ms");
+        }
+    }
 }
 ```
 
