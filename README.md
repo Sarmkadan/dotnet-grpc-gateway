@@ -265,14 +265,49 @@ class Program
         await serviceDiscoveryService.UpdateServiceHealthAsync(serviceId, true);
         Console.WriteLine($"Health status of service {serviceId} updated to: Healthy");
 
-        // Discover available services
-        var availableServices = await serviceDiscoveryService.DiscoverAvailableServicesAsync();
-        Console.WriteLine($"Available services: {string.Join(", ", availableServices.Select(s => s.Name))}");
-
         // Get the health status of all services
         var allServicesHealth = await serviceDiscoveryService.GetAllServicesHealthAsync();
         Console.WriteLine($"Health status of all services: {string.Join(", ", allServicesHealth.Select(kvp => $"{kvp.Key}: {kvp.Value}"))}");
     }
 }
+
+## IGatewayService
+
+`IGatewayService` is the core interface for managing the gateway's configuration, registering and unregistering gRPC services, and managing routing rules. It serves as the primary entry point for administrative operations on the gateway.
+
+### Example Usage
+
+```csharp
+using System;
+using System.Collections.Generic;
+using System.Threading.Tasks;
+using DotNetGrpcGateway.Domain;
+using DotNetGrpcGateway.Services;
+
+class Program
+{
+    static async Task Main(IGatewayService gatewayService)
+    {
+        // 1. Get current configuration
+        var config = await gatewayService.GetConfigurationAsync();
+        Console.WriteLine($"Gateway Name: {config.Name}");
+
+        // 2. Register a new service
+        var newService = new GrpcService { Name = "MyNewService", Host = "localhost", Port = 5005 };
+        await gatewayService.RegisterServiceAsync(newService);
+
+        // 3. Get all healthy services
+        var healthyServices = await gatewayService.GetHealthyServicesAsync();
+        Console.WriteLine($"Healthy services: {healthyServices.Count}");
+
+        // 4. Add a new route
+        var newRoute = new GatewayRoute { Name = "MyNewRoute", TargetServiceId = newService.Id, Path = "/api" };
+        await gatewayService.AddRouteAsync(newRoute);
+
+        // 5. Unregister a service
+        await gatewayService.UnregisterServiceAsync(newService.Id);
+    }
+}
+```
 ```
 
