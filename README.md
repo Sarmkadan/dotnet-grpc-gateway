@@ -11,6 +11,88 @@ persistence trade-offs and extension points - see
 [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md). The rest of this file is per-type
 API reference.
 
+## DotnetGrpcGatewayOptions
+
+`DotnetGrpcGatewayOptions` provides centralized configuration for the gRPC gateway, controlling network binding, reflection, metrics, health checks, request logging, and performance settings. It supports dependency injection and can be configured from configuration files using the `Gateway` section name.
+
+### Example Usage
+
+```csharp
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Options;
+using DotNetGrpcGateway.Options;
+
+// 1. Configure from appsettings.json
+var configuration = new ConfigurationBuilder()
+    .AddJsonFile("appsettings.json")
+    .Build();
+
+var services = new ServiceCollection();
+
+// Bind configuration to options
+services.Configure<DotnetGrpcGatewayOptions>(
+    configuration.GetSection(DotnetGrpcGatewayOptions.SectionName));
+
+// Or configure manually
+services.Configure<DotnetGrpcGatewayOptions>(options =>
+{
+    options.ListenAddress = "0.0.0.0";
+    options.Port = 8080;
+    options.EnableReflection = true;
+    options.EnableMetrics = true;
+    options.MaxConcurrentConnections = 2000;
+    options.RequestTimeoutMs = 60000;
+    options.LogLevel = "Debug";
+    options.EnableCompression = true;
+    
+    // Configure health checks
+    options.HealthCheck.IntervalSeconds = 60;
+    options.HealthCheck.TimeoutMs = 10000;
+    options.HealthCheck.FailureThreshold = 5;
+    
+    // Configure metrics
+    options.Metrics.EnableMetrics = true;
+    options.Metrics.CollectionIntervalSeconds = 30;
+    options.Metrics.RetentionDays = 60;
+    
+    // Configure request logging
+    options.RequestLogging.Enabled = true;
+    options.RequestLogging.Verbosity = RequestLoggingVerbosity.Verbose;
+});
+
+var serviceProvider = services.BuildServiceProvider();
+
+// 2. Access configured options
+var options = serviceProvider.GetRequiredService<IOptions<DotnetGrpcGatewayOptions>>().Value;
+
+Console.WriteLine($"Gateway listening on {options.ListenAddress}:{options.Port}");
+Console.WriteLine($"Reflection enabled: {options.EnableReflection}");
+Console.WriteLine($"Metrics enabled: {options.EnableMetrics}");
+Console.WriteLine($"Max concurrent connections: {options.MaxConcurrentConnections}");
+Console.WriteLine($"Request timeout: {options.RequestTimeoutMs}ms");
+Console.WriteLine($"Log level: {options.LogLevel}");
+Console.WriteLine($"Compression enabled: {options.EnableCompression}");
+Console.WriteLine($"Health check interval: {options.HealthCheck.IntervalSeconds}s");
+Console.WriteLine($"Health check timeout: {options.HealthCheck.TimeoutMs}ms");
+Console.WriteLine($"Health check threshold: {options.HealthCheck.FailureThreshold}");
+Console.WriteLine($"Metrics collection interval: {options.Metrics.CollectionIntervalSeconds}s");
+Console.WriteLine($"Metrics retention: {options.Metrics.RetentionDays} days");
+Console.WriteLine($"Request logging enabled: {options.RequestLogging.Enabled}");
+Console.WriteLine($"Request logging verbosity: {options.RequestLogging.Verbosity}");
+
+// 3. Validate configuration
+if (string.IsNullOrEmpty(options.ListenAddress))
+{
+    throw new InvalidOperationException("ListenAddress is required");
+}
+
+if (options.Port < 1 || options.Port > 65535)
+{
+    throw new InvalidOperationException("Port must be between 1 and 65535");
+}
+```
+
 ## ServiceHealthReport
 
 `ServiceHealthReport` represents health check results for a gRPC service, tracking consecutive success/failure patterns, response times, error details, and diagnostic information. It's used by the gateway's health monitoring system to determine service availability and trigger alerts.
