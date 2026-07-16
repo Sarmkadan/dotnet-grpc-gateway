@@ -108,3 +108,39 @@ class Program
         }
     }
 }
+```
+
+## ServiceEndpoint
+
+The `ServiceEndpoint` class represents a single addressable endpoint for a registered gRPC service. It tracks endpoint health, load balancing weights, and request statistics.
+
+### Example Usage
+
+```csharp
+using DotNetGrpcGateway.Domain;
+
+class Program
+{
+    static void Main()
+    {
+        var endpoint = new ServiceEndpoint
+        {
+            Id = 1,
+            ServiceId = 10,
+            Host = "localhost",
+            Port = 5001,
+            UseTls = true,
+            Weight = 2
+        };
+
+        Console.WriteLine($"Endpoint URI: {endpoint.GetUri()}");
+        Console.WriteLine($"Healthy: {endpoint.IsHealthy}");
+
+        endpoint.RecordRequest(50.0, true);
+        Console.WriteLine($"Total requests: {endpoint.TotalRequestsHandled}");
+        Console.WriteLine($"Average response time: {endpoint.AverageResponseTimeMs}ms");
+
+        endpoint.IsHealthy = false;
+        Console.WriteLine($"Healthy: {endpoint.IsHealthy}");
+    }
+}
