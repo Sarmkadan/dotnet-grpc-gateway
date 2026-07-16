@@ -400,6 +400,74 @@ class Program
 }
 ```
 
+## ICircuitBreakerRegistry
+
+`ICircuitBreakerRegistry` manages a registry of circuit breakers, one per registered service, providing lifecycle operations and aggregate status queries. It allows retrieving circuit breakers by service ID, creating them on-demand, resetting their state, and inspecting the state of all registered circuit breakers.
+
+### Example Usage
+
+```csharp
+using System;
+using System.Linq;
+using DotNetGrpcGateway.Domain;
+using DotNetGrpcGateway.Services;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
+
+class Program
+{
+    static void Main()
+    {
+        // Setup dependency injection
+        var services = new ServiceCollection();
+        services.AddLogging(configure => configure.AddConsole());
+        services.AddSingleton<ICircuitBreakerRegistry, CircuitBreakerRegistry>();
+
+        var serviceProvider = services.BuildServiceProvider();
+        var registry = serviceProvider.GetRequiredService<ICircuitBreakerRegistry>();
+
+        // 1. Get or create a circuit breaker for a service
+        var circuitBreaker = registry.GetOrCreate(10);
+        Console.WriteLine($"Circuit breaker created for service ID: 10");
+
+        // 2. Try to get an existing circuit breaker
+        var existingBreaker = registry.TryGet(10);
+        Console.WriteLine($"Existing breaker found: {existingBreaker != null}");
+
+        // 3. Reset a circuit breaker to closed state
+        registry.Reset(10);
+        Console.WriteLine("Circuit breaker reset to closed state");
+
+        // 4. Register endpoints and simulate failures to trip the breaker
+        var endpoint1 = new ServiceEndpoint
+        {
+            Id = 1,
+            ServiceId = 10,
+            Host = "backend1.example.com",
+            Port = 5001,
+            Weight = 2
+        };
+
+        // Simulate failures to trip the circuit breaker
+        for (int i = 0; i < 5; i++)
+        {
+            circuitBreaker.RecordFailure();
+        }
+        
+        Console.WriteLine($"Circuit breaker state: {circuitBreaker.State.Status}");
+        Console.WriteLine($"Failures in a row: {circuitBreaker.State.FailuresInRow}");
+
+        // 5. Get all circuit breaker states
+        var allStates = registry.GetAllStates();
+        Console.WriteLine($"\nAll circuit breaker states ({allStates.Count}):");
+        foreach (var kvp in allStates)
+        {
+            Console.WriteLine($" - Service {kvp.Key}: {kvp.Value.Status} ({kvp.Value.FailuresInRow} failures in a row)");
+        }
+    }
+}
+```
+
 ## IMetricsCollectionService
 
 `IMetricsCollectionService` is responsible for collecting, aggregating, and analyzing metrics related to gateway requests and service performance. It provides methods for recording request metrics, retrieving statistics, identifying slow requests, and analyzing service usage patterns.
