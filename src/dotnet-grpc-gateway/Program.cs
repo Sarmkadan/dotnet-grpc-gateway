@@ -132,9 +132,12 @@ try
         app.UseDeveloperExceptionPage();
     }
 
+    // Exception handling first, so it wraps the whole pipeline - previously it sat
+    // at the end and could not catch exceptions thrown by the middleware above it.
+    app.UseMiddleware<ErrorHandlingMiddleware>();
+
     app.UseRouting();
 
-    // Phase 2: Add new middleware
     app.UseMiddleware<RequestLoggingMiddleware>();
     app.UseMiddleware<RateLimitingMiddleware>();
     app.UseAuthentication();
@@ -145,9 +148,6 @@ try
     app.UseMiddleware<GrpcWebCompressionMiddleware>();
     app.UseMiddleware<GrpcWebTrailerForwardingMiddleware>();
     app.UseMiddleware<RequestResponseCapturingMiddleware>();
-
-    // Exception handling middleware
-    app.UseMiddleware<ErrorHandlingMiddleware>();
 
     app.MapControllers();
     app.MapHealthChecks("/health");
