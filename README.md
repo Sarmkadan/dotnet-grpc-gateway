@@ -332,6 +332,182 @@ class Program
         var services = new ServiceCollection();
         services.AddLogging(configure => configure.AddConsole());
         services.AddSingleton<ILoadBalancerService, LoadBalancerService>();
+
+        var serviceProvider = services.BuildServiceProvider();
+        var loadBalancer = serviceProvider.GetRequiredService<ILoadBalancerService>();
+
+        // 1. Register endpoints for a service
+        var endpoint1 = new ServiceEndpoint {
+            Id = 1,
+            ServiceId = 10,
+            Host = "backend1.example.com",
+            Port = 5001,
+            Weight = 2
+        };
+
+        var endpoint2 = new ServiceEndpoint {
+            Id = 2,
+            ServiceId = 10,
+            Host = "backend2.example.com",
+            Port = 5002,
+            Weight = 1
+        };
+
+        loadBalancer.RegisterEndpoint(endpoint1);
+        loadBalancer.RegisterEndpoint(endpoint2);
+
+        // 2. Set load balancing strategy
+        loadBalancer.Strategy = LoadBalancingStrategy.RoundRobin;
+        Console.WriteLine($"Load balancing strategy: {loadBalancer.Strategy}");
+
+        // 3. Get all registered endpoints
+        var endpoints = loadBalancer.GetEndpoints(10);
+        Console.WriteLine($"Registered endpoints: {endpoints.Count}");
+        foreach (var ep in endpoints)
+        {
+            Console.WriteLine($" - Endpoint {ep.Id}: {ep.Host}:{ep.Port} (Healthy: {ep.IsHealthy})");
+        }
+
+        // 4. Get next endpoint using RoundRobin strategy
+        var selectedEndpoint = loadBalancer.GetNextEndpoint(10);
+        Console.WriteLine($"\nSelected endpoint: {selectedEndpoint?.Host}:{selectedEndpoint?.Port}");
+
+        // 5. Update endpoint health status
+        loadBalancer.UpdateEndpointHealth(10, 1, true);
+        loadBalancer.UpdateEndpointHealth(10, 2, false);
+        Console.WriteLine("Updated endpoint health status");
+
+        // 6. Record request completion
+        loadBalancer.RecordRequestCompleted(10, 1, 45.2, true);
+        loadBalancer.RecordRequestCompleted(10, 2, 38.7, false);
+
+        // 7. Switch to Random strategy
+        loadBalancer.Strategy = LoadBalancingStrategy.Random;
+        Console.WriteLine($"\nSwitched to strategy: {loadBalancer.Strategy}");
+
+        // 8. Get next endpoint using Random strategy
+        var randomEndpoint = loadBalancer.GetNextEndpoint(10);
+        Console.WriteLine($"Randomly selected endpoint: {randomEndpoint?.Host}:{randomEndpoint?.Port}");
+
+        // 9. Deregister an endpoint
+        loadBalancer.DeregisterEndpoint(10, 2);
+        Console.WriteLine("Deregistered endpoint 2");
+
+        // 10. Verify remaining endpoints
+        var remainingEndpoints = loadBalancer.GetEndpoints(10);
+        Console.WriteLine($"Remaining endpoints: {remainingEndpoints.Count}");
+    }
+}
+```
+
+## IRouteManagementService
+
+`IRouteManagementService` is responsible for advanced route management operations in the gRPC gateway. It handles retrieving routes by service, finding matching routes for incoming requests, identifying conflicting route patterns, and validating route configurations to ensure proper routing and prevent conflicts.
+
+### Example Usage
+
+```csharp
+using System;
+using System.Collections.Generic;
+using System.Threading.Tasks;
+using DotNetGrpcGateway.Domain;
+using DotNetGrpcGateway.Services;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
+
+class Program
+{
+    static async Task Main()
+    {
+        // Setup dependency injection
+        var services = new ServiceCollection();
+        services.AddLogging(configure => configure.AddConsole());
+        services.AddSingleton<IRouteManagementService, RouteManagementService>();
+        services.AddSingleton<IRouteRepository, RouteRepository>();
+        services.AddSingleton<IEventPublisher, EventPublisher>();
+
+        var serviceProvider = services.BuildServiceProvider();
+        var routeManagementService = serviceProvider.GetRequiredService<IRouteManagementService>();
+
+        // 1. Get all routes for a specific service
+        var serviceRoutes = await routeManagementService.GetRoutesByServiceAsync(10);
+        Console.WriteLine($"Found {serviceRoutes.Count} routes for service ID 10");
+        foreach (var route in serviceRoutes)
+        {
+            Console.WriteLine($" - Route {route.Id}: {route.Pattern} (Priority: {route.Priority})");
+        }
+
+        // 2. Find a matching route for a specific path
+        var matchingRoute = await routeManagementService.FindMatchingRouteAsync("/api/users/get");
+        if (matchingRoute != null)
+        {
+            Console.WriteLine($"\nFound matching route for path '/api/users/get': {matchingRoute.Pattern}");
+            Console.WriteLine($" - Target Service ID: {matchingRoute.TargetServiceId}");
+            Console.WriteLine($" - Priority: {matchingRoute.Priority}");
+        }
+        else
+        {
+            Console.WriteLine("\nNo matching route found for path '/api/users/get'");
+        }
+
+        // 3. Find conflicting routes for a pattern
+        var conflictingRoutes = await routeManagementService.GetConflictingRoutesAsync("/api/users/*");
+        Console.WriteLine($"\nFound {conflictingRoutes.Count} conflicting routes for pattern '/api/users/*'");
+        foreach (var route in conflictingRoutes)
+        {
+            Console.WriteLine($" - Route {route.Id}: {route.Pattern}");
+        }
+
+        // 4. Validate a route configuration
+        var newRoute = new GatewayRoute
+        {
+            Id = 1,
+            Name = "UserServiceRoute",
+            Pattern = "/api/users/*",
+            TargetServiceId = 10,
+            Priority = 100,
+            RateLimitPerMinute = 1000,
+            EnableCaching = true,
+            CacheDurationSeconds = 300
+        };
+
+        bool isValid = await routeManagementService.ValidateRouteAsync(newRoute);
+        Console.WriteLine($"\nRoute validation result: {(isValid ? "Valid" : "Invalid")}");
+
+        // 5. Validate a route with invalid configuration
+        var invalidRoute = new GatewayRoute
+        {
+            Id = 2,
+            Name = "InvalidRoute",
+            Pattern = "", // Empty pattern - invalid
+            TargetServiceId = 10,
+            Priority = 10000 // Priority out of range - invalid
+        };
+
+        bool isInvalid = await routeManagementService.ValidateRouteAsync(invalidRoute);
+        Console.WriteLine($"Invalid route validation result: {(isInvalid ? "Valid" : "Invalid")}");
+    }
+}
+```
+
+### Example Usage
+
+```csharp
+using System;
+using System.Linq;
+using DotNetGrpcGateway.Domain;
+using DotNetGrpcGateway.Services;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
+
+class Program
+{
+    static void Main()
+    {
+        // Setup dependency injection
+        var services = new ServiceCollection();
+        services.AddLogging(configure => configure.AddConsole());
+        services.AddSingleton<ILoadBalancerService, LoadBalancerService>();
         
         var serviceProvider = services.BuildServiceProvider();
         var loadBalancer = serviceProvider.GetRequiredService<ILoadBalancerService>();
