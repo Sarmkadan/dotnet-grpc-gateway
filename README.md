@@ -11,6 +11,73 @@ persistence trade-offs and extension points - see
 [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md). The rest of this file is per-type
 API reference.
 
+## RequestMetricTests
+
+`RequestMetricTests` is a comprehensive test class that validates the behavior of the `RequestMetric` class, which tracks and validates request metrics including validation rules, helper methods, and default state. The tests cover validation scenarios (empty/null required fields, negative values), slow request detection, error recording, retry tracking, cache status management, and default constructor initialization. Each test verifies that the metric class maintains data integrity and provides accurate information for monitoring and observability purposes.
+
+### Example Usage
+
+```csharp
+using System;
+using DotNetGrpcGateway.Domain;
+
+class Program
+{
+    static void Main()
+    {
+        // 1. Create and validate a fully populated request metric
+        var metric = new RequestMetric
+        {
+            ServiceName = "UserService",
+            MethodName = "GetUser",
+            ClientIpAddress = "192.168.1.1",
+            DurationMs = 150.5,
+            RequestSizeBytes = 1024,
+            ResponseSizeBytes = 2048,
+            HttpStatusCode = 200,
+            IsSuccessful = true
+        };
+
+        // Validate the metric - should not throw
+        metric.Validate();
+        Console.WriteLine("Metric validation passed!");
+        Console.WriteLine($"Service: {metric.ServiceName}, Method: {metric.MethodName}");
+        Console.WriteLine($"Duration: {metric.DurationMs}ms, Size: {metric.RequestSizeBytes} bytes");
+
+        // 2. Check if request is slow (threshold: 1000ms)
+        bool isSlow = metric.IsSlowRequest(slowThresholdMs: 1000);
+        Console.WriteLine($"Is slow request: {isSlow}");
+
+        // 3. Record an error
+        metric.RecordError("Connection timeout", "Timeout at line 42");
+        Console.WriteLine($"Error recorded: {metric.ErrorMessage}");
+        Console.WriteLine($"Successful: {metric.IsSuccessful}");
+
+        // 4. Record a retry
+        metric.RecordRetry();
+        Console.WriteLine($"Retry count: {metric.RetryCount}");
+        Console.WriteLine($"Was retried: {metric.WasRetried}");
+
+        // 5. Set cache status
+        metric.SetCacheStatus("HIT");
+        Console.WriteLine($"Cache status: {metric.CacheHitStatus}");
+
+        // 6. Create a new metric and check default values
+        var defaultMetric = new RequestMetric();
+        Console.WriteLine($"\nDefault metric values:");
+        Console.WriteLine($" - RequestId is not null/empty: {!string.IsNullOrEmpty(defaultMetric.RequestId)}");
+        Console.WriteLine($" - ServiceName is null: {defaultMetric.ServiceName == null}");
+        Console.WriteLine($" - MethodName is null: {defaultMetric.MethodName == null}");
+        Console.WriteLine($" - ClientIpAddress is null: {defaultMetric.ClientIpAddress == null}");
+        Console.WriteLine($" - DurationMs is 0: {defaultMetric.DurationMs == 0}");
+        Console.WriteLine($" - IsSuccessful is true: {defaultMetric.IsSuccessful}");
+        Console.WriteLine($" - WasRetried is false: {defaultMetric.WasRetried == false}");
+        Console.WriteLine($" - RetryCount is 0: {defaultMetric.RetryCount == 0}");
+        Console.WriteLine($" - CacheHitStatus is null: {defaultMetric.CacheHitStatus == null}");
+    }
+}
+```
+
 ## DotnetGrpcGatewayOptions
 
 `DotnetGrpcGatewayOptions` provides centralized configuration for the gRPC gateway, controlling network binding, reflection, metrics, health checks, request logging, and performance settings. It supports dependency injection and can be configured from configuration files using the `Gateway` section name.
