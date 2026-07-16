@@ -157,6 +157,170 @@ class Program
 }
 ```
 
+## RequestLogServiceTests
+
+`RequestLogServiceTests` is a comprehensive test class that validates the behavior of request logging functionality in the gRPC gateway. It tests various scenarios including successful requests, failed requests, slow requests, large payloads, cache hits/misses, and retry behavior. The tests ensure that log entries are created with appropriate log levels (INFO, WARN, ERROR) and contain the expected message patterns and metadata for different request outcomes.
+
+### Example Usage
+
+```csharp
+using System;
+using DotNetGrpcGateway.Domain;
+
+class Program
+{
+    static void Main()
+    {
+        // Create test scenarios for different request outcomes
+        
+        // 1. Test successful request logging
+        var successfulRequest = new RequestLogEntry
+        {
+            RequestId = Guid.NewGuid().ToString(),
+            ServiceName = "UserService",
+            MethodName = "GetUser",
+            ClientIp = "192.168.1.1",
+            RequestSizeBytes = 1024,
+            ResponseSizeBytes = 2048,
+            DurationMs = 150,
+            HttpStatusCode = 200,
+            IsSuccessful = true,
+            Timestamp = DateTime.UtcNow
+        };
+        
+        Console.WriteLine($"Successful request log level: {successfulRequest.LogLevel}");
+        Console.WriteLine($"Successful request message: {successfulRequest.Message}");
+        
+        // 2. Test failed request logging
+        var failedRequest = new RequestLogEntry
+        {
+            RequestId = Guid.NewGuid().ToString(),
+            ServiceName = "PaymentService",
+            MethodName = "ProcessPayment",
+            ClientIp = "192.168.1.2",
+            RequestSizeBytes = 512,
+            ResponseSizeBytes = 0,
+            DurationMs = 500,
+            HttpStatusCode = 500,
+            IsSuccessful = false,
+            ErrorMessage = "Internal server error",
+            Timestamp = DateTime.UtcNow
+        };
+        
+        Console.WriteLine($"Failed request log level: {failedRequest.LogLevel}");
+        Console.WriteLine($"Failed request message: {failedRequest.Message}");
+        
+        // 3. Test slow request logging (threshold: 2000ms)
+        var slowRequest = new RequestLogEntry
+        {
+            RequestId = Guid.NewGuid().ToString(),
+            ServiceName = "DataService",
+            MethodName = "ProcessLargeDataset",
+            ClientIp = "192.168.1.3",
+            RequestSizeBytes = 10 * 1024 * 1024, // 10MB
+            ResponseSizeBytes = 5 * 1024 * 1024,  // 5MB
+            DurationMs = 2500, // Exceeds 2000ms threshold
+            HttpStatusCode = 200,
+            IsSuccessful = true,
+            Timestamp = DateTime.UtcNow
+        };
+        
+        Console.WriteLine($"Slow request log level: {slowRequest.LogLevel}");
+        Console.WriteLine($"Slow request message: {slowRequest.Message}");
+        
+        // 4. Test large request/response logging (threshold: 5MB)
+        var largeRequest = new RequestLogEntry
+        {
+            RequestId = Guid.NewGuid().ToString(),
+            ServiceName = "FileService",
+            MethodName = "UploadFile",
+            ClientIp = "192.168.1.4",
+            RequestSizeBytes = 10 * 1024 * 1024, // 10MB
+            ResponseSizeBytes = 8 * 1024 * 1024,  // 8MB
+            DurationMs = 150,
+            HttpStatusCode = 200,
+            IsSuccessful = true,
+            Timestamp = DateTime.UtcNow
+        };
+        
+        Console.WriteLine($"Large request log level: {largeRequest.LogLevel}");
+        Console.WriteLine($"Large request message: {largeRequest.Message}");
+        
+        // 5. Test cache hit logging
+        var cacheHitRequest = new RequestLogEntry
+        {
+            RequestId = Guid.NewGuid().ToString(),
+            ServiceName = "CacheService",
+            MethodName = "GetCachedData",
+            ClientIp = "192.168.1.5",
+            RequestSizeBytes = 1024,
+            ResponseSizeBytes = 2048,
+            DurationMs = 50,
+            HttpStatusCode = 200,
+            IsSuccessful = true,
+            CacheHit = true,
+            Timestamp = DateTime.UtcNow
+        };
+        
+        Console.WriteLine($"Cache hit log level: {cacheHitRequest.LogLevel}");
+        Console.WriteLine($"Cache hit message: {cacheHitRequest.Message}");
+        
+        // 6. Test cache miss logging
+        var cacheMissRequest = new RequestLogEntry
+        {
+            RequestId = Guid.NewGuid().ToString(),
+            ServiceName = "CacheService",
+            MethodName = "GetCachedData",
+            ClientIp = "192.168.1.6",
+            RequestSizeBytes = 1024,
+            ResponseSizeBytes = 2048,
+            DurationMs = 150,
+            HttpStatusCode = 200,
+            IsSuccessful = true,
+            CacheHit = false,
+            Timestamp = DateTime.UtcNow
+        };
+        
+        Console.WriteLine($"Cache miss log level: {cacheMissRequest.LogLevel}");
+        Console.WriteLine($"Cache miss message: {cacheMissRequest.Message}");
+        
+        // 7. Test retry behavior logging
+        var retryRequest = new RequestLogEntry
+        {
+            RequestId = Guid.NewGuid().ToString(),
+            ServiceName = "ApiService",
+            MethodName = "CallExternalApi",
+            ClientIp = "192.168.1.7",
+            RequestSizeBytes = 1024,
+            ResponseSizeBytes = 2048,
+            DurationMs = 300,
+            HttpStatusCode = 200,
+            IsSuccessful = true,
+            RetryCount = 3,
+            Timestamp = DateTime.UtcNow
+        };
+        
+        Console.WriteLine($"Retry request log level: {retryRequest.LogLevel}");
+        Console.WriteLine($"Retry request message: {retryRequest.Message}");
+        
+        // 8. Test default constructor behavior
+        var defaultEntry = new RequestLogEntry();
+        Console.WriteLine($"\nDefault entry values:");
+        Console.WriteLine($" - RequestId is not null/empty: {!string.IsNullOrEmpty(defaultEntry.RequestId)}");
+        Console.WriteLine($" - ServiceName is null: {defaultEntry.ServiceName == null}");
+        Console.WriteLine($" - MethodName is null: {defaultEntry.MethodName == null}");
+        Console.WriteLine($" - ClientIp is null: {defaultEntry.ClientIp == null}");
+        Console.WriteLine($" - RequestSizeBytes is 0: {defaultEntry.RequestSizeBytes == 0}");
+        Console.WriteLine($" - ResponseSizeBytes is 0: {defaultEntry.ResponseSizeBytes == 0}");
+        Console.WriteLine($" - DurationMs is 0: {defaultEntry.DurationMs == 0}");
+        Console.WriteLine($" - HttpStatusCode is 0: {defaultEntry.HttpStatusCode == 0}");
+        Console.WriteLine($" - IsSuccessful is true: {defaultEntry.IsSuccessful}");
+        Console.WriteLine($" - CacheHit is false: {defaultEntry.CacheHit == false}");
+        Console.WriteLine($" - RetryCount is 0: {defaultEntry.RetryCount == 0}");
+    }
+}
+```
+
 ## LoadBalancerServiceTests
 
 `LoadBalancerServiceTests` is a comprehensive test class that validates the behavior of the `LoadBalancerService` class, which implements load balancing strategies for gRPC services including round-robin, least connections, random selection, endpoint registration/deregistration, and health status management. The tests verify that the load balancer correctly handles various scenarios such as no endpoints registered, all endpoints unhealthy, cycling through endpoints with round-robin strategy, selecting endpoints with least active connections, and properly managing endpoint health status.
