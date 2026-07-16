@@ -320,6 +320,67 @@ await example.CheckLivenessAsync();
 await example.PollHealthStatusAsync(intervalSeconds: 5, durationSeconds: 30);
 ```
 
+## AuthenticationAndSecurityExample
+
+`AuthenticationAndSecurityExample` demonstrates authentication and security features of the gRPC gateway, including token-based authentication, route protection, tiered access control, and security validation. This example shows how to create authentication tokens, protect routes with authentication requirements, configure rate limits for different user tiers, and test security enforcement.
+
+### Example Usage
+
+```csharp
+using DotNetGrpcGateway.Examples;
+
+// 1. Create an instance of the authentication and security example
+var example = new AuthenticationAndSecurityExample();
+
+Console.WriteLine("=== Authentication & Security Example ===");
+
+// 2. Create authentication tokens for different applications
+Console.WriteLine("\nStep 1: Creating authentication tokens...");
+var clientToken = await example.CreateAuthenticationTokenAsync(
+    "client-token-12345",
+    "Client Application"
+);
+var adminToken = await example.CreateAuthenticationTokenAsync(
+    "admin-token-67890",
+    "Admin User"
+);
+
+// 3. Create protected routes that require authentication
+Console.WriteLine("\nStep 2: Creating protected routes...");
+await example.CreateProtectedRouteAsync(
+    serviceId: 1,
+    pattern: "admin.*",
+    description: "Admin operations"
+);
+await example.CreateProtectedRouteAsync(
+    serviceId: 1,
+    pattern: "api.secure.*",
+    description: "Secure API endpoints"
+);
+
+// 4. Configure tiered access with different rate limits
+Console.WriteLine("\nStep 3: Configuring tiered access...");
+await example.ConfigureTieredAccessAsync(serviceId: 1);
+
+// 5. Display all registered tokens
+Console.WriteLine("\nStep 4: Displaying tokens...");
+await example.DisplayTokensAsync();
+
+// 6. Test that protected endpoints block unauthorized access
+Console.WriteLine("\nStep 5: Testing security...");
+await example.TryUnauthorizedAccessAsync("http://localhost:5000/admin/endpoint");
+
+// 7. Make an authenticated request to a protected endpoint
+if (clientToken is not null)
+{
+    Console.WriteLine("\nStep 6: Making authenticated request...");
+    await example.MakeAuthenticatedRequestAsync(
+        clientToken,
+        "http://localhost:5000/api/secure/data"
+    );
+}
+```
+
 ## RequestLogServiceTests
 
 `RequestLogServiceTests` is a comprehensive test class that validates the behavior of request logging functionality in the gRPC gateway. It tests various scenarios including successful requests, failed requests, slow requests, large payloads, cache hits/misses, and retry behavior. The tests ensure that log entries are created with appropriate log levels (INFO, WARN, ERROR) and contain the expected message patterns and metadata for different request outcomes.
