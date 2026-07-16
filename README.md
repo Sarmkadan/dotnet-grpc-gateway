@@ -407,6 +407,115 @@ class Program
 }
 ```
 
+## GatewayRouteTests
+
+`GatewayRouteTests` is a comprehensive test class that validates the behavior of the `GatewayRoute` class, which represents routing rules for gRPC gateway requests. It tests route validation (pattern, target service ID, priority, rate limits, cache duration), route matching logic (exact match, prefix match, regex match), and property initialization including default values and modification timestamps.
+
+### Example Usage
+
+```csharp
+using System;
+using System.Collections.Generic;
+using DotNetGrpcGateway.Domain;
+using FluentAssertions;
+
+class Program
+{
+    static void Main()
+    {
+        // 1. Create a valid route with all required properties
+        var route = new GatewayRoute
+        {
+            Pattern = "UserService.GetUser",
+            TargetServiceId = 1,
+            Priority = 500,
+            Description = "Get user by ID",
+            Headers = new Dictionary<string, string> { { "Authorization", "Bearer" } },
+            Metadata = new Dictionary<string, string> { { "version", "1.0" } },
+            RequiresAuthentication = true,
+            AuthorizationPolicy = "BearerToken",
+            RateLimitPerMinute = 500,
+            EnableCaching = true,
+            CacheDurationSeconds = 120,
+            RequestTransformationScript = "transformRequest",
+            ResponseTransformationScript = "transformResponse",
+            EnableCompression = false,
+            IsActive = false
+        };
+
+        // 2. Validate the route
+        route.Validate();
+        Console.WriteLine("Route validation passed!");
+        Console.WriteLine($"Pattern: {route.Pattern}");
+        Console.WriteLine($"Target Service ID: {route.TargetServiceId}");
+        Console.WriteLine($"Priority: {route.Priority}");
+        Console.WriteLine($"Rate Limit: {route.RateLimitPerMinute}/minute");
+        Console.WriteLine($"Cache Enabled: {route.EnableCaching}");
+        Console.WriteLine($"Cache Duration: {route.CacheDurationSeconds} seconds");
+        Console.WriteLine($"Compression Enabled: {route.EnableCompression}");
+        Console.WriteLine($"Is Active: {route.IsActive}");
+
+        // 3. Test route matching with different match types
+        var exactMatchRoute = new GatewayRoute
+        {
+            Pattern = "UserService.GetUser",
+            MatchType = RouteMatchType.ExactMatch
+        };
+
+        Console.WriteLine($"\nExact match test:");
+        Console.WriteLine($"  UserService.GetUser matches: {exactMatchRoute.MatchesRequest("UserService", "GetUser")}");
+        Console.WriteLine($"  UserService.GetUserById matches: {exactMatchRoute.MatchesRequest("UserService", "GetUserById")}");
+
+        var prefixMatchRoute = new GatewayRoute
+        {
+            Pattern = "UserService.",
+            MatchType = RouteMatchType.Prefix
+        };
+
+        Console.WriteLine($"\nPrefix match test:");
+        Console.WriteLine($"  UserService.GetUser matches: {prefixMatchRoute.MatchesRequest("UserService", "GetUser")}");
+        Console.WriteLine($"  UserService.GetUserById matches: {prefixMatchRoute.MatchesRequest("UserService", "GetUserById")}");
+
+        var regexMatchRoute = new GatewayRoute
+        {
+            Pattern = "UserService\\.(Get|Create)User",
+            MatchType = RouteMatchType.Regex
+        };
+
+        Console.WriteLine($"\nRegex match test:");
+        Console.WriteLine($"  UserService.GetUser matches: {regexMatchRoute.MatchesRequest("UserService", "GetUser")}");
+        Console.WriteLine($"  UserService.CreateUser matches: {regexMatchRoute.MatchesRequest("UserService", "CreateUser")}");
+        Console.WriteLine($"  UserService.UpdateUser matches: {regexMatchRoute.MatchesRequest("UserService", "UpdateUser")}");
+
+        // 4. Test default constructor and property initialization
+        var defaultRoute = new GatewayRoute();
+        Console.WriteLine($"\nDefault route values:");
+        Console.WriteLine($"  Id: {defaultRoute.Id}");
+        Console.WriteLine($"  Pattern: {defaultRoute.Pattern}");
+        Console.WriteLine($"  TargetServiceId: {defaultRoute.TargetServiceId}");
+        Console.WriteLine($"  Priority: {defaultRoute.Priority}");
+        Console.WriteLine($"  MatchType: {defaultRoute.MatchType}");
+        Console.WriteLine($"  RateLimitPerMinute: {defaultRoute.RateLimitPerMinute}");
+        Console.WriteLine($"  CacheDurationSeconds: {defaultRoute.CacheDurationSeconds}");
+        Console.WriteLine($"  EnableCaching: {defaultRoute.EnableCaching}");
+        Console.WriteLine($"  EnableCompression: {defaultRoute.EnableCompression}");
+        Console.WriteLine($"  IsActive: {defaultRoute.IsActive}");
+
+        // 5. Test modification timestamp updates
+        var routeForUpdate = new GatewayRoute
+        {
+            Pattern = "TestService.TestMethod",
+            TargetServiceId = 5
+        };
+
+        var originalModifiedAt = routeForUpdate.ModifiedAt;
+        System.Threading.Thread.Sleep(10);
+        routeForUpdate.UpdateModifiedDate();
+        Console.WriteLine($"\nModifiedAt updated: {routeForUpdate.ModifiedAt > originalModifiedAt}");
+    }
+}
+```
+
 ## IRequestLogService
 
 `IRequestLogService` stores and provides queryable access to recent gateway request/response log entries. It maintains a fixed-capacity ring buffer of request logs that can be queried by method, status code, or time range. The service provides aggregate statistics including success rate, response times, and entry timestamps, making it ideal for monitoring, debugging, and performance analysis of gRPC gateway traffic.
