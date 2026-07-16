@@ -1783,6 +1783,70 @@ class Program
 ```
 
 
+## GrpcServiceTests
+
+`GrpcServiceTests` is a comprehensive test class that validates the behavior of the `GrpcService` class, which provides core gRPC service functionality including endpoint URI generation, request metrics tracking, and service validation. The tests verify TLS/non-TLS endpoint generation, running average calculation for response times, failure counting, and port validation scenarios.
+
+### Example Usage
+
+```csharp
+using System;
+using DotNetGrpcGateway.Domain;
+using Xunit;
+
+class Program
+{
+    static void Main()
+    {
+        // Create a gRPC service instance
+        var service = new GrpcService
+        {
+            Name = "UserService",
+            ServiceFullName = "myapp.UserService",
+            Host = "localhost",
+            Port = 5001,
+            UseTls = true
+        };
+
+        // 1. Test endpoint URI generation with TLS enabled
+        var tlsUri = service.GetEndpointUri();
+        Console.WriteLine($"TLS endpoint: {tlsUri}");
+        // Output: TLS endpoint: https://localhost:5001
+
+        // 2. Test endpoint URI generation without TLS
+        service.UseTls = false;
+        var httpUri = service.GetEndpointUri();
+        Console.WriteLine($"HTTP endpoint: {httpUri}");
+        // Output: HTTP endpoint: http://localhost:5001
+
+        // 3. Record successful request metrics
+        service.RecordRequestMetric(125.5, success: true);
+        service.RecordRequestMetric(89.3, success: true);
+        Console.WriteLine($"Total requests: {service.TotalRequestsProcessed}");
+        Console.WriteLine($"Average response time: {service.AverageResponseTimeMs:F2}ms");
+        // Output: Total requests: 2
+        // Output: Average response time: 107.40ms
+
+        // 4. Record a failed request
+        service.RecordRequestMetric(250.0, success: false);
+        Console.WriteLine($"Failed requests: {service.FailedRequestsCount}");
+        // Output: Failed requests: 1
+
+        // 5. Validate service configuration
+        try
+        {
+            service.Port = 0;
+            service.Validate();
+        }
+        catch (InvalidOperationException ex)
+        {
+            Console.WriteLine($"Validation error: {ex.Message}");
+            // Output: Validation error: Invalid port number
+        }
+    }
+}
+```
+
 ## OutputFormatterFactory
 
 `OutputFormatterFactory` is a factory class that manages output formatters for the gRPC gateway. It maintains a registry of available formatters (JSON, CSV, XML) and provides methods to register new formatters, retrieve formatters by content type, and check which content types are supported. The factory automatically falls back to JSON formatting when an unsupported content type is requested.
