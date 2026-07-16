@@ -27,10 +27,13 @@ public static class ServiceCollectionExtensions
         ArgumentNullException.ThrowIfNull(services);
 
         // Data access repositories
-        services.AddScoped<IGatewayRepository, GatewayRepository>();
-        services.AddScoped<IServiceRegistry, ServiceRegistry>();
-        services.AddScoped<IRouteRepository, RouteRepository>();
-        services.AddScoped<IMetricsRepository, MetricsRepository>();
+        // Repositories are in-memory (dictionary-backed) for now, so they MUST be
+        // singletons - a scoped lifetime would give every request its own empty store
+        // and all registrations/routes would silently vanish between requests.
+        services.AddSingleton<IGatewayRepository, GatewayRepository>();
+        services.AddSingleton<IServiceRegistry, ServiceRegistry>();
+        services.AddSingleton<IRouteRepository, RouteRepository>();
+        services.AddSingleton<IMetricsRepository, MetricsRepository>();
         services.AddScoped<IUnitOfWork, UnitOfWork>();
 
         // Business logic services
