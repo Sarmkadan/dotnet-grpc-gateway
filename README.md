@@ -1032,6 +1032,87 @@ class Program
 }
 ```
 
+## RouteManagementServiceTests
+
+`RouteManagementServiceTests` validates the behavior of the `RouteManagementService` class, which provides route management functionality including route validation, pattern validation, and retrieving routes by service. The tests verify that routes are properly validated for uniqueness, patterns are validated for correctness, and routes can be filtered by target service ID with proper priority ordering.
+
+### Example Usage
+
+```csharp
+using System;
+using System.Collections.Generic;
+using System.Threading.Tasks;
+using DotNetGrpcGateway.Domain;
+using DotNetGrpcGateway.Services;
+using FluentAssertions;
+using Microsoft.Extensions.Logging;
+using Moq;
+
+class Program
+{
+    static async Task Main()
+    {
+        // Setup mocks and logger
+        var routeRepoMock = new Mock<IRouteRepository>();
+        var eventPublisherMock = new Mock<IEventPublisher>();
+        var loggerMock = new Mock<ILogger<RouteManagementService>>();
+        var routeManagementService = new RouteManagementService(
+            routeRepoMock.Object,
+            eventPublisherMock.Object,
+            loggerMock.Object
+        );
+
+        // 1. Validate a route with empty pattern (should return false)
+        var invalidRoute = new GatewayRoute
+        {
+            Id = 1,
+            Pattern = string.Empty,
+            TargetServiceId = 1,
+            Priority = 100,
+            IsActive = true,
+            RateLimitPerMinute = 100
+        };
+
+        var validationResult = await routeManagementService.ValidateRouteAsync(invalidRoute);
+        Console.WriteLine($"Empty pattern validation result: {validationResult}");
+
+        // 2. Validate a unique route (should return true)
+        routeRepoMock.Setup(r => r.GetAllAsync())
+            .ReturnsAsync(new List<GatewayRoute>());
+
+        var validRoute = new GatewayRoute
+        {
+            Id = 2,
+            Pattern = "UserService.GetUserById",
+            TargetServiceId = 1,
+            Priority = 100,
+            IsActive = true,
+            RateLimitPerMinute = 100
+        };
+
+        validationResult = await routeManagementService.ValidateRouteAsync(validRoute);
+        Console.WriteLine($"Unique route validation result: {validationResult}");
+
+        // 3. Get routes by service ID
+        var routes = new List<GatewayRoute>
+        {
+            new GatewayRoute { Id = 1, Pattern = "UserService.GetUser", TargetServiceId = 1, Priority = 200, IsActive = true, RateLimitPerMinute = 100 },
+            new GatewayRoute { Id = 2, Pattern = "UserService.ListUsers", TargetServiceId = 1, Priority = 100, IsActive = true, RateLimitPerMinute = 100 },
+            new GatewayRoute { Id = 3, Pattern = "OrderService.PlaceOrder", TargetServiceId = 2, Priority = 150, IsActive = true, RateLimitPerMinute = 100 }
+        };
+
+        routeRepoMock.Setup(r => r.GetAllAsync()).ReturnsAsync(routes);
+        var serviceRoutes = await routeManagementService.GetRoutesByServiceAsync(serviceId: 1);
+
+        Console.WriteLine($"Routes for service 1: {serviceRoutes.Count}");
+        foreach (var route in serviceRoutes)
+        {
+            Console.WriteLine($" - Route {route.Id}: {route.Pattern} (Priority: {route.Priority})");
+        }
+    }
+}
+```
+
 ## LoadBalancerServiceTests
 
 `LoadBalancerServiceTests` is a comprehensive test class that validates the behavior of the `LoadBalancerService` class, which implements load balancing strategies for gRPC services including round-robin, least connections, random selection, endpoint registration/deregistration, and health status management. The tests verify that the load balancer correctly handles various scenarios such as no endpoints registered, all endpoints unhealthy, cycling through endpoints with round-robin strategy, selecting endpoints with least active connections, and properly managing endpoint health status.
