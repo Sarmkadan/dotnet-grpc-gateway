@@ -1211,6 +1211,107 @@ class Program
 }
 ```
 
+## ReflectionController
+
+`ReflectionController` is a REST API controller that exposes gRPC Server Reflection metadata and health checks for the reflection subsystem. It provides endpoints for discovering and refreshing reflection information about registered gRPC services, enabling runtime API inspection without direct access to .proto source files.
+
+### Example Usage
+
+```csharp
+using System;
+using System.Collections.Generic;
+using System.Net.Http;
+using System.Net.Http.Json;
+using System.Threading.Tasks;
+using DotNetGrpcGateway.Domain;
+
+class Program
+{
+static async Task Main()
+{
+// Setup HTTP client to call reflection endpoints
+var httpClient = new HttpClient();
+var baseUrl = "https://localhost:5001/api/reflection";
+
+// 1. Get reflection health status
+var healthResponse = await httpClient.GetAsync($"{baseUrl}/health");
+if (healthResponse.IsSuccessStatusCode)
+{
+var healthSummary = await healthResponse.Content.ReadFromJsonAsync<ReflectionHealthSummary>();
+Console.WriteLine($"Reflection Health Status:");
+Console.WriteLine($" - Available: {healthSummary?.IsAvailable}");
+Console.WriteLine($" - Available Services: {healthSummary?.AvailableServiceCount}");
+Console.WriteLine($" - Total Services: {healthSummary?.TotalServiceCount}");
+Console.WriteLine($" - Checked At: {healthSummary?.CheckedAt}");
+Console.WriteLine($" - Message: {healthSummary?.Message}");
+}
+
+// 2. Get reflection metadata for all services
+var allReflectionResponse = await httpClient.GetAsync($"{baseUrl}");
+if (allReflectionResponse.IsSuccessStatusCode)
+{
+var allReflections = await allReflectionResponse.Content.ReadFromJsonAsync<List<ServiceReflectionInfo>>();
+Console.WriteLine($"\nAll Services Reflection:");
+Console.WriteLine($" - Total Services: {allReflections?.Count}");
+foreach (var reflection in allReflections ?? new List<ServiceReflectionInfo>())
+{
+Console.WriteLine($" - Service {reflection.ServiceId}: {reflection.ServiceName}");
+Console.WriteLine($"   Available: {reflection.IsAvailable}");
+Console.WriteLine($"   Methods: {reflection.MethodCount}");
+Console.WriteLine($"   Reflected At: {reflection.ReflectedAt}");
+}
+}
+
+// 3. Get reflection metadata for a specific service
+var serviceId = 1; // Replace with actual service ID
+var serviceReflectionResponse = await httpClient.GetAsync($"{baseUrl}/{serviceId}");
+if (serviceReflectionResponse.IsSuccessStatusCode)
+{
+var serviceReflection = await serviceReflectionResponse.Content.ReadFromJsonAsync<ServiceReflectionInfo>();
+Console.WriteLine($"\nService {serviceId} Reflection:");
+Console.WriteLine($" - Service Name: {serviceReflection?.ServiceName}");
+Console.WriteLine($" - Service Full Name: {serviceReflection?.ServiceFullName}");
+Console.WriteLine($" - Available: {serviceReflection?.IsAvailable}");
+Console.WriteLine($" - Reflected At: {serviceReflection?.ReflectedAt}");
+Console.WriteLine($" - Methods:");
+foreach (var method in serviceReflection?.Methods ?? new List<ServiceMethodDescriptor>())
+{
+Console.WriteLine($"   - {method.Name}: {method.RequestType} -> {method.ResponseType}");
+}
+}
+
+// 4. Get methods for a specific service
+var methodsResponse = await httpClient.GetAsync($"{baseUrl}/{serviceId}/methods");
+if (methodsResponse.IsSuccessStatusCode)
+{
+var methods = await methodsResponse.Content.ReadFromJsonAsync<List<ServiceMethodDescriptor>>();
+Console.WriteLine($"\nMethods for Service {serviceId}:");
+foreach (var method in methods ?? new List<ServiceMethodDescriptor>())
+{
+Console.WriteLine($" - {method.Name} ({method.StreamingMode}): {method.RequestType} -> {method.ResponseType}");
+}
+}
+
+// 5. Refresh reflection for a specific service
+var refreshResponse = await httpClient.PostAsync($"{baseUrl}/{serviceId}/refresh", null);
+if (refreshResponse.IsSuccessStatusCode)
+{
+var refreshedReflection = await refreshResponse.Content.ReadFromJsonAsync<ServiceReflectionInfo>();
+Console.WriteLine($"\nRefreshed reflection for service {serviceId}:");
+Console.WriteLine($" - Service: {refreshedReflection?.ServiceName}");
+Console.WriteLine($" - Available: {refreshedReflection?.IsAvailable}");
+}
+
+// 6. Refresh reflection for all services
+var refreshAllResponse = await httpClient.PostAsync($"{baseUrl}/refresh", null);
+if (refreshAllResponse.IsSuccessStatusCode)
+{
+Console.WriteLine("\nAll reflections refreshed successfully");
+}
+}
+}
+```
+
 ## GatewayController
 
 `GatewayController` is a REST API controller that provides endpoints for managing gateway configuration, registered services, routing rules, and metrics collection. It serves as the primary administrative interface for the gRPC gateway, allowing clients to retrieve and update configuration, register/unregister services, manage routes, and access performance metrics.
