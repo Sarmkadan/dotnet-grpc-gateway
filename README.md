@@ -1299,6 +1299,83 @@ class Program
 }
 ```
 
+
+## HealthController
+
+`HealthController` is a REST API controller that provides endpoints for health status monitoring and liveness/readiness probes. It serves as the primary interface for checking the overall health of the gRPC gateway and its underlying services, enabling automated health checks and load balancer decisions.
+
+### Example Usage
+
+```csharp
+using System;
+using System.Collections.Generic;
+using System.Net.Http;
+using System.Net.Http.Json;
+using System.Threading.Tasks;
+using DotNetGrpcGateway.Domain;
+
+class Program
+{
+    static async Task Main()
+    {
+        // Setup HTTP client to call health endpoints
+        var httpClient = new HttpClient();
+        var baseUrl = "https://localhost:5001/api/health";
+
+        // 1. Get overall gateway health status
+        var healthStatusResponse = await httpClient.GetAsync($"{baseUrl}/status");
+        if (healthStatusResponse.IsSuccessStatusCode)
+        {
+            var healthStatus = await healthStatusResponse.Content.ReadFromJsonAsync<HealthStatus>();
+            Console.WriteLine($"Gateway Health Status:");
+            Console.WriteLine($" - IsHealthy: {healthStatus?.IsHealthy}");
+            Console.WriteLine($" - HealthyServices: {healthStatus?.HealthyServices}");
+            Console.WriteLine($" - TotalServices: {healthStatus?.TotalServices}");
+            Console.WriteLine($" - Message: {healthStatus?.Message}");
+            Console.WriteLine($" - Timestamp: {healthStatus?.Timestamp}");
+        }
+
+        // 2. Get detailed health information for all services
+        var allServicesHealthResponse = await httpClient.GetAsync($"{baseUrl}/services");
+        if (allServicesHealthResponse.IsSuccessStatusCode)
+        {
+            var serviceHealthInfos = await allServicesHealthResponse.Content.ReadFromJsonAsync<List<ServiceHealthInfo>>();
+            Console.WriteLine($"\nAll Services Health:");
+            foreach (var serviceHealth in serviceHealthInfos ?? new List<ServiceHealthInfo>())
+            {
+                Console.WriteLine($" - Service {serviceHealth.ServiceId} ({serviceHealth.ServiceName}):");
+                Console.WriteLine($"   IsHealthy: {serviceHealth.IsHealthy}");
+                Console.WriteLine($"   LastCheckedAt: {serviceHealth.LastCheckedAt}");
+                Console.WriteLine($"   CheckCount: {serviceHealth.CheckCount}");
+                Console.WriteLine($"   FailureCount: {serviceHealth.FailureCount}");
+                Console.WriteLine($"   Message: {serviceHealth.Message}");
+            }
+        }
+
+        // 3. Get health for a specific service
+        var serviceId = 1; // Replace with actual service ID
+        var serviceHealthResponse = await httpClient.GetAsync($"{baseUrl}/services/{serviceId}");
+        if (serviceHealthResponse.IsSuccessStatusCode)
+        {
+            var serviceHealth = await serviceHealthResponse.Content.ReadFromJsonAsync<ServiceHealthInfo>();
+            Console.WriteLine($"\nService {serviceId} Health:");
+            Console.WriteLine($" - IsHealthy: {serviceHealth?.IsHealthy}");
+            Console.WriteLine($" - LastCheckedAt: {serviceHealth?.LastCheckedAt}");
+            Console.WriteLine($" - CheckCount: {serviceHealth?.CheckCount}");
+            Console.WriteLine($" - FailureCount: {serviceHealth?.FailureCount}");
+            Console.WriteLine($" - Message: {serviceHealth?.Message}");
+        }
+
+        // 4. Check readiness probe (gateway ready to receive requests)
+        var readinessResponse = await httpClient.GetAsync($"{baseUrl}/ready");
+        Console.WriteLine($"\nReadiness Probe: {(readinessResponse.IsSuccessStatusCode ? "Ready" : "Not Ready")}");
+
+        // 5. Check liveness probe (gateway process still running)
+        var livenessResponse = await httpClient.GetAsync($"{baseUrl}/live");
+        Console.WriteLine($"Liveness Probe: {(livenessResponse.IsSuccessStatusCode ? "Alive" : "Not Alive")}");
+    }
+}
+```
 ## RequestLogsController
 
 `RequestLogsController` is a REST API controller that provides access to the structured request/response log store maintained by the gRPC gateway. It exposes endpoints for retrieving recent log entries, searching logs by method, status code, or time range, and viewing aggregate statistics. The controller integrates with `IRequestLogService` to provide a fixed-capacity ring buffer of request logs that can be queried and analyzed for monitoring, debugging, and performance analysis.
