@@ -1299,6 +1299,101 @@ class Program
 }
 ```
 
+## RequestLogsController
+
+`RequestLogsController` is a REST API controller that provides access to the structured request/response log store maintained by the gRPC gateway. It exposes endpoints for retrieving recent log entries, searching logs by method, status code, or time range, and viewing aggregate statistics. The controller integrates with `IRequestLogService` to provide a fixed-capacity ring buffer of request logs that can be queried and analyzed for monitoring, debugging, and performance analysis.
+
+### Example Usage
+
+```csharp
+using System;
+using System.Linq;
+using System.Net.Http;
+using System.Net.Http.Json;
+using System.Threading.Tasks;
+using DotNetGrpcGateway.Domain;
+
+class Program
+{
+    static async Task Main()
+    {
+        // Setup HTTP client to call request logs endpoints
+        var httpClient = new HttpClient();
+        var baseUrl = "https://localhost:5001/api/RequestLogs";
+
+        // 1. Get recent log entries (default limit: 50)
+        var recentResponse = await httpClient.GetAsync($"{baseUrl}");
+        if (recentResponse.IsSuccessStatusCode)
+        {
+            var recentEntries = await recentResponse.Content.ReadFromJsonAsync<IReadOnlyList<RequestLogEntry>>();
+            Console.WriteLine($"Recent entries: {recentEntries?.Count}");
+            foreach (var entry in recentEntries?.Take(3) ?? new List<RequestLogEntry>())
+            {
+                Console.WriteLine($" - {entry.Timestamp:HH:mm:ss} | {entry.GrpcMethod} | {entry.DurationMs}ms | {(entry.IsSuccess ? "SUCCESS" : "FAILED")}");
+            }
+        }
+
+        // 2. Get recent log entries with custom limit
+        var limitedResponse = await httpClient.GetAsync($"{baseUrl}?limit=100");
+        if (limitedResponse.IsSuccessStatusCode)
+        {
+            var limitedEntries = await limitedResponse.Content.ReadFromJsonAsync<IReadOnlyList<RequestLogEntry>>();
+            Console.WriteLine($"\nLimited entries: {limitedEntries?.Count}");
+        }
+
+        // 3. Search logs by gRPC method
+        var searchResponse = await httpClient.GetAsync($"{baseUrl}/search?method=UserService&limit=20");
+        if (searchResponse.IsSuccessStatusCode)
+        {
+            var userServiceEntries = await searchResponse.Content.ReadFromJsonAsync<IReadOnlyList<RequestLogEntry>>();
+            Console.WriteLine($"\nUserService entries: {userServiceEntries?.Count}");
+        }
+
+        // 4. Search logs by status code
+        var statusResponse = await httpClient.GetAsync($"{baseUrl}/search?statusCode=3&limit=20");
+        if (statusResponse.IsSuccessStatusCode)
+        {
+            var errorEntries = await statusResponse.Content.ReadFromJsonAsync<IReadOnlyList<RequestLogEntry>>();
+            Console.WriteLine($"\nError entries (status code 3): {errorEntries?.Count}");
+        }
+
+        // 5. Search logs by time range
+        var from = DateTime.UtcNow.AddHours(-1);
+        var to = DateTime.UtcNow;
+        var timeRangeResponse = await httpClient.GetAsync($"{baseUrl}/search?from={Uri.EscapeDataString(from.ToString("o"))}&to={Uri.EscapeDataString(to.ToString("o"))}&limit=50");
+        if (timeRangeResponse.IsSuccessStatusCode)
+        {
+            var timeRangeEntries = await timeRangeResponse.Content.ReadFromJsonAsync<IReadOnlyList<RequestLogEntry>>();
+            Console.WriteLine($"\nTime range entries: {timeRangeEntries?.Count}");
+        }
+
+        // 6. Get aggregate statistics
+        var summaryResponse = await httpClient.GetAsync($"{baseUrl}/summary");
+        if (summaryResponse.IsSuccessStatusCode)
+        {
+            var summary = await summaryResponse.Content.ReadFromJsonAsync<RequestLogSummary>();
+            Console.WriteLine($"\nStatistics:");
+            Console.WriteLine($" - Total entries: {summary?.TotalEntries}");
+            Console.WriteLine($" - Success count: {summary?.SuccessCount}");
+            Console.WriteLine($" - Error count: {summary?.ErrorCount}");
+            Console.WriteLine($" - Success rate: {summary?.SuccessRatePct:F1}%");
+            Console.WriteLine($" - Average duration: {summary?.AverageDurationMs:F1}ms");
+            Console.WriteLine($" - Min duration: {summary?.MinDurationMs}ms");
+            Console.WriteLine($" - Max duration: {summary?.MaxDurationMs}ms");
+            Console.WriteLine($" - Oldest entry: {summary?.OldestEntry?.ToString("yyyy-MM-dd HH:mm:ss")}");
+            Console.WriteLine($" - Newest entry: {summary?.NewestEntry?.ToString("yyyy-MM-dd HH:mm:ss")}");
+        }
+
+        // 7. Clear all logs
+        var clearResponse = await httpClient.DeleteAsync($"{baseUrl}");
+        if (clearResponse.IsSuccessStatusCode)
+        {
+            Console.WriteLine($"\nAll logs cleared successfully");
+        }
+    }
+}
+```
+
 ## ReflectionController
 
 `ReflectionController` is a REST API controller that exposes gRPC Server Reflection metadata and health checks for the reflection subsystem. It provides endpoints for discovering and refreshing reflection information about registered gRPC services, enabling runtime API inspection without direct access to .proto source files.
