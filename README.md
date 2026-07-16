@@ -310,6 +310,60 @@ class Program
 }
 ```
 
+## IReflectionService
+
+`IReflectionService` provides gRPC Server Reflection support — discovers and caches the method descriptors of registered back-end services so callers can inspect the API surface at runtime without direct access to .proto source files. It enables runtime discovery of gRPC service methods, their request/response types, and streaming capabilities through HTTP-based Server Reflection endpoints.
+
+### Example Usage
+
+```csharp
+using System;
+using System.Collections.Generic;
+using System.Threading.Tasks;
+using DotNetGrpcGateway.Domain;
+using DotNetGrpcGateway.Services;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
+
+class Program
+{
+    static async Task Main(IServiceProvider serviceProvider)
+    {
+        var reflectionService = serviceProvider.GetRequiredService<IReflectionService>();
+
+        // 1. Check if reflection is available
+        Console.WriteLine($"Reflection available: {reflectionService.IsReflectionAvailable}");
+
+        // 2. Get reflection info for a specific service
+        var serviceReflection = await reflectionService.GetServiceReflectionAsync(10);
+        if (serviceReflection != null)
+        {
+            Console.WriteLine($"Service: {serviceReflection.ServiceName}");
+            Console.WriteLine($"Available: {serviceReflection.IsAvailable}");
+            Console.WriteLine($"Reflected at: {serviceReflection.ReflectedAt}");
+            Console.WriteLine($"Methods: {serviceReflection.MethodCount}");
+            
+            foreach (var method in serviceReflection.Methods)
+            {
+                Console.WriteLine($" - {method.Name}: {method.RequestType} -> {method.ResponseType}");
+            }
+        }
+
+        // 3. Get reflection info for all services
+        var allReflections = await reflectionService.GetAllReflectionInfoAsync();
+        Console.WriteLine($"\nTotal services with reflection: {allReflections.Count(r => r.IsAvailable)}");
+        
+        // 4. Refresh reflection for a specific service
+        var refreshed = await reflectionService.RefreshServiceReflectionAsync(10);
+        Console.WriteLine($"\nRefreshed service reflection: {refreshed.ServiceName}");
+        
+        // 5. Refresh reflection for all services
+        await reflectionService.RefreshAllReflectionsAsync();
+        Console.WriteLine("All service reflections refreshed");
+    }
+}
+```
+
 ## ILoadBalancerService
 
 `ILoadBalancerService` manages endpoint pools for gRPC services and selects the next endpoint to use based on a configurable load balancing strategy. It provides methods for registering/deregistering endpoints, retrieving endpoint lists, updating health status, and recording request metrics. The service supports RoundRobin, Random, and LeastConnections strategies to distribute traffic across healthy endpoints.
