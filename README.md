@@ -222,6 +222,67 @@ public class ServiceHealthReportTestsExample
 }
 ```
 
+## CircuitBreakerTests
+
+`CircuitBreakerTests` is a comprehensive test class that validates the behavior of the `CircuitBreaker` class, which implements the circuit breaker pattern to prevent cascading failures in distributed systems. The tests cover state transitions (closed → open → half-open → closed), failure threshold tracking, request allowance control, and circuit reset functionality. Each test verifies that the circuit breaker correctly manages service availability based on failure patterns.
+
+### Example Usage
+
+```csharp
+using DotNetGrpcGateway.Infrastructure;
+using Microsoft.Extensions.Logging;
+using Moq;
+
+// 1. Create a circuit breaker with configuration
+var loggerMock = new Mock<ILogger<CircuitBreaker>>();
+var options = new CircuitBreakerOptions
+{
+    FailureThreshold = 3,      // Open circuit after 3 consecutive failures
+    OpenDuration = TimeSpan.FromSeconds(30),  // Circuit stays open for 30 seconds
+    HalfOpenSuccessThreshold = 2  // Close circuit after 2 successful requests in half-open state
+};
+
+var circuitBreaker = new CircuitBreaker(
+    serviceId: 1,  // Unique identifier for the service being monitored
+    options,
+    loggerMock.Object
+);
+
+Console.WriteLine($"Initial state: {circuitBreaker.State}");  // Closed
+Console.WriteLine($"Can make requests: {circuitBreaker.AllowRequest()}");  // True
+
+// 2. Simulate failures below threshold - circuit remains closed
+circuitBreaker.RecordFailure();
+circuitBreaker.RecordFailure();
+Console.WriteLine($"After 2 failures - State: {circuitBreaker.State}, Can request: {circuitBreaker.AllowRequest()}");  // Closed, True
+
+// 3. Reach failure threshold - circuit opens
+circuitBreaker.RecordFailure();
+Console.WriteLine($"After 3rd failure - State: {circuitBreaker.State}, Can request: {circuitBreaker.AllowRequest()}");  // Open, False
+
+// 4. Wait for circuit to transition to half-open (after OpenDuration elapses)
+// In production, this happens automatically via timer; for testing we can simulate:
+circuitBreaker.RecordSuccess();  // This would transition to HalfOpen state
+Console.WriteLine($"After success - State: {circuitBreaker.State}");  // HalfOpen
+
+// 5. Circuit is half-open - allow limited requests
+if (circuitBreaker.AllowRequest())
+{
+    Console.WriteLine("Making request in half-open state...");
+    circuitBreaker.RecordSuccess();  // First success in half-open
+    circuitBreaker.RecordSuccess();  // Second success - closes circuit
+    Console.WriteLine($"After 2 successes - State: {circuitBreaker.State}");  // Closed
+}
+
+// 6. If failure occurs in half-open, circuit re-opens
+circuitBreaker.RecordFailure();
+Console.WriteLine($"After failure in half-open - State: {circuitBreaker.State}");  // Open
+
+// 7. Reset circuit breaker (manually close and clear counters)
+circuitBreaker.Reset();
+Console.WriteLine($"After reset - State: {circuitBreaker.State}, Failures: {circuitBreaker.ConsecutiveFailures}");  // Closed, 0
+```
+
 ## RequestLogServiceTests
 
 `RequestLogServiceTests` is a comprehensive test class that validates the behavior of request logging functionality in the gRPC gateway. It tests various scenarios including successful requests, failed requests, slow requests, large payloads, cache hits/misses, and retry behavior. The tests ensure that log entries are created with appropriate log levels (INFO, WARN, ERROR) and contain the expected message patterns and metadata for different request outcomes.
