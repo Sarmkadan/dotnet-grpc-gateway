@@ -4,6 +4,13 @@
 // CTO & Software Architect
 // =============================================================================
 
+## Architecture
+
+For the big picture - project layout, middleware pipeline order, core abstractions,
+persistence trade-offs and extension points - see
+[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md). The rest of this file is per-type
+API reference.
+
 ## ServiceHealthReport
 
 `ServiceHealthReport` represents health check results for a gRPC service, tracking consecutive success/failure patterns, response times, error details, and diagnostic information. It's used by the gateway's health monitoring system to determine service availability and trigger alerts.
