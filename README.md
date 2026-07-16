@@ -1139,6 +1139,94 @@ class GatewayMiddleware
 }
 ```
 
+## LoadBalancerController
+
+`LoadBalancerController` is a REST API controller that manages load balancing endpoints and strategies for gRPC services. It provides endpoints for registering/deregistering service endpoints, updating endpoint health status, and configuring load balancing strategies (RoundRobin, Random, LeastConnections). The controller integrates with `ILoadBalancerService` to maintain endpoint pools and route traffic according to the configured strategy.
+
+### Example Usage
+
+```csharp
+using System;
+using System.Collections.Generic;
+using System.Net.Http;
+using System.Net.Http.Json;
+using System.Threading.Tasks;
+using DotNetGrpcGateway.Domain;
+
+class Program
+{
+    static async Task Main()
+    {
+        // Setup HTTP client to call load balancer endpoints
+        var httpClient = new HttpClient();
+        var baseUrl = "https://localhost:5001/api/loadbalancer";
+
+        // 1. Get all endpoints for a service
+        var serviceId = 1;
+        var endpointsResponse = await httpClient.GetAsync($"{baseUrl}/services/{serviceId}/endpoints");
+        if (endpointsResponse.IsSuccessStatusCode)
+        {
+            var endpoints = await endpointsResponse.Content.ReadFromJsonAsync<List<ServiceEndpoint>>();
+            Console.WriteLine($"Endpoints for service {serviceId}: {endpoints?.Count}");
+            foreach (var endpoint in endpoints ?? new List<ServiceEndpoint>())
+            {
+                Console.WriteLine($" - Endpoint {endpoint.Id}: {endpoint.GetUri()} (Healthy: {endpoint.IsHealthy}, Weight: {endpoint.Weight})");
+            }
+        }
+
+        // 2. Register a new endpoint
+        var newEndpoint = new ServiceEndpoint
+        {
+            Host = "backend-service-2",
+            Port = 50052,
+            UseTls = true,
+            Weight = 1
+        };
+        var registerResponse = await httpClient.PostAsJsonAsync($"{baseUrl}/services/{serviceId}/endpoints", newEndpoint);
+        if (registerResponse.IsSuccessStatusCode)
+        {
+            var createdEndpoint = await registerResponse.Content.ReadFromJsonAsync<ServiceEndpoint>();
+            Console.WriteLine($"\nEndpoint registered successfully! ID: {createdEndpoint?.Id}");
+        }
+
+        // 3. Update endpoint health status
+        var endpointId = 1;
+        var healthUpdate = new { isHealthy = false };
+        var healthResponse = await httpClient.PatchAsJsonAsync(
+            $"{baseUrl}/services/{serviceId}/endpoints/{endpointId}/health",
+            healthUpdate);
+        if (healthResponse.IsSuccessStatusCode)
+        {
+            Console.WriteLine($"\nHealth status updated successfully");
+        }
+
+        // 4. Get current load balancing strategy
+        var strategyResponse = await httpClient.GetAsync($"{baseUrl}/strategy");
+        if (strategyResponse.IsSuccessStatusCode)
+        {
+            var strategyInfo = await strategyResponse.Content.ReadFromJsonAsync<dynamic>();
+            Console.WriteLine($"\nCurrent strategy: {strategyInfo?.strategy}");
+        }
+
+        // 5. Change load balancing strategy
+        var strategyUpdate = new { strategyName = "Random" };
+        var strategyUpdateResponse = await httpClient.PutAsJsonAsync($"{baseUrl}/strategy", strategyUpdate);
+        if (strategyUpdateResponse.IsSuccessStatusCode)
+        {
+            var updatedStrategy = await strategyUpdateResponse.Content.ReadFromJsonAsync<dynamic>();
+            Console.WriteLine($"\nStrategy updated: {updatedStrategy?.strategy}");
+        }
+
+        // 6. Deregister an endpoint
+        var deregisterResponse = await httpClient.DeleteAsync($"{baseUrl}/services/{serviceId}/endpoints/{endpointId}");
+        if (deregisterResponse.IsSuccessStatusCode)
+        {
+            Console.WriteLine($"\nEndpoint deregistered successfully");
+        }
+    }
+}
+```
+
 ## ServiceDiscoveryController
 
 `ServiceDiscoveryController` is a REST API controller that provides endpoints for service discovery, registration, and route management within the gRPC gateway. It serves as the primary interface for discovering registered services, managing service routes, and resolving route patterns dynamically. The controller integrates with `IGatewayService` for service management, `IServiceDiscoveryService` for health monitoring, and `IRouteManagementService` for route resolution.
