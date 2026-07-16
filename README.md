@@ -1512,6 +1512,50 @@ class GatewayMiddleware
 }
 ```
 
+## ServiceCollectionExtensions
+
+`ServiceCollectionExtensions` provides extension methods for configuring gateway services and their dependencies in the .NET dependency injection container. It includes methods to register core gateway services, configure gateway options from configuration files, and set up health checks for monitoring gateway components.
+
+### Example Usage
+
+```csharp
+using System;
+using DotNetGrpcGateway.Configuration;
+using Microsoft.Extensions.DependencyInjection;
+
+class Program
+{
+    static void Main()
+    {
+        // 1. Setup dependency injection with gateway services
+        var services = new ServiceCollection();
+        
+        // Add all gateway services
+        services.AddGatewayServices();
+        
+        // Configure gateway options from appsettings.json
+        var configuration = new ConfigurationBuilder()
+            .AddJsonFile("appsettings.json")
+            .Build();
+        services.AddGatewayConfiguration(configuration);
+        
+        // Add gateway health checks
+        services.AddGatewayHealthChecks();
+        
+        // Add gRPC Server Reflection support
+        services.AddGatewayReflection();
+        
+        var serviceProvider = services.BuildServiceProvider();
+        
+        // Resolve gateway services
+        var gatewayService = serviceProvider.GetRequiredService<IGatewayService>();
+        var serviceDiscovery = serviceProvider.GetRequiredService<IServiceDiscoveryService>();
+        
+        Console.WriteLine("Gateway services configured successfully!");
+    }
+}
+```
+
 ## ILoadBalancerService
 
 `ILoadBalancerService` manages endpoint pools for gRPC services and selects the next endpoint to use based on a configurable load balancing strategy. It provides methods for registering/deregistering endpoints, retrieving endpoint lists, updating health status, and recording request metrics. The service supports RoundRobin, Random, and LeastConnections strategies to distribute traffic across healthy endpoints.
