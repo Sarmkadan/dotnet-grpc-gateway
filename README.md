@@ -1521,6 +1521,82 @@ class Program
 }
 ```
 
+## GatewayUtilities
+
+`GatewayUtilities` is a static utility class that provides common helper methods for the gRPC gateway. It includes JSON serialization/deserialization utilities, request ID generation, duration and byte formatting, SHA256 hashing, random token generation, and dictionary manipulation utilities. These methods are designed to simplify common gateway operations and ensure consistent behavior across the application.
+
+### Example Usage
+
+```csharp
+using System;
+using System.Collections.Generic;
+using DotNetGrpcGateway.Utilities;
+
+class Program
+{
+    static void Main()
+    {
+        // 1. Generate a unique request ID
+        var requestId = GatewayUtilities.GenerateRequestId();
+        Console.WriteLine($"Request ID: {requestId}");
+
+        // 2. Serialize an object to JSON
+        var user = new { Id = 123, Name = "John Doe", Email = "john@example.com" };
+        var json = GatewayUtilities.ToJson(user);
+        Console.WriteLine($"JSON: {json}");
+
+        // 3. Deserialize JSON to an object
+        var deserializedUser = GatewayUtilities.FromJson<object>(json);
+        Console.WriteLine($"Deserialized: {deserializedUser}");
+
+        // 4. Calculate elapsed time
+        var startTime = DateTime.UtcNow.AddSeconds(-10);
+        var endTime = DateTime.UtcNow;
+        var elapsed = GatewayUtilities.GetElapsedTime(startTime, endTime);
+        Console.WriteLine($"Elapsed time: {elapsed.TotalSeconds:F2}s");
+
+        // 5. Format duration
+        var durationMs = 1250.5;
+        var formattedDuration = GatewayUtilities.FormatDuration(durationMs);
+        Console.WriteLine($"Duration: {formattedDuration}");
+
+        // 6. Format bytes
+        var fileSize = 1024 * 1024 * 5; // 5 MB
+        var formattedBytes = GatewayUtilities.FormatBytes(fileSize);
+        Console.WriteLine($"File size: {formattedBytes}");
+
+        // 7. Normalize service name
+        var serviceName = "My Service Name";
+        var normalizedName = GatewayUtilities.NormalizeServiceName(serviceName);
+        Console.WriteLine($"Normalized service name: {normalizedName}");
+
+        // 8. Compute SHA256 hash
+        var input = "Hello, World!";
+        var hash = GatewayUtilities.ComputeSha256Hash(input);
+        Console.WriteLine($"SHA256 hash: {hash}");
+
+        // 9. Generate a random token
+        var token = GatewayUtilities.GenerateRandomToken();
+        Console.WriteLine($"Random token: {token}");
+
+        // 10. Safely get a value from a dictionary
+        var dict = new Dictionary<string, int>
+        {
+            { "user1", 100 },
+            { "user2", 200 }
+        };
+        var value = GatewayUtilities.SafeGetValue(dict, "user1");
+        Console.WriteLine($"Value for 'user1': {value}");
+
+        // 11. Merge two dictionaries
+        var firstDict = new Dictionary<string, string> { { "key1", "value1" } };
+        var secondDict = new Dictionary<string, string> { { "key2", "value2" } };
+        var mergedDict = GatewayUtilities.MergeDictionaries(firstDict, secondDict);
+        Console.WriteLine($"Merged dictionary has {mergedDict.Count} entries");
+    }
+}
+```
+
 ## IReflectionService
 
 `IReflectionService` provides gRPC Server Reflection support — discovers and caches the method descriptors of registered back-end services so callers can inspect the API surface at runtime without direct access to .proto source files. It enables runtime discovery of gRPC service methods, their request/response types, and streaming capabilities through HTTP-based Server Reflection endpoints.
