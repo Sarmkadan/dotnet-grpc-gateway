@@ -1227,6 +1227,59 @@ class Program
 }
 ```
 
+## StringUtilityTests
+
+`StringUtilityTests` is a comprehensive test class that validates the behavior of the `StringUtility` class, which provides utility methods for string manipulation including truncation, masking, wildcard matching, and case conversion. The tests verify edge cases, null handling, and proper string formatting, ensuring the utility methods work correctly across different input scenarios.
+
+### Example Usage
+
+```csharp
+using System;
+using Xunit;
+using DotNetGrpcGateway.Utilities;
+using FluentAssertions;
+
+class Program
+{
+    static void Main()
+    {
+        // 1. Test Truncate method
+        var longText = "This is a very long string that needs to be shortened";
+        var truncated = StringUtility.Truncate(longText, 30);
+        Console.WriteLine($"Original: {longText}");
+        Console.WriteLine($"Truncated: {truncated}");
+        
+        // 2. Test Truncate with null input
+        var nullResult = StringUtility.Truncate(null, 50);
+        Console.WriteLine($"Null result: '{nullResult}'");
+        
+        // 3. Test Truncate with short input
+        var shortText = "short";
+        var shortResult = StringUtility.Truncate(shortText, 100);
+        Console.WriteLine($"Short result: {shortResult}");
+        
+        // 4. Test MaskSensitiveData
+        var apiKey = "secret-api-key-12345";
+        var masked = StringUtility.MaskSensitiveData(apiKey, 6);
+        Console.WriteLine($"Masked API key: {masked}");
+        
+        // 5. Test MatchesWildcardPattern
+        var matches = StringUtility.MatchesWildcardPattern("UserService.GetUserById", "UserService.*");
+        Console.WriteLine($"Wildcard match: {matches}");
+        
+        // 6. Test ToKebabCase
+        var pascalCase = "GatewayRouteManager";
+        var kebabCase = StringUtility.ToKebabCase(pascalCase);
+        Console.WriteLine($"Kebab case: {kebabCase}");
+        
+        // 7. Test ToSlug
+        var title = "Hello World! gRPC Gateway";
+        var slug = StringUtility.ToSlug(title);
+        Console.WriteLine($"Slug: {slug}");
+    }
+}
+```
+
 ## ServiceDiscoveryController
 
 `ServiceDiscoveryController` is a REST API controller that provides endpoints for service discovery, registration, and route management within the gRPC gateway. It serves as the primary interface for discovering registered services, managing service routes, and resolving route patterns dynamically. The controller integrates with `IGatewayService` for service management, `IServiceDiscoveryService` for health monitoring, and `IRouteManagementService` for route resolution.
