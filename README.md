@@ -381,6 +381,45 @@ if (clientToken is not null)
 }
 ```
 
+## MetricsAndMonitoringExample
+
+`MetricsAndMonitoringExample` demonstrates how to collect and analyze comprehensive metrics from the gRPC gateway, including performance statistics, slow request detection, error tracking, and endpoint analysis. This example is essential for monitoring gateway health, identifying performance bottlenecks, and making data-driven optimization decisions.
+
+### Example Usage
+
+```csharp
+using DotNetGrpcGateway.Examples;
+
+// 1. Create an instance of the metrics and monitoring example
+var example = new MetricsAndMonitoringExample();
+
+Console.WriteLine("=== Metrics & Monitoring Example ===");
+
+// 2. Display overall performance metrics including throughput, latency percentiles, and error rates
+Console.WriteLine("\nStep 1: Retrieving performance metrics...");
+await example.DisplayPerformanceMetricsAsync();
+
+// 3. Display today's statistics including total requests, success/failure counts, and error rates
+Console.WriteLine("\nStep 2: Retrieving today's statistics...");
+await example.DisplayTodayStatisticsAsync();
+
+// 4. Display slow requests exceeding a latency threshold (default: 1000ms)
+Console.WriteLine("\nStep 3: Retrieving slow requests...");
+await example.DisplaySlowRequestsAsync(thresholdMs: 500);
+
+// 5. Display error distribution by HTTP status code
+Console.WriteLine("\nStep 4: Retrieving error distribution...");
+await example.DisplayErrorDistributionAsync();
+
+// 6. Display top endpoints by request volume
+Console.WriteLine("\nStep 5: Retrieving top endpoints...");
+await example.DisplayTopEndpointsAsync();
+
+// 7. Reset all metrics (careful: this clears all data)
+Console.WriteLine("\nStep 6: Resetting metrics...");
+await example.ResetMetricsAsync();
+```
+
 ## RequestLogServiceTests
 
 `RequestLogServiceTests` is a comprehensive test class that validates the behavior of request logging functionality in the gRPC gateway. It tests various scenarios including successful requests, failed requests, slow requests, large payloads, cache hits/misses, and retry behavior. The tests ensure that log entries are created with appropriate log levels (INFO, WARN, ERROR) and contain the expected message patterns and metadata for different request outcomes.
