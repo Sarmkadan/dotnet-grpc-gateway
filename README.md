@@ -1366,6 +1366,79 @@ class Program
 }
 ```
 
+## ICacheService
+
+`ICacheService` is a cache abstraction interface that defines the contract for caching implementations. It provides a unified API for storing, retrieving, and managing cached data with support for expiration policies, statistics tracking, and cache invalidation. This interface enables the application to swap between different caching implementations (in-memory, distributed, etc.) without changing the business logic.
+
+### Example Usage
+
+```csharp
+using System;
+using System.Threading.Tasks;
+using DotNetGrpcGateway.Caching;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
+
+class Program
+{
+    static async Task Main()
+    {
+        // Setup dependency injection
+        var services = new ServiceCollection();
+        services.AddLogging(configure => configure.AddConsole());
+        services.AddSingleton<ICacheService, MemoryCacheService>();
+
+        var serviceProvider = services.BuildServiceProvider();
+        var cacheService = serviceProvider.GetRequiredService<ICacheService>();
+
+        // 1. Set a value in cache with default 5-minute expiration
+        await cacheService.SetAsync("user:123", new { Id = 123, Name = "John Doe", Email = "john@example.com" });
+        Console.WriteLine("Value cached successfully");
+
+        // 2. Get a value from cache
+        var cachedUser = await cacheService.GetAsync<object>("user:123");
+        if (cachedUser != null)
+        {
+            Console.WriteLine($"Cache hit! User: {cachedUser}");
+        }
+        else
+        {
+            Console.WriteLine("Cache miss - value not found");
+        }
+
+        // 3. Check if a key exists in cache
+        var exists = await cacheService.ExistsAsync("user:123");
+        Console.WriteLine($"Key 'user:123' exists: {exists}");
+
+        // 4. Set a value with custom expiration (30 seconds)
+        await cacheService.SetAsync("temp:data", "Temporary data", TimeSpan.FromSeconds(30));
+        Console.WriteLine("Temporary value cached for 30 seconds");
+
+        // 5. Remove a value from cache
+        await cacheService.RemoveAsync("temp:data");
+        Console.WriteLine("Temporary value removed from cache");
+
+        // 6. Get cache statistics
+        var stats = await cacheService.GetStatisticsAsync();
+        Console.WriteLine($"\nCache Statistics:");
+        Console.WriteLine($" - Name: {cacheService.Name}");
+        Console.WriteLine($" - Entry count: {stats.EntryCount}");
+        Console.WriteLine($" - Hit count: {stats.HitCount}");
+        Console.WriteLine($" - Miss count: {stats.MissCount}");
+        Console.WriteLine($" - Hit rate: {stats.HitRate:P2}");
+        Console.WriteLine($" - Approximate size: {stats.ApproximateSizeBytes} bytes");
+        Console.WriteLine($" - Max size: {cacheService.MaxSize}");
+        Console.WriteLine($" - Duration: {cacheService.Duration}");
+        Console.WriteLine($" - Absolute expiration: {cacheService.AbsoluteExpiration}");
+        Console.WriteLine($" - Sliding expiration: {cacheService.SlidingExpiration}");
+
+        // 7. Clear the entire cache
+        await cacheService.ClearAsync();
+        Console.WriteLine("Cache cleared");
+    }
+}
+```
+
 ## IReflectionService
 
 `IReflectionService` provides gRPC Server Reflection support — discovers and caches the method descriptors of registered back-end services so callers can inspect the API surface at runtime without direct access to .proto source files. It enables runtime discovery of gRPC service methods, their request/response types, and streaming capabilities through HTTP-based Server Reflection endpoints.
