@@ -190,3 +190,44 @@ class Program
 }
 ```
 
+## IServiceDiscoveryService
+
+`IServiceDiscoveryService` is responsible for discovering and monitoring the health of registered gRPC services. It provides methods for performing health checks, retrieving the latest health report, updating service health status, discovering available services, and retrieving the health status of all services.
+
+### Example Usage
+
+```csharp
+using System;
+using System.Threading.Tasks;
+using DotNetGrpcGateway.Domain;
+
+class Program
+{
+    static async Task Main()
+    {
+        var serviceDiscoveryService = new ServiceDiscoveryService(new UnitOfWork(), new Logger<ServiceDiscoveryService>());
+        var serviceId = 10;
+
+        // Perform a health check on the service
+        var healthReport = await serviceDiscoveryService.PerformHealthCheckAsync(serviceId);
+        Console.WriteLine($"Health report for service {serviceId}: {healthReport.HealthStatus}");
+
+        // Get the latest health report for the service
+        var latestHealthReport = await serviceDiscoveryService.GetLatestHealthReportAsync(serviceId);
+        Console.WriteLine($"Latest health report for service {serviceId}: {latestHealthReport.HealthStatus}");
+
+        // Update the health status of the service
+        await serviceDiscoveryService.UpdateServiceHealthAsync(serviceId, true);
+        Console.WriteLine($"Health status of service {serviceId} updated to: Healthy");
+
+        // Discover available services
+        var availableServices = await serviceDiscoveryService.DiscoverAvailableServicesAsync();
+        Console.WriteLine($"Available services: {string.Join(", ", availableServices.Select(s => s.Name))}");
+
+        // Get the health status of all services
+        var allServicesHealth = await serviceDiscoveryService.GetAllServicesHealthAsync();
+        Console.WriteLine($"Health status of all services: {string.Join(", ", allServicesHealth.Select(kvp => $"{kvp.Key}: {kvp.Value}"))}");
+    }
+}
+```
+
