@@ -1501,6 +1501,78 @@ class Program
 }
 ```
 
+## MetricsController
+
+`MetricsController` is a REST API controller that provides detailed metrics and performance data for the gRPC gateway. It exposes endpoints for retrieving performance statistics, request metrics, slow requests analysis, error distributions, endpoint usage statistics, and resetting metrics. The controller integrates with `IMetricsCollectionService` for historical data and `IPerformanceMonitor` for real-time performance monitoring.
+
+### Example Usage
+
+```csharp
+using System;
+using System.Net.Http;
+using System.Threading.Tasks;
+using DotNetGrpcGateway.Domain;
+
+
+class Program
+{
+    static async Task Main()
+    {
+        // Setup HTTP client to call metrics endpoints
+        var httpClient = new HttpClient();
+        var baseUrl = "https://localhost:5001/api/metrics";
+
+        // 1. Get performance metrics (requires performance monitoring enabled)
+        var performanceResponse = await httpClient.GetAsync($"{baseUrl}/performance");
+        if (performanceResponse.IsSuccessStatusCode)
+        {
+            var performanceMetrics = await performanceResponse.Content.ReadAsStringAsync();
+            Console.WriteLine($"Performance metrics: {performanceMetrics}");
+        }
+
+        // 2. Get request statistics for the last 7 days
+        var requestMetricsResponse = await httpClient.GetAsync($"{baseUrl}/requests?daysBack=7");
+        if (requestMetricsResponse.IsSuccessStatusCode)
+        {
+            var requestMetrics = await requestMetricsResponse.Content.ReadAsStringAsync();
+            Console.WriteLine($"Request metrics: {requestMetrics}");
+        }
+
+        // 3. Get slow requests (exceeding 1000ms)
+        var slowRequestsResponse = await httpClient.GetAsync($"{baseUrl}/slow?thresholdMs=1000&limit=20");
+        if (slowRequestsResponse.IsSuccessStatusCode)
+        {
+            var slowRequests = await slowRequestsResponse.Content.ReadAsStringAsync();
+            Console.WriteLine($"Slow requests: {slowRequests}");
+        }
+
+        // 4. Get error distribution
+        var errorMetricsResponse = await httpClient.GetAsync($"{baseUrl}/errors");
+        if (errorMetricsResponse.IsSuccessStatusCode)
+        {
+            var errorMetrics = await errorMetricsResponse.Content.ReadAsStringAsync();
+            Console.WriteLine($"Error metrics: {errorMetrics}");
+        }
+
+        // 5. Get endpoint statistics (top 10 endpoints)
+        var endpointStatsResponse = await httpClient.GetAsync($"{baseUrl}/endpoints");
+        if (endpointStatsResponse.IsSuccessStatusCode)
+        {
+            var endpointStats = await endpointStatsResponse.Content.ReadAsStringAsync();
+            Console.WriteLine($"Endpoint stats: {endpointStats}");
+        }
+
+        // 6. Reset metrics (requires performance monitoring enabled)
+        var resetResponse = await httpClient.PostAsync($"{baseUrl}/reset", null);
+        if (resetResponse.IsSuccessStatusCode)
+        {
+            var resetResult = await resetResponse.Content.ReadAsStringAsync();
+            Console.WriteLine($"Metrics reset: {resetResult}");
+        }
+    }
+}
+```
+
 ## ValidationUtility
 
 `ValidationUtility` provides validation methods for common patterns and data formats used throughout the gRPC gateway. It includes utilities for validating URIs, IP addresses, ports, hostnames, GUIDs, service names, protocols, paths, and numeric ranges. The class also provides a helper method to throw validation exceptions when conditions are not met, enabling concise validation code.
