@@ -1211,6 +1211,149 @@ class Program
 }
 ```
 
+## GatewayController
+
+`GatewayController` is a REST API controller that provides endpoints for managing gateway configuration, registered services, routing rules, and metrics collection. It serves as the primary administrative interface for the gRPC gateway, allowing clients to retrieve and update configuration, register/unregister services, manage routes, and access performance metrics.
+
+### Example Usage
+
+```csharp
+using System;
+using System.Collections.Generic;
+using System.Net.Http;
+using System.Net.Http.Json;
+using System.Threading.Tasks;
+using DotNetGrpcGateway.Domain;
+
+class Program
+{
+    static async Task Main()
+    {
+        // Setup HTTP client to call gateway endpoints
+        var httpClient = new HttpClient();
+        var baseUrl = "https://localhost:5001/api/gateway";
+
+        // 1. Get current gateway configuration
+        var configResponse = await httpClient.GetAsync($"{baseUrl}/configuration");
+        if (configResponse.IsSuccessStatusCode)
+        {
+            var config = await configResponse.Content.ReadFromJsonAsync<GatewayConfiguration>();
+            Console.WriteLine($"Gateway Configuration:");
+            Console.WriteLine($" - Name: {config?.Name}");
+            Console.WriteLine($" - ListenAddress: {config?.ListenAddress}");
+            Console.WriteLine($" - Port: {config?.Port}");
+            Console.WriteLine($" - EnableMetrics: {config?.EnableMetrics}");
+        }
+
+        // 2. Update gateway configuration
+        var updatedConfig = new GatewayConfiguration
+        {
+            Name = "UpdatedGateway",
+            ListenAddress = "0.0.0.0",
+            Port = 8080,
+            EnableMetrics = true,
+            EnableReflection = false
+        };
+        var updateResponse = await httpClient.PutAsJsonAsync($"{baseUrl}/configuration", updatedConfig);
+        if (updateResponse.IsSuccessStatusCode)
+        {
+            var updated = await updateResponse.Content.ReadFromJsonAsync<GatewayConfiguration>();
+            Console.WriteLine($"\nConfiguration updated successfully!");
+        }
+
+        // 3. Get all registered services
+        var servicesResponse = await httpClient.GetAsync($"{baseUrl}/services");
+        if (servicesResponse.IsSuccessStatusCode)
+        {
+            var services = await servicesResponse.Content.ReadFromJsonAsync<List<GrpcService>>();
+            Console.WriteLine($"\nRegistered Services: {services?.Count}");
+            foreach (var service in services ?? new List<GrpcService>())
+            {
+                Console.WriteLine($" - Service ID {service.Id}: {service.Name} at {service.Host}:{service.Port} (Healthy: {service.IsHealthy})");
+            }
+        }
+
+        // 4. Get healthy services only
+        var healthyResponse = await httpClient.GetAsync($"{baseUrl}/services/healthy");
+        if (healthyResponse.IsSuccessStatusCode)
+        {
+            var healthyServices = await healthyResponse.Content.ReadFromJsonAsync<List<GrpcService>>();
+            Console.WriteLine($"\nHealthy Services: {healthyServices?.Count}");
+        }
+
+        // 5. Register a new service
+        var newService = new GrpcService
+        {
+            Name = "PaymentService",
+            Host = "payment-service",
+            Port = 50051,
+            UseTls = true
+        };
+        var registerResponse = await httpClient.PostAsJsonAsync($"{baseUrl}/services", newService);
+        if (registerResponse.IsSuccessStatusCode)
+        {
+            var createdService = await registerResponse.Content.ReadFromJsonAsync<GrpcService>();
+            Console.WriteLine($"\nService registered successfully! Service ID: {createdService?.Id}");
+        }
+
+        // 6. Get routes
+        var routesResponse = await httpClient.GetAsync($"{baseUrl}/routes");
+        if (routesResponse.IsSuccessStatusCode)
+        {
+            var routes = await routesResponse.Content.ReadFromJsonAsync<List<GatewayRoute>>();
+            Console.WriteLine($"\nRoutes: {routes?.Count}");
+            foreach (var route in routes ?? new List<GatewayRoute>())
+            {
+                Console.WriteLine($" - Route ID {route.Id}: {route.Pattern} -> Service ID {route.TargetServiceId}");
+            }
+        }
+
+        // 7. Add a new route
+        var newRoute = new GatewayRoute
+        {
+            Name = "UserServiceRoute",
+            Pattern = "/api/users/*",
+            TargetServiceId = 1,
+            Priority = 1
+        };
+        var addRouteResponse = await httpClient.PostAsJsonAsync($"{baseUrl}/routes", newRoute);
+        if (addRouteResponse.IsSuccessStatusCode)
+        {
+            Console.WriteLine($"\nRoute added successfully!");
+        }
+
+        // 8. Get today's statistics
+        var todayStatsResponse = await httpClient.GetAsync($"{baseUrl}/statistics/today");
+        if (todayStatsResponse.IsSuccessStatusCode)
+        {
+            var stats = await todayStatsResponse.Content.ReadFromJsonAsync<GatewayStatistics>();
+            Console.WriteLine($"\nToday's Statistics:");
+            Console.WriteLine($" - Total Requests: {stats?.TotalRequests}");
+            Console.WriteLine($" - Successful Requests: {stats?.SuccessfulRequests}");
+            Console.WriteLine($" - Failed Requests: {stats?.FailedRequests}");
+            Console.WriteLine($" - Average Response Time: {stats?.AverageResponseTimeMs}ms");
+            Console.WriteLine($" - Error Rate: {stats?.ErrorRatePct:F2}%");
+        }
+
+        // 9. Get slow requests (threshold: 1000ms)
+        var slowRequestsResponse = await httpClient.GetAsync($"{baseUrl}/metrics/slow-requests?thresholdMs=1000");
+        if (slowRequestsResponse.IsSuccessStatusCode)
+        {
+            var slowRequests = await slowRequestsResponse.Content.ReadFromJsonAsync<List<RequestMetric>>();
+            Console.WriteLine($"\nSlow Requests (>{1000}ms): {slowRequests?.Count}");
+        }
+
+        // 10. Get average response time
+        var avgResponseTimeResponse = await httpClient.GetAsync($"{baseUrl}/metrics/average-response-time");
+        if (avgResponseTimeResponse.IsSuccessStatusCode)
+        {
+            var avgTime = await avgResponseTimeResponse.Content.ReadAsStringAsync();
+            Console.WriteLine($"\nAverage Response Time: {avgTime}");
+        }
+    }
+}
+```
+
 ## IServiceDiscoveryService
 
 `IServiceDiscoveryService` is responsible for discovering and monitoring the health of registered gRPC services. It provides methods for performing health checks, retrieving the latest health report, updating service health status, discovering available services, and retrieving the health status of all services.
