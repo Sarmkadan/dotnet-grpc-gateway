@@ -1300,6 +1300,70 @@ class Program
 ```
 
 
+## OutputFormatterFactory
+
+`OutputFormatterFactory` is a factory class that manages output formatters for the gRPC gateway. It maintains a registry of available formatters (JSON, CSV, XML) and provides methods to register new formatters, retrieve formatters by content type, and check which content types are supported. The factory automatically falls back to JSON formatting when an unsupported content type is requested.
+
+### Example Usage
+
+```csharp
+using System;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
+using DotNetGrpcGateway.Formatters;
+
+class Program
+{
+    static void Main()
+    {
+        // Setup dependency injection
+        var services = new ServiceCollection();
+        services.AddLogging(configure => configure.AddConsole());
+        services.AddSingleton<OutputFormatterFactory>();
+        
+        var serviceProvider = services.BuildServiceProvider();
+        var formatterFactory = serviceProvider.GetRequiredService<OutputFormatterFactory>();
+        
+        // 1. Get available content types
+        var contentTypes = formatterFactory.GetAvailableContentTypes();
+        Console.WriteLine("Available content types:");
+        foreach (var type in contentTypes)
+        {
+            Console.WriteLine($" - {type}");
+        }
+        
+        // 2. Get a formatter by content type
+        var jsonFormatter = formatterFactory.GetFormatter("application/json");
+        Console.WriteLine($"\nJSON formatter content type: {jsonFormatter.ContentType}");
+        
+        var csvFormatter = formatterFactory.GetFormatter("text/csv");
+        Console.WriteLine($"CSV formatter content type: {csvFormatter.ContentType}");
+        
+        // 3. Check if content type is supported
+        var isSupported = formatterFactory.IsSupported("application/xml");
+        Console.WriteLine($"\nIs XML supported: {isSupported}");
+        
+        // 4. Register a custom formatter
+        formatterFactory.RegisterFormatter(new CustomFormatter());
+        Console.WriteLine("\nCustom formatter registered");
+        
+        // 5. Get the newly registered formatter
+        var customFormatter = formatterFactory.GetFormatter("application/custom");
+        Console.WriteLine($"Custom formatter content type: {customFormatter.ContentType}");
+    }
+}
+
+class CustomFormatter : IOutputFormatter
+{
+    public string ContentType => "application/custom";
+    
+    public string Format(object data)
+    {
+        return "Custom formatted output";
+    }
+}
+```
+
 ## HealthController
 
 `HealthController` is a REST API controller that provides endpoints for health status monitoring and liveness/readiness probes. It serves as the primary interface for checking the overall health of the gRPC gateway and its underlying services, enabling automated health checks and load balancer decisions.
