@@ -157,6 +157,92 @@ class Program
 }
 ```
 
+## LoadBalancerServiceTests
+
+`LoadBalancerServiceTests` is a comprehensive test class that validates the behavior of the `LoadBalancerService` class, which implements load balancing strategies for gRPC services including round-robin, least connections, random selection, endpoint registration/deregistration, and health status management. The tests verify that the load balancer correctly handles various scenarios such as no endpoints registered, all endpoints unhealthy, cycling through endpoints with round-robin strategy, selecting endpoints with least active connections, and properly managing endpoint health status.
+
+### Example Usage
+
+```csharp
+using System;
+using System.Collections.Generic;
+using DotNetGrpcGateway.Domain;
+using DotNetGrpcGateway.Services;
+using FluentAssertions;
+using Microsoft.Extensions.Logging;
+using Moq;
+
+class Program
+{
+    static void Main()
+    {
+        // Setup logger and load balancer service
+        var loggerMock = new Mock<ILogger<LoadBalancerService>>();
+        var loadBalancer = new LoadBalancerService(loggerMock.Object);
+        
+        // 1. Configure load balancing strategy
+        loadBalancer.Strategy = LoadBalancingStrategy.RoundRobin;
+        
+        // 2. Register endpoints
+        var endpoint1 = new ServiceEndpoint
+        {
+            Id = 1,
+            ServiceId = 10,
+            Host = "backend-service-1",
+            Port = 50051,
+            IsHealthy = true,
+            Weight = 2
+        };
+        
+        var endpoint2 = new ServiceEndpoint
+        {
+            Id = 2,
+            ServiceId = 10,
+            Host = "backend-service-2",
+            Port = 50052,
+            IsHealthy = true,
+            Weight = 1
+        };
+        
+        loadBalancer.RegisterEndpoint(endpoint1);
+        loadBalancer.RegisterEndpoint(endpoint2);
+        
+        // 3. Get next endpoint using round-robin strategy
+        var selectedEndpoint = loadBalancer.GetNextEndpoint(serviceId: 10);
+        Console.WriteLine($"Selected endpoint: {selectedEndpoint?.Host}:{selectedEndpoint?.Port}");
+        
+        // 4. Change strategy to least connections
+        loadBalancer.Strategy = LoadBalancingStrategy.LeastConnections;
+        
+        // 5. Simulate active connections (endpoint1 has 5 active connections, endpoint2 has 0)
+        endpoint1.ActiveConnections = 5;
+        endpoint2.ActiveConnections = 0;
+        
+        selectedEndpoint = loadBalancer.GetNextEndpoint(serviceId: 10);
+        Console.WriteLine($"Least connections selected: {selectedEndpoint?.Host} (connections: {selectedEndpoint?.ActiveConnections})");
+        
+        // 6. Mark an endpoint as unhealthy
+        loadBalancer.UpdateEndpointHealth(serviceId: 10, endpointId: 1, isHealthy: false);
+        
+        // 7. Get next endpoint (should skip unhealthy endpoint)
+        selectedEndpoint = loadBalancer.GetNextEndpoint(serviceId: 10);
+        Console.WriteLine($"After marking unhealthy - Selected endpoint: {selectedEndpoint?.Host}:{selectedEndpoint?.Port}");
+        
+        // 8. Deregister an endpoint
+        loadBalancer.DeregisterEndpoint(serviceId: 10, endpointId: 2);
+        
+        // 9. Get remaining endpoints
+        var remainingEndpoints = loadBalancer.GetEndpoints(serviceId: 10);
+        Console.WriteLine($"Remaining endpoints: {remainingEndpoints.Count}");
+        
+        // 10. Try to get next endpoint with only unhealthy endpoints
+        endpoint2.IsHealthy = false;
+        selectedEndpoint = loadBalancer.GetNextEndpoint(serviceId: 10);
+        Console.WriteLine($"With only unhealthy endpoints - Result: {(selectedEndpoint == null ? "null" : "endpoint")}");
+    }
+}
+```
+
 ## IRequestLogService
 
 `IRequestLogService` stores and provides queryable access to recent gateway request/response log entries. It maintains a fixed-capacity ring buffer of request logs that can be queried by method, status code, or time range. The service provides aggregate statistics including success rate, response times, and entry timestamps, making it ideal for monitoring, debugging, and performance analysis of gRPC gateway traffic.
@@ -367,6 +453,92 @@ class Program
 }
 ```
 
+## LoadBalancerServiceTests
+
+`LoadBalancerServiceTests` is a comprehensive test class that validates the behavior of the `LoadBalancerService` class, which implements load balancing strategies for gRPC services including round-robin, least connections, random selection, endpoint registration/deregistration, and health status management. The tests verify that the load balancer correctly handles various scenarios such as no endpoints registered, all endpoints unhealthy, cycling through endpoints with round-robin strategy, selecting endpoints with least active connections, and properly managing endpoint health status.
+
+### Example Usage
+
+```csharp
+using System;
+using System.Collections.Generic;
+using DotNetGrpcGateway.Domain;
+using DotNetGrpcGateway.Services;
+using FluentAssertions;
+using Microsoft.Extensions.Logging;
+using Moq;
+
+class Program
+{
+    static void Main()
+    {
+        // Setup logger and load balancer service
+        var loggerMock = new Mock<ILogger<LoadBalancerService>>();
+        var loadBalancer = new LoadBalancerService(loggerMock.Object);
+        
+        // 1. Configure load balancing strategy
+        loadBalancer.Strategy = LoadBalancingStrategy.RoundRobin;
+        
+        // 2. Register endpoints
+        var endpoint1 = new ServiceEndpoint
+        {
+            Id = 1,
+            ServiceId = 10,
+            Host = "backend-service-1",
+            Port = 50051,
+            IsHealthy = true,
+            Weight = 2
+        };
+        
+        var endpoint2 = new ServiceEndpoint
+        {
+            Id = 2,
+            ServiceId = 10,
+            Host = "backend-service-2",
+            Port = 50052,
+            IsHealthy = true,
+            Weight = 1
+        };
+        
+        loadBalancer.RegisterEndpoint(endpoint1);
+        loadBalancer.RegisterEndpoint(endpoint2);
+        
+        // 3. Get next endpoint using round-robin strategy
+        var selectedEndpoint = loadBalancer.GetNextEndpoint(serviceId: 10);
+        Console.WriteLine($"Selected endpoint: {selectedEndpoint?.Host}:{selectedEndpoint?.Port}");
+        
+        // 4. Change strategy to least connections
+        loadBalancer.Strategy = LoadBalancingStrategy.LeastConnections;
+        
+        // 5. Simulate active connections (endpoint1 has 5 active connections, endpoint2 has 0)
+        endpoint1.ActiveConnections = 5;
+        endpoint2.ActiveConnections = 0;
+        
+        selectedEndpoint = loadBalancer.GetNextEndpoint(serviceId: 10);
+        Console.WriteLine($"Least connections selected: {selectedEndpoint?.Host} (connections: {selectedEndpoint?.ActiveConnections})");
+        
+        // 6. Mark an endpoint as unhealthy
+        loadBalancer.UpdateEndpointHealth(serviceId: 10, endpointId: 1, isHealthy: false);
+        
+        // 7. Get next endpoint (should skip unhealthy endpoint)
+        selectedEndpoint = loadBalancer.GetNextEndpoint(serviceId: 10);
+        Console.WriteLine($"After marking unhealthy - Selected endpoint: {selectedEndpoint?.Host}:{selectedEndpoint?.Port}");
+        
+        // 8. Deregister an endpoint
+        loadBalancer.DeregisterEndpoint(serviceId: 10, endpointId: 2);
+        
+        // 9. Get remaining endpoints
+        var remainingEndpoints = loadBalancer.GetEndpoints(serviceId: 10);
+        Console.WriteLine($"Remaining endpoints: {remainingEndpoints.Count}");
+        
+        // 10. Try to get next endpoint with only unhealthy endpoints
+        endpoint2.IsHealthy = false;
+        selectedEndpoint = loadBalancer.GetNextEndpoint(serviceId: 10);
+        Console.WriteLine($"With only unhealthy endpoints - Result: {(selectedEndpoint == null ? "null" : "endpoint")}");
+    }
+}
+```
+
 ## IRequestLogService
 
 `IRequestLogService` stores and provides queryable access to recent gateway request/response log entries. It maintains a fixed-capacity ring buffer of request logs that can be queried by method, status code, or time range. The service provides aggregate statistics including success rate, response times, and entry timestamps, making it ideal for monitoring, debugging, and performance analysis of gRPC gateway traffic.
@@ -562,6 +734,92 @@ class Program
 
         endpoint.IsHealthy = false;
         Console.WriteLine($"Healthy: {endpoint.IsHealthy}");
+    }
+}
+```
+
+## LoadBalancerServiceTests
+
+`LoadBalancerServiceTests` is a comprehensive test class that validates the behavior of the `LoadBalancerService` class, which implements load balancing strategies for gRPC services including round-robin, least connections, random selection, endpoint registration/deregistration, and health status management. The tests verify that the load balancer correctly handles various scenarios such as no endpoints registered, all endpoints unhealthy, cycling through endpoints with round-robin strategy, selecting endpoints with least active connections, and properly managing endpoint health status.
+
+### Example Usage
+
+```csharp
+using System;
+using System.Collections.Generic;
+using DotNetGrpcGateway.Domain;
+using DotNetGrpcGateway.Services;
+using FluentAssertions;
+using Microsoft.Extensions.Logging;
+using Moq;
+
+class Program
+{
+    static void Main()
+    {
+        // Setup logger and load balancer service
+        var loggerMock = new Mock<ILogger<LoadBalancerService>>();
+        var loadBalancer = new LoadBalancerService(loggerMock.Object);
+        
+        // 1. Configure load balancing strategy
+        loadBalancer.Strategy = LoadBalancingStrategy.RoundRobin;
+        
+        // 2. Register endpoints
+        var endpoint1 = new ServiceEndpoint
+        {
+            Id = 1,
+            ServiceId = 10,
+            Host = "backend-service-1",
+            Port = 50051,
+            IsHealthy = true,
+            Weight = 2
+        };
+        
+        var endpoint2 = new ServiceEndpoint
+        {
+            Id = 2,
+            ServiceId = 10,
+            Host = "backend-service-2",
+            Port = 50052,
+            IsHealthy = true,
+            Weight = 1
+        };
+        
+        loadBalancer.RegisterEndpoint(endpoint1);
+        loadBalancer.RegisterEndpoint(endpoint2);
+        
+        // 3. Get next endpoint using round-robin strategy
+        var selectedEndpoint = loadBalancer.GetNextEndpoint(serviceId: 10);
+        Console.WriteLine($"Selected endpoint: {selectedEndpoint?.Host}:{selectedEndpoint?.Port}");
+        
+        // 4. Change strategy to least connections
+        loadBalancer.Strategy = LoadBalancingStrategy.LeastConnections;
+        
+        // 5. Simulate active connections (endpoint1 has 5 active connections, endpoint2 has 0)
+        endpoint1.ActiveConnections = 5;
+        endpoint2.ActiveConnections = 0;
+        
+        selectedEndpoint = loadBalancer.GetNextEndpoint(serviceId: 10);
+        Console.WriteLine($"Least connections selected: {selectedEndpoint?.Host} (connections: {selectedEndpoint?.ActiveConnections})");
+        
+        // 6. Mark an endpoint as unhealthy
+        loadBalancer.UpdateEndpointHealth(serviceId: 10, endpointId: 1, isHealthy: false);
+        
+        // 7. Get next endpoint (should skip unhealthy endpoint)
+        selectedEndpoint = loadBalancer.GetNextEndpoint(serviceId: 10);
+        Console.WriteLine($"After marking unhealthy - Selected endpoint: {selectedEndpoint?.Host}:{selectedEndpoint?.Port}");
+        
+        // 8. Deregister an endpoint
+        loadBalancer.DeregisterEndpoint(serviceId: 10, endpointId: 2);
+        
+        // 9. Get remaining endpoints
+        var remainingEndpoints = loadBalancer.GetEndpoints(serviceId: 10);
+        Console.WriteLine($"Remaining endpoints: {remainingEndpoints.Count}");
+        
+        // 10. Try to get next endpoint with only unhealthy endpoints
+        endpoint2.IsHealthy = false;
+        selectedEndpoint = loadBalancer.GetNextEndpoint(serviceId: 10);
+        Console.WriteLine($"With only unhealthy endpoints - Result: {(selectedEndpoint == null ? "null" : "endpoint")}");
     }
 }
 ```
@@ -774,6 +1032,92 @@ class Program
 }
 ```
 
+## LoadBalancerServiceTests
+
+`LoadBalancerServiceTests` is a comprehensive test class that validates the behavior of the `LoadBalancerService` class, which implements load balancing strategies for gRPC services including round-robin, least connections, random selection, endpoint registration/deregistration, and health status management. The tests verify that the load balancer correctly handles various scenarios such as no endpoints registered, all endpoints unhealthy, cycling through endpoints with round-robin strategy, selecting endpoints with least active connections, and properly managing endpoint health status.
+
+### Example Usage
+
+```csharp
+using System;
+using System.Collections.Generic;
+using DotNetGrpcGateway.Domain;
+using DotNetGrpcGateway.Services;
+using FluentAssertions;
+using Microsoft.Extensions.Logging;
+using Moq;
+
+class Program
+{
+    static void Main()
+    {
+        // Setup logger and load balancer service
+        var loggerMock = new Mock<ILogger<LoadBalancerService>>();
+        var loadBalancer = new LoadBalancerService(loggerMock.Object);
+        
+        // 1. Configure load balancing strategy
+        loadBalancer.Strategy = LoadBalancingStrategy.RoundRobin;
+        
+        // 2. Register endpoints
+        var endpoint1 = new ServiceEndpoint
+        {
+            Id = 1,
+            ServiceId = 10,
+            Host = "backend-service-1",
+            Port = 50051,
+            IsHealthy = true,
+            Weight = 2
+        };
+        
+        var endpoint2 = new ServiceEndpoint
+        {
+            Id = 2,
+            ServiceId = 10,
+            Host = "backend-service-2",
+            Port = 50052,
+            IsHealthy = true,
+            Weight = 1
+        };
+        
+        loadBalancer.RegisterEndpoint(endpoint1);
+        loadBalancer.RegisterEndpoint(endpoint2);
+        
+        // 3. Get next endpoint using round-robin strategy
+        var selectedEndpoint = loadBalancer.GetNextEndpoint(serviceId: 10);
+        Console.WriteLine($"Selected endpoint: {selectedEndpoint?.Host}:{selectedEndpoint?.Port}");
+        
+        // 4. Change strategy to least connections
+        loadBalancer.Strategy = LoadBalancingStrategy.LeastConnections;
+        
+        // 5. Simulate active connections (endpoint1 has 5 active connections, endpoint2 has 0)
+        endpoint1.ActiveConnections = 5;
+        endpoint2.ActiveConnections = 0;
+        
+        selectedEndpoint = loadBalancer.GetNextEndpoint(serviceId: 10);
+        Console.WriteLine($"Least connections selected: {selectedEndpoint?.Host} (connections: {selectedEndpoint?.ActiveConnections})");
+        
+        // 6. Mark an endpoint as unhealthy
+        loadBalancer.UpdateEndpointHealth(serviceId: 10, endpointId: 1, isHealthy: false);
+        
+        // 7. Get next endpoint (should skip unhealthy endpoint)
+        selectedEndpoint = loadBalancer.GetNextEndpoint(serviceId: 10);
+        Console.WriteLine($"After marking unhealthy - Selected endpoint: {selectedEndpoint?.Host}:{selectedEndpoint?.Port}");
+        
+        // 8. Deregister an endpoint
+        loadBalancer.DeregisterEndpoint(serviceId: 10, endpointId: 2);
+        
+        // 9. Get remaining endpoints
+        var remainingEndpoints = loadBalancer.GetEndpoints(serviceId: 10);
+        Console.WriteLine($"Remaining endpoints: {remainingEndpoints.Count}");
+        
+        // 10. Try to get next endpoint with only unhealthy endpoints
+        endpoint2.IsHealthy = false;
+        selectedEndpoint = loadBalancer.GetNextEndpoint(serviceId: 10);
+        Console.WriteLine($"With only unhealthy endpoints - Result: {(selectedEndpoint == null ? "null" : "endpoint")}");
+    }
+}
+```
+
 ## IRequestLogService
 
 `IRequestLogService` stores and provides queryable access to recent gateway request/response log entries. It maintains a fixed-capacity ring buffer of request logs that can be queried by method, status code, or time range. The service provides aggregate statistics including success rate, response times, and entry timestamps, making it ideal for monitoring, debugging, and performance analysis of gRPC gateway traffic.
@@ -972,6 +1316,92 @@ class Program
 
         var stream = await factory.InvokeStreamingAsync(service, "MyMethod", new object(), default);
         Console.WriteLine($"Stream: {stream}");
+    }
+}
+```
+
+## LoadBalancerServiceTests
+
+`LoadBalancerServiceTests` is a comprehensive test class that validates the behavior of the `LoadBalancerService` class, which implements load balancing strategies for gRPC services including round-robin, least connections, random selection, endpoint registration/deregistration, and health status management. The tests verify that the load balancer correctly handles various scenarios such as no endpoints registered, all endpoints unhealthy, cycling through endpoints with round-robin strategy, selecting endpoints with least active connections, and properly managing endpoint health status.
+
+### Example Usage
+
+```csharp
+using System;
+using System.Collections.Generic;
+using DotNetGrpcGateway.Domain;
+using DotNetGrpcGateway.Services;
+using FluentAssertions;
+using Microsoft.Extensions.Logging;
+using Moq;
+
+class Program
+{
+    static void Main()
+    {
+        // Setup logger and load balancer service
+        var loggerMock = new Mock<ILogger<LoadBalancerService>>();
+        var loadBalancer = new LoadBalancerService(loggerMock.Object);
+        
+        // 1. Configure load balancing strategy
+        loadBalancer.Strategy = LoadBalancingStrategy.RoundRobin;
+        
+        // 2. Register endpoints
+        var endpoint1 = new ServiceEndpoint
+        {
+            Id = 1,
+            ServiceId = 10,
+            Host = "backend-service-1",
+            Port = 50051,
+            IsHealthy = true,
+            Weight = 2
+        };
+        
+        var endpoint2 = new ServiceEndpoint
+        {
+            Id = 2,
+            ServiceId = 10,
+            Host = "backend-service-2",
+            Port = 50052,
+            IsHealthy = true,
+            Weight = 1
+        };
+        
+        loadBalancer.RegisterEndpoint(endpoint1);
+        loadBalancer.RegisterEndpoint(endpoint2);
+        
+        // 3. Get next endpoint using round-robin strategy
+        var selectedEndpoint = loadBalancer.GetNextEndpoint(serviceId: 10);
+        Console.WriteLine($"Selected endpoint: {selectedEndpoint?.Host}:{selectedEndpoint?.Port}");
+        
+        // 4. Change strategy to least connections
+        loadBalancer.Strategy = LoadBalancingStrategy.LeastConnections;
+        
+        // 5. Simulate active connections (endpoint1 has 5 active connections, endpoint2 has 0)
+        endpoint1.ActiveConnections = 5;
+        endpoint2.ActiveConnections = 0;
+        
+        selectedEndpoint = loadBalancer.GetNextEndpoint(serviceId: 10);
+        Console.WriteLine($"Least connections selected: {selectedEndpoint?.Host} (connections: {selectedEndpoint?.ActiveConnections})");
+        
+        // 6. Mark an endpoint as unhealthy
+        loadBalancer.UpdateEndpointHealth(serviceId: 10, endpointId: 1, isHealthy: false);
+        
+        // 7. Get next endpoint (should skip unhealthy endpoint)
+        selectedEndpoint = loadBalancer.GetNextEndpoint(serviceId: 10);
+        Console.WriteLine($"After marking unhealthy - Selected endpoint: {selectedEndpoint?.Host}:{selectedEndpoint?.Port}");
+        
+        // 8. Deregister an endpoint
+        loadBalancer.DeregisterEndpoint(serviceId: 10, endpointId: 2);
+        
+        // 9. Get remaining endpoints
+        var remainingEndpoints = loadBalancer.GetEndpoints(serviceId: 10);
+        Console.WriteLine($"Remaining endpoints: {remainingEndpoints.Count}");
+        
+        // 10. Try to get next endpoint with only unhealthy endpoints
+        endpoint2.IsHealthy = false;
+        selectedEndpoint = loadBalancer.GetNextEndpoint(serviceId: 10);
+        Console.WriteLine($"With only unhealthy endpoints - Result: {(selectedEndpoint == null ? "null" : "endpoint")}");
     }
 }
 ```
@@ -1990,6 +2420,92 @@ class Program
 
         // 5. Unregister a service
         await gatewayService.UnregisterServiceAsync(newService.Id);
+    }
+}
+```
+
+## LoadBalancerServiceTests
+
+`LoadBalancerServiceTests` is a comprehensive test class that validates the behavior of the `LoadBalancerService` class, which implements load balancing strategies for gRPC services including round-robin, least connections, random selection, endpoint registration/deregistration, and health status management. The tests verify that the load balancer correctly handles various scenarios such as no endpoints registered, all endpoints unhealthy, cycling through endpoints with round-robin strategy, selecting endpoints with least active connections, and properly managing endpoint health status.
+
+### Example Usage
+
+```csharp
+using System;
+using System.Collections.Generic;
+using DotNetGrpcGateway.Domain;
+using DotNetGrpcGateway.Services;
+using FluentAssertions;
+using Microsoft.Extensions.Logging;
+using Moq;
+
+class Program
+{
+    static void Main()
+    {
+        // Setup logger and load balancer service
+        var loggerMock = new Mock<ILogger<LoadBalancerService>>();
+        var loadBalancer = new LoadBalancerService(loggerMock.Object);
+        
+        // 1. Configure load balancing strategy
+        loadBalancer.Strategy = LoadBalancingStrategy.RoundRobin;
+        
+        // 2. Register endpoints
+        var endpoint1 = new ServiceEndpoint
+        {
+            Id = 1,
+            ServiceId = 10,
+            Host = "backend-service-1",
+            Port = 50051,
+            IsHealthy = true,
+            Weight = 2
+        };
+        
+        var endpoint2 = new ServiceEndpoint
+        {
+            Id = 2,
+            ServiceId = 10,
+            Host = "backend-service-2",
+            Port = 50052,
+            IsHealthy = true,
+            Weight = 1
+        };
+        
+        loadBalancer.RegisterEndpoint(endpoint1);
+        loadBalancer.RegisterEndpoint(endpoint2);
+        
+        // 3. Get next endpoint using round-robin strategy
+        var selectedEndpoint = loadBalancer.GetNextEndpoint(serviceId: 10);
+        Console.WriteLine($"Selected endpoint: {selectedEndpoint?.Host}:{selectedEndpoint?.Port}");
+        
+        // 4. Change strategy to least connections
+        loadBalancer.Strategy = LoadBalancingStrategy.LeastConnections;
+        
+        // 5. Simulate active connections (endpoint1 has 5 active connections, endpoint2 has 0)
+        endpoint1.ActiveConnections = 5;
+        endpoint2.ActiveConnections = 0;
+        
+        selectedEndpoint = loadBalancer.GetNextEndpoint(serviceId: 10);
+        Console.WriteLine($"Least connections selected: {selectedEndpoint?.Host} (connections: {selectedEndpoint?.ActiveConnections})");
+        
+        // 6. Mark an endpoint as unhealthy
+        loadBalancer.UpdateEndpointHealth(serviceId: 10, endpointId: 1, isHealthy: false);
+        
+        // 7. Get next endpoint (should skip unhealthy endpoint)
+        selectedEndpoint = loadBalancer.GetNextEndpoint(serviceId: 10);
+        Console.WriteLine($"After marking unhealthy - Selected endpoint: {selectedEndpoint?.Host}:{selectedEndpoint?.Port}");
+        
+        // 8. Deregister an endpoint
+        loadBalancer.DeregisterEndpoint(serviceId: 10, endpointId: 2);
+        
+        // 9. Get remaining endpoints
+        var remainingEndpoints = loadBalancer.GetEndpoints(serviceId: 10);
+        Console.WriteLine($"Remaining endpoints: {remainingEndpoints.Count}");
+        
+        // 10. Try to get next endpoint with only unhealthy endpoints
+        endpoint2.IsHealthy = false;
+        selectedEndpoint = loadBalancer.GetNextEndpoint(serviceId: 10);
+        Console.WriteLine($"With only unhealthy endpoints - Result: {(selectedEndpoint == null ? "null" : "endpoint")}");
     }
 }
 ```
@@ -3063,6 +3579,92 @@ class Program
 }
 ```
 
+## LoadBalancerServiceTests
+
+`LoadBalancerServiceTests` is a comprehensive test class that validates the behavior of the `LoadBalancerService` class, which implements load balancing strategies for gRPC services including round-robin, least connections, random selection, endpoint registration/deregistration, and health status management. The tests verify that the load balancer correctly handles various scenarios such as no endpoints registered, all endpoints unhealthy, cycling through endpoints with round-robin strategy, selecting endpoints with least active connections, and properly managing endpoint health status.
+
+### Example Usage
+
+```csharp
+using System;
+using System.Collections.Generic;
+using DotNetGrpcGateway.Domain;
+using DotNetGrpcGateway.Services;
+using FluentAssertions;
+using Microsoft.Extensions.Logging;
+using Moq;
+
+class Program
+{
+    static void Main()
+    {
+        // Setup logger and load balancer service
+        var loggerMock = new Mock<ILogger<LoadBalancerService>>();
+        var loadBalancer = new LoadBalancerService(loggerMock.Object);
+        
+        // 1. Configure load balancing strategy
+        loadBalancer.Strategy = LoadBalancingStrategy.RoundRobin;
+        
+        // 2. Register endpoints
+        var endpoint1 = new ServiceEndpoint
+        {
+            Id = 1,
+            ServiceId = 10,
+            Host = "backend-service-1",
+            Port = 50051,
+            IsHealthy = true,
+            Weight = 2
+        };
+        
+        var endpoint2 = new ServiceEndpoint
+        {
+            Id = 2,
+            ServiceId = 10,
+            Host = "backend-service-2",
+            Port = 50052,
+            IsHealthy = true,
+            Weight = 1
+        };
+        
+        loadBalancer.RegisterEndpoint(endpoint1);
+        loadBalancer.RegisterEndpoint(endpoint2);
+        
+        // 3. Get next endpoint using round-robin strategy
+        var selectedEndpoint = loadBalancer.GetNextEndpoint(serviceId: 10);
+        Console.WriteLine($"Selected endpoint: {selectedEndpoint?.Host}:{selectedEndpoint?.Port}");
+        
+        // 4. Change strategy to least connections
+        loadBalancer.Strategy = LoadBalancingStrategy.LeastConnections;
+        
+        // 5. Simulate active connections (endpoint1 has 5 active connections, endpoint2 has 0)
+        endpoint1.ActiveConnections = 5;
+        endpoint2.ActiveConnections = 0;
+        
+        selectedEndpoint = loadBalancer.GetNextEndpoint(serviceId: 10);
+        Console.WriteLine($"Least connections selected: {selectedEndpoint?.Host} (connections: {selectedEndpoint?.ActiveConnections})");
+        
+        // 6. Mark an endpoint as unhealthy
+        loadBalancer.UpdateEndpointHealth(serviceId: 10, endpointId: 1, isHealthy: false);
+        
+        // 7. Get next endpoint (should skip unhealthy endpoint)
+        selectedEndpoint = loadBalancer.GetNextEndpoint(serviceId: 10);
+        Console.WriteLine($"After marking unhealthy - Selected endpoint: {selectedEndpoint?.Host}:{selectedEndpoint?.Port}");
+        
+        // 8. Deregister an endpoint
+        loadBalancer.DeregisterEndpoint(serviceId: 10, endpointId: 2);
+        
+        // 9. Get remaining endpoints
+        var remainingEndpoints = loadBalancer.GetEndpoints(serviceId: 10);
+        Console.WriteLine($"Remaining endpoints: {remainingEndpoints.Count}");
+        
+        // 10. Try to get next endpoint with only unhealthy endpoints
+        endpoint2.IsHealthy = false;
+        selectedEndpoint = loadBalancer.GetNextEndpoint(serviceId: 10);
+        Console.WriteLine($"With only unhealthy endpoints - Result: {(selectedEndpoint == null ? "null" : "endpoint")}");
+    }
+}
+```
+
 ## IRequestLogService
 
 `IRequestLogService` stores and provides queryable access to recent gateway request/response log entries. It maintains a fixed-capacity ring buffer of request logs that can be queried by method, status code, or time range. The service provides aggregate statistics including success rate, response times, and entry timestamps, making it ideal for monitoring, debugging, and performance analysis of gRPC gateway traffic.
@@ -3356,6 +3958,92 @@ class Program
         // 10. Verify remaining endpoints
         var remainingEndpoints = loadBalancer.GetEndpoints(10);
         Console.WriteLine($"Remaining endpoints: {remainingEndpoints.Count}");
+    }
+}
+```
+
+## LoadBalancerServiceTests
+
+`LoadBalancerServiceTests` is a comprehensive test class that validates the behavior of the `LoadBalancerService` class, which implements load balancing strategies for gRPC services including round-robin, least connections, random selection, endpoint registration/deregistration, and health status management. The tests verify that the load balancer correctly handles various scenarios such as no endpoints registered, all endpoints unhealthy, cycling through endpoints with round-robin strategy, selecting endpoints with least active connections, and properly managing endpoint health status.
+
+### Example Usage
+
+```csharp
+using System;
+using System.Collections.Generic;
+using DotNetGrpcGateway.Domain;
+using DotNetGrpcGateway.Services;
+using FluentAssertions;
+using Microsoft.Extensions.Logging;
+using Moq;
+
+class Program
+{
+    static void Main()
+    {
+        // Setup logger and load balancer service
+        var loggerMock = new Mock<ILogger<LoadBalancerService>>();
+        var loadBalancer = new LoadBalancerService(loggerMock.Object);
+        
+        // 1. Configure load balancing strategy
+        loadBalancer.Strategy = LoadBalancingStrategy.RoundRobin;
+        
+        // 2. Register endpoints
+        var endpoint1 = new ServiceEndpoint
+        {
+            Id = 1,
+            ServiceId = 10,
+            Host = "backend-service-1",
+            Port = 50051,
+            IsHealthy = true,
+            Weight = 2
+        };
+        
+        var endpoint2 = new ServiceEndpoint
+        {
+            Id = 2,
+            ServiceId = 10,
+            Host = "backend-service-2",
+            Port = 50052,
+            IsHealthy = true,
+            Weight = 1
+        };
+        
+        loadBalancer.RegisterEndpoint(endpoint1);
+        loadBalancer.RegisterEndpoint(endpoint2);
+        
+        // 3. Get next endpoint using round-robin strategy
+        var selectedEndpoint = loadBalancer.GetNextEndpoint(serviceId: 10);
+        Console.WriteLine($"Selected endpoint: {selectedEndpoint?.Host}:{selectedEndpoint?.Port}");
+        
+        // 4. Change strategy to least connections
+        loadBalancer.Strategy = LoadBalancingStrategy.LeastConnections;
+        
+        // 5. Simulate active connections (endpoint1 has 5 active connections, endpoint2 has 0)
+        endpoint1.ActiveConnections = 5;
+        endpoint2.ActiveConnections = 0;
+        
+        selectedEndpoint = loadBalancer.GetNextEndpoint(serviceId: 10);
+        Console.WriteLine($"Least connections selected: {selectedEndpoint?.Host} (connections: {selectedEndpoint?.ActiveConnections})");
+        
+        // 6. Mark an endpoint as unhealthy
+        loadBalancer.UpdateEndpointHealth(serviceId: 10, endpointId: 1, isHealthy: false);
+        
+        // 7. Get next endpoint (should skip unhealthy endpoint)
+        selectedEndpoint = loadBalancer.GetNextEndpoint(serviceId: 10);
+        Console.WriteLine($"After marking unhealthy - Selected endpoint: {selectedEndpoint?.Host}:{selectedEndpoint?.Port}");
+        
+        // 8. Deregister an endpoint
+        loadBalancer.DeregisterEndpoint(serviceId: 10, endpointId: 2);
+        
+        // 9. Get remaining endpoints
+        var remainingEndpoints = loadBalancer.GetEndpoints(serviceId: 10);
+        Console.WriteLine($"Remaining endpoints: {remainingEndpoints.Count}");
+        
+        // 10. Try to get next endpoint with only unhealthy endpoints
+        endpoint2.IsHealthy = false;
+        selectedEndpoint = loadBalancer.GetNextEndpoint(serviceId: 10);
+        Console.WriteLine($"With only unhealthy endpoints - Result: {(selectedEndpoint == null ? "null" : "endpoint")}");
     }
 }
 ```
@@ -3663,6 +4351,92 @@ class Program
 }
 ```
 
+## LoadBalancerServiceTests
+
+`LoadBalancerServiceTests` is a comprehensive test class that validates the behavior of the `LoadBalancerService` class, which implements load balancing strategies for gRPC services including round-robin, least connections, random selection, endpoint registration/deregistration, and health status management. The tests verify that the load balancer correctly handles various scenarios such as no endpoints registered, all endpoints unhealthy, cycling through endpoints with round-robin strategy, selecting endpoints with least active connections, and properly managing endpoint health status.
+
+### Example Usage
+
+```csharp
+using System;
+using System.Collections.Generic;
+using DotNetGrpcGateway.Domain;
+using DotNetGrpcGateway.Services;
+using FluentAssertions;
+using Microsoft.Extensions.Logging;
+using Moq;
+
+class Program
+{
+    static void Main()
+    {
+        // Setup logger and load balancer service
+        var loggerMock = new Mock<ILogger<LoadBalancerService>>();
+        var loadBalancer = new LoadBalancerService(loggerMock.Object);
+        
+        // 1. Configure load balancing strategy
+        loadBalancer.Strategy = LoadBalancingStrategy.RoundRobin;
+        
+        // 2. Register endpoints
+        var endpoint1 = new ServiceEndpoint
+        {
+            Id = 1,
+            ServiceId = 10,
+            Host = "backend-service-1",
+            Port = 50051,
+            IsHealthy = true,
+            Weight = 2
+        };
+        
+        var endpoint2 = new ServiceEndpoint
+        {
+            Id = 2,
+            ServiceId = 10,
+            Host = "backend-service-2",
+            Port = 50052,
+            IsHealthy = true,
+            Weight = 1
+        };
+        
+        loadBalancer.RegisterEndpoint(endpoint1);
+        loadBalancer.RegisterEndpoint(endpoint2);
+        
+        // 3. Get next endpoint using round-robin strategy
+        var selectedEndpoint = loadBalancer.GetNextEndpoint(serviceId: 10);
+        Console.WriteLine($"Selected endpoint: {selectedEndpoint?.Host}:{selectedEndpoint?.Port}");
+        
+        // 4. Change strategy to least connections
+        loadBalancer.Strategy = LoadBalancingStrategy.LeastConnections;
+        
+        // 5. Simulate active connections (endpoint1 has 5 active connections, endpoint2 has 0)
+        endpoint1.ActiveConnections = 5;
+        endpoint2.ActiveConnections = 0;
+        
+        selectedEndpoint = loadBalancer.GetNextEndpoint(serviceId: 10);
+        Console.WriteLine($"Least connections selected: {selectedEndpoint?.Host} (connections: {selectedEndpoint?.ActiveConnections})");
+        
+        // 6. Mark an endpoint as unhealthy
+        loadBalancer.UpdateEndpointHealth(serviceId: 10, endpointId: 1, isHealthy: false);
+        
+        // 7. Get next endpoint (should skip unhealthy endpoint)
+        selectedEndpoint = loadBalancer.GetNextEndpoint(serviceId: 10);
+        Console.WriteLine($"After marking unhealthy - Selected endpoint: {selectedEndpoint?.Host}:{selectedEndpoint?.Port}");
+        
+        // 8. Deregister an endpoint
+        loadBalancer.DeregisterEndpoint(serviceId: 10, endpointId: 2);
+        
+        // 9. Get remaining endpoints
+        var remainingEndpoints = loadBalancer.GetEndpoints(serviceId: 10);
+        Console.WriteLine($"Remaining endpoints: {remainingEndpoints.Count}");
+        
+        // 10. Try to get next endpoint with only unhealthy endpoints
+        endpoint2.IsHealthy = false;
+        selectedEndpoint = loadBalancer.GetNextEndpoint(serviceId: 10);
+        Console.WriteLine($"With only unhealthy endpoints - Result: {(selectedEndpoint == null ? "null" : "endpoint")}");
+    }
+}
+```
+
 ## IRequestLogService
 
 `IRequestLogService` stores and provides queryable access to recent gateway request/response log entries. It maintains a fixed-capacity ring buffer of request logs that can be queried by method, status code, or time range. The service provides aggregate statistics including success rate, response times, and entry timestamps, making it ideal for monitoring, debugging, and performance analysis of gRPC gateway traffic.
@@ -3912,6 +4686,92 @@ class Program
 }
 ```
 
+## LoadBalancerServiceTests
+
+`LoadBalancerServiceTests` is a comprehensive test class that validates the behavior of the `LoadBalancerService` class, which implements load balancing strategies for gRPC services including round-robin, least connections, random selection, endpoint registration/deregistration, and health status management. The tests verify that the load balancer correctly handles various scenarios such as no endpoints registered, all endpoints unhealthy, cycling through endpoints with round-robin strategy, selecting endpoints with least active connections, and properly managing endpoint health status.
+
+### Example Usage
+
+```csharp
+using System;
+using System.Collections.Generic;
+using DotNetGrpcGateway.Domain;
+using DotNetGrpcGateway.Services;
+using FluentAssertions;
+using Microsoft.Extensions.Logging;
+using Moq;
+
+class Program
+{
+    static void Main()
+    {
+        // Setup logger and load balancer service
+        var loggerMock = new Mock<ILogger<LoadBalancerService>>();
+        var loadBalancer = new LoadBalancerService(loggerMock.Object);
+        
+        // 1. Configure load balancing strategy
+        loadBalancer.Strategy = LoadBalancingStrategy.RoundRobin;
+        
+        // 2. Register endpoints
+        var endpoint1 = new ServiceEndpoint
+        {
+            Id = 1,
+            ServiceId = 10,
+            Host = "backend-service-1",
+            Port = 50051,
+            IsHealthy = true,
+            Weight = 2
+        };
+        
+        var endpoint2 = new ServiceEndpoint
+        {
+            Id = 2,
+            ServiceId = 10,
+            Host = "backend-service-2",
+            Port = 50052,
+            IsHealthy = true,
+            Weight = 1
+        };
+        
+        loadBalancer.RegisterEndpoint(endpoint1);
+        loadBalancer.RegisterEndpoint(endpoint2);
+        
+        // 3. Get next endpoint using round-robin strategy
+        var selectedEndpoint = loadBalancer.GetNextEndpoint(serviceId: 10);
+        Console.WriteLine($"Selected endpoint: {selectedEndpoint?.Host}:{selectedEndpoint?.Port}");
+        
+        // 4. Change strategy to least connections
+        loadBalancer.Strategy = LoadBalancingStrategy.LeastConnections;
+        
+        // 5. Simulate active connections (endpoint1 has 5 active connections, endpoint2 has 0)
+        endpoint1.ActiveConnections = 5;
+        endpoint2.ActiveConnections = 0;
+        
+        selectedEndpoint = loadBalancer.GetNextEndpoint(serviceId: 10);
+        Console.WriteLine($"Least connections selected: {selectedEndpoint?.Host} (connections: {selectedEndpoint?.ActiveConnections})");
+        
+        // 6. Mark an endpoint as unhealthy
+        loadBalancer.UpdateEndpointHealth(serviceId: 10, endpointId: 1, isHealthy: false);
+        
+        // 7. Get next endpoint (should skip unhealthy endpoint)
+        selectedEndpoint = loadBalancer.GetNextEndpoint(serviceId: 10);
+        Console.WriteLine($"After marking unhealthy - Selected endpoint: {selectedEndpoint?.Host}:{selectedEndpoint?.Port}");
+        
+        // 8. Deregister an endpoint
+        loadBalancer.DeregisterEndpoint(serviceId: 10, endpointId: 2);
+        
+        // 9. Get remaining endpoints
+        var remainingEndpoints = loadBalancer.GetEndpoints(serviceId: 10);
+        Console.WriteLine($"Remaining endpoints: {remainingEndpoints.Count}");
+        
+        // 10. Try to get next endpoint with only unhealthy endpoints
+        endpoint2.IsHealthy = false;
+        selectedEndpoint = loadBalancer.GetNextEndpoint(serviceId: 10);
+        Console.WriteLine($"With only unhealthy endpoints - Result: {(selectedEndpoint == null ? "null" : "endpoint")}");
+    }
+}
+```
+
 ## IRequestLogService
 
 `IRequestLogService` stores and provides queryable access to recent gateway request/response log entries. It maintains a fixed-capacity ring buffer of request logs that can be queried by method, status code, or time range. The service provides aggregate statistics including success rate, response times, and entry timestamps, making it ideal for monitoring, debugging, and performance analysis of gRPC gateway traffic.
@@ -4143,6 +5003,92 @@ class Program
 }
 ```
 
+## LoadBalancerServiceTests
+
+`LoadBalancerServiceTests` is a comprehensive test class that validates the behavior of the `LoadBalancerService` class, which implements load balancing strategies for gRPC services including round-robin, least connections, random selection, endpoint registration/deregistration, and health status management. The tests verify that the load balancer correctly handles various scenarios such as no endpoints registered, all endpoints unhealthy, cycling through endpoints with round-robin strategy, selecting endpoints with least active connections, and properly managing endpoint health status.
+
+### Example Usage
+
+```csharp
+using System;
+using System.Collections.Generic;
+using DotNetGrpcGateway.Domain;
+using DotNetGrpcGateway.Services;
+using FluentAssertions;
+using Microsoft.Extensions.Logging;
+using Moq;
+
+class Program
+{
+    static void Main()
+    {
+        // Setup logger and load balancer service
+        var loggerMock = new Mock<ILogger<LoadBalancerService>>();
+        var loadBalancer = new LoadBalancerService(loggerMock.Object);
+        
+        // 1. Configure load balancing strategy
+        loadBalancer.Strategy = LoadBalancingStrategy.RoundRobin;
+        
+        // 2. Register endpoints
+        var endpoint1 = new ServiceEndpoint
+        {
+            Id = 1,
+            ServiceId = 10,
+            Host = "backend-service-1",
+            Port = 50051,
+            IsHealthy = true,
+            Weight = 2
+        };
+        
+        var endpoint2 = new ServiceEndpoint
+        {
+            Id = 2,
+            ServiceId = 10,
+            Host = "backend-service-2",
+            Port = 50052,
+            IsHealthy = true,
+            Weight = 1
+        };
+        
+        loadBalancer.RegisterEndpoint(endpoint1);
+        loadBalancer.RegisterEndpoint(endpoint2);
+        
+        // 3. Get next endpoint using round-robin strategy
+        var selectedEndpoint = loadBalancer.GetNextEndpoint(serviceId: 10);
+        Console.WriteLine($"Selected endpoint: {selectedEndpoint?.Host}:{selectedEndpoint?.Port}");
+        
+        // 4. Change strategy to least connections
+        loadBalancer.Strategy = LoadBalancingStrategy.LeastConnections;
+        
+        // 5. Simulate active connections (endpoint1 has 5 active connections, endpoint2 has 0)
+        endpoint1.ActiveConnections = 5;
+        endpoint2.ActiveConnections = 0;
+        
+        selectedEndpoint = loadBalancer.GetNextEndpoint(serviceId: 10);
+        Console.WriteLine($"Least connections selected: {selectedEndpoint?.Host} (connections: {selectedEndpoint?.ActiveConnections})");
+        
+        // 6. Mark an endpoint as unhealthy
+        loadBalancer.UpdateEndpointHealth(serviceId: 10, endpointId: 1, isHealthy: false);
+        
+        // 7. Get next endpoint (should skip unhealthy endpoint)
+        selectedEndpoint = loadBalancer.GetNextEndpoint(serviceId: 10);
+        Console.WriteLine($"After marking unhealthy - Selected endpoint: {selectedEndpoint?.Host}:{selectedEndpoint?.Port}");
+        
+        // 8. Deregister an endpoint
+        loadBalancer.DeregisterEndpoint(serviceId: 10, endpointId: 2);
+        
+        // 9. Get remaining endpoints
+        var remainingEndpoints = loadBalancer.GetEndpoints(serviceId: 10);
+        Console.WriteLine($"Remaining endpoints: {remainingEndpoints.Count}");
+        
+        // 10. Try to get next endpoint with only unhealthy endpoints
+        endpoint2.IsHealthy = false;
+        selectedEndpoint = loadBalancer.GetNextEndpoint(serviceId: 10);
+        Console.WriteLine($"With only unhealthy endpoints - Result: {(selectedEndpoint == null ? "null" : "endpoint")}");
+    }
+}
+```
+
 ## IRequestLogService
 
 `IRequestLogService` stores and provides queryable access to recent gateway request/response log entries. It maintains a fixed-capacity ring buffer of request logs that can be queried by method, status code, or time range. The service provides aggregate statistics including success rate, response times, and entry timestamps, making it ideal for monitoring, debugging, and performance analysis of gRPC gateway traffic.
@@ -4369,6 +5315,92 @@ class Program
 }
 ```
 
+## LoadBalancerServiceTests
+
+`LoadBalancerServiceTests` is a comprehensive test class that validates the behavior of the `LoadBalancerService` class, which implements load balancing strategies for gRPC services including round-robin, least connections, random selection, endpoint registration/deregistration, and health status management. The tests verify that the load balancer correctly handles various scenarios such as no endpoints registered, all endpoints unhealthy, cycling through endpoints with round-robin strategy, selecting endpoints with least active connections, and properly managing endpoint health status.
+
+### Example Usage
+
+```csharp
+using System;
+using System.Collections.Generic;
+using DotNetGrpcGateway.Domain;
+using DotNetGrpcGateway.Services;
+using FluentAssertions;
+using Microsoft.Extensions.Logging;
+using Moq;
+
+class Program
+{
+    static void Main()
+    {
+        // Setup logger and load balancer service
+        var loggerMock = new Mock<ILogger<LoadBalancerService>>();
+        var loadBalancer = new LoadBalancerService(loggerMock.Object);
+        
+        // 1. Configure load balancing strategy
+        loadBalancer.Strategy = LoadBalancingStrategy.RoundRobin;
+        
+        // 2. Register endpoints
+        var endpoint1 = new ServiceEndpoint
+        {
+            Id = 1,
+            ServiceId = 10,
+            Host = "backend-service-1",
+            Port = 50051,
+            IsHealthy = true,
+            Weight = 2
+        };
+        
+        var endpoint2 = new ServiceEndpoint
+        {
+            Id = 2,
+            ServiceId = 10,
+            Host = "backend-service-2",
+            Port = 50052,
+            IsHealthy = true,
+            Weight = 1
+        };
+        
+        loadBalancer.RegisterEndpoint(endpoint1);
+        loadBalancer.RegisterEndpoint(endpoint2);
+        
+        // 3. Get next endpoint using round-robin strategy
+        var selectedEndpoint = loadBalancer.GetNextEndpoint(serviceId: 10);
+        Console.WriteLine($"Selected endpoint: {selectedEndpoint?.Host}:{selectedEndpoint?.Port}");
+        
+        // 4. Change strategy to least connections
+        loadBalancer.Strategy = LoadBalancingStrategy.LeastConnections;
+        
+        // 5. Simulate active connections (endpoint1 has 5 active connections, endpoint2 has 0)
+        endpoint1.ActiveConnections = 5;
+        endpoint2.ActiveConnections = 0;
+        
+        selectedEndpoint = loadBalancer.GetNextEndpoint(serviceId: 10);
+        Console.WriteLine($"Least connections selected: {selectedEndpoint?.Host} (connections: {selectedEndpoint?.ActiveConnections})");
+        
+        // 6. Mark an endpoint as unhealthy
+        loadBalancer.UpdateEndpointHealth(serviceId: 10, endpointId: 1, isHealthy: false);
+        
+        // 7. Get next endpoint (should skip unhealthy endpoint)
+        selectedEndpoint = loadBalancer.GetNextEndpoint(serviceId: 10);
+        Console.WriteLine($"After marking unhealthy - Selected endpoint: {selectedEndpoint?.Host}:{selectedEndpoint?.Port}");
+        
+        // 8. Deregister an endpoint
+        loadBalancer.DeregisterEndpoint(serviceId: 10, endpointId: 2);
+        
+        // 9. Get remaining endpoints
+        var remainingEndpoints = loadBalancer.GetEndpoints(serviceId: 10);
+        Console.WriteLine($"Remaining endpoints: {remainingEndpoints.Count}");
+        
+        // 10. Try to get next endpoint with only unhealthy endpoints
+        endpoint2.IsHealthy = false;
+        selectedEndpoint = loadBalancer.GetNextEndpoint(serviceId: 10);
+        Console.WriteLine($"With only unhealthy endpoints - Result: {(selectedEndpoint == null ? "null" : "endpoint")}");
+    }
+}
+```
+
 ## IRequestLogService
 
 `IRequestLogService` stores and provides queryable access to recent gateway request/response log entries. It maintains a fixed-capacity ring buffer of request logs that can be queried by method, status code, or time range. The service provides aggregate statistics including success rate, response times, and entry timestamps, making it ideal for monitoring, debugging, and performance analysis of gRPC gateway traffic.
@@ -4586,6 +5618,92 @@ class Program
 }
 ```
 
+## LoadBalancerServiceTests
+
+`LoadBalancerServiceTests` is a comprehensive test class that validates the behavior of the `LoadBalancerService` class, which implements load balancing strategies for gRPC services including round-robin, least connections, random selection, endpoint registration/deregistration, and health status management. The tests verify that the load balancer correctly handles various scenarios such as no endpoints registered, all endpoints unhealthy, cycling through endpoints with round-robin strategy, selecting endpoints with least active connections, and properly managing endpoint health status.
+
+### Example Usage
+
+```csharp
+using System;
+using System.Collections.Generic;
+using DotNetGrpcGateway.Domain;
+using DotNetGrpcGateway.Services;
+using FluentAssertions;
+using Microsoft.Extensions.Logging;
+using Moq;
+
+class Program
+{
+    static void Main()
+    {
+        // Setup logger and load balancer service
+        var loggerMock = new Mock<ILogger<LoadBalancerService>>();
+        var loadBalancer = new LoadBalancerService(loggerMock.Object);
+        
+        // 1. Configure load balancing strategy
+        loadBalancer.Strategy = LoadBalancingStrategy.RoundRobin;
+        
+        // 2. Register endpoints
+        var endpoint1 = new ServiceEndpoint
+        {
+            Id = 1,
+            ServiceId = 10,
+            Host = "backend-service-1",
+            Port = 50051,
+            IsHealthy = true,
+            Weight = 2
+        };
+        
+        var endpoint2 = new ServiceEndpoint
+        {
+            Id = 2,
+            ServiceId = 10,
+            Host = "backend-service-2",
+            Port = 50052,
+            IsHealthy = true,
+            Weight = 1
+        };
+        
+        loadBalancer.RegisterEndpoint(endpoint1);
+        loadBalancer.RegisterEndpoint(endpoint2);
+        
+        // 3. Get next endpoint using round-robin strategy
+        var selectedEndpoint = loadBalancer.GetNextEndpoint(serviceId: 10);
+        Console.WriteLine($"Selected endpoint: {selectedEndpoint?.Host}:{selectedEndpoint?.Port}");
+        
+        // 4. Change strategy to least connections
+        loadBalancer.Strategy = LoadBalancingStrategy.LeastConnections;
+        
+        // 5. Simulate active connections (endpoint1 has 5 active connections, endpoint2 has 0)
+        endpoint1.ActiveConnections = 5;
+        endpoint2.ActiveConnections = 0;
+        
+        selectedEndpoint = loadBalancer.GetNextEndpoint(serviceId: 10);
+        Console.WriteLine($"Least connections selected: {selectedEndpoint?.Host} (connections: {selectedEndpoint?.ActiveConnections})");
+        
+        // 6. Mark an endpoint as unhealthy
+        loadBalancer.UpdateEndpointHealth(serviceId: 10, endpointId: 1, isHealthy: false);
+        
+        // 7. Get next endpoint (should skip unhealthy endpoint)
+        selectedEndpoint = loadBalancer.GetNextEndpoint(serviceId: 10);
+        Console.WriteLine($"After marking unhealthy - Selected endpoint: {selectedEndpoint?.Host}:{selectedEndpoint?.Port}");
+        
+        // 8. Deregister an endpoint
+        loadBalancer.DeregisterEndpoint(serviceId: 10, endpointId: 2);
+        
+        // 9. Get remaining endpoints
+        var remainingEndpoints = loadBalancer.GetEndpoints(serviceId: 10);
+        Console.WriteLine($"Remaining endpoints: {remainingEndpoints.Count}");
+        
+        // 10. Try to get next endpoint with only unhealthy endpoints
+        endpoint2.IsHealthy = false;
+        selectedEndpoint = loadBalancer.GetNextEndpoint(serviceId: 10);
+        Console.WriteLine($"With only unhealthy endpoints - Result: {(selectedEndpoint == null ? "null" : "endpoint")}");
+    }
+}
+```
+
 ## IRequestLogService
 
 `IRequestLogService` stores and provides queryable access to recent gateway request/response log entries. It maintains a fixed-capacity ring buffer of request logs that can be queried by method, status code, or time range. The service provides aggregate statistics including success rate, response times, and entry timestamps, making it ideal for monitoring, debugging, and performance analysis of gRPC gateway traffic.
@@ -4797,6 +5915,92 @@ Console.WriteLine($" - [{alert.Severity}] {alert.AlertType}: {alert.Message}");
 Console.WriteLine($"   Detected at: {alert.DetectedAt}");
 }
 }
+}
+```
+
+## LoadBalancerServiceTests
+
+`LoadBalancerServiceTests` is a comprehensive test class that validates the behavior of the `LoadBalancerService` class, which implements load balancing strategies for gRPC services including round-robin, least connections, random selection, endpoint registration/deregistration, and health status management. The tests verify that the load balancer correctly handles various scenarios such as no endpoints registered, all endpoints unhealthy, cycling through endpoints with round-robin strategy, selecting endpoints with least active connections, and properly managing endpoint health status.
+
+### Example Usage
+
+```csharp
+using System;
+using System.Collections.Generic;
+using DotNetGrpcGateway.Domain;
+using DotNetGrpcGateway.Services;
+using FluentAssertions;
+using Microsoft.Extensions.Logging;
+using Moq;
+
+class Program
+{
+    static void Main()
+    {
+        // Setup logger and load balancer service
+        var loggerMock = new Mock<ILogger<LoadBalancerService>>();
+        var loadBalancer = new LoadBalancerService(loggerMock.Object);
+        
+        // 1. Configure load balancing strategy
+        loadBalancer.Strategy = LoadBalancingStrategy.RoundRobin;
+        
+        // 2. Register endpoints
+        var endpoint1 = new ServiceEndpoint
+        {
+            Id = 1,
+            ServiceId = 10,
+            Host = "backend-service-1",
+            Port = 50051,
+            IsHealthy = true,
+            Weight = 2
+        };
+        
+        var endpoint2 = new ServiceEndpoint
+        {
+            Id = 2,
+            ServiceId = 10,
+            Host = "backend-service-2",
+            Port = 50052,
+            IsHealthy = true,
+            Weight = 1
+        };
+        
+        loadBalancer.RegisterEndpoint(endpoint1);
+        loadBalancer.RegisterEndpoint(endpoint2);
+        
+        // 3. Get next endpoint using round-robin strategy
+        var selectedEndpoint = loadBalancer.GetNextEndpoint(serviceId: 10);
+        Console.WriteLine($"Selected endpoint: {selectedEndpoint?.Host}:{selectedEndpoint?.Port}");
+        
+        // 4. Change strategy to least connections
+        loadBalancer.Strategy = LoadBalancingStrategy.LeastConnections;
+        
+        // 5. Simulate active connections (endpoint1 has 5 active connections, endpoint2 has 0)
+        endpoint1.ActiveConnections = 5;
+        endpoint2.ActiveConnections = 0;
+        
+        selectedEndpoint = loadBalancer.GetNextEndpoint(serviceId: 10);
+        Console.WriteLine($"Least connections selected: {selectedEndpoint?.Host} (connections: {selectedEndpoint?.ActiveConnections})");
+        
+        // 6. Mark an endpoint as unhealthy
+        loadBalancer.UpdateEndpointHealth(serviceId: 10, endpointId: 1, isHealthy: false);
+        
+        // 7. Get next endpoint (should skip unhealthy endpoint)
+        selectedEndpoint = loadBalancer.GetNextEndpoint(serviceId: 10);
+        Console.WriteLine($"After marking unhealthy - Selected endpoint: {selectedEndpoint?.Host}:{selectedEndpoint?.Port}");
+        
+        // 8. Deregister an endpoint
+        loadBalancer.DeregisterEndpoint(serviceId: 10, endpointId: 2);
+        
+        // 9. Get remaining endpoints
+        var remainingEndpoints = loadBalancer.GetEndpoints(serviceId: 10);
+        Console.WriteLine($"Remaining endpoints: {remainingEndpoints.Count}");
+        
+        // 10. Try to get next endpoint with only unhealthy endpoints
+        endpoint2.IsHealthy = false;
+        selectedEndpoint = loadBalancer.GetNextEndpoint(serviceId: 10);
+        Console.WriteLine($"With only unhealthy endpoints - Result: {(selectedEndpoint == null ? "null" : "endpoint")}");
+    }
 }
 ```
 
