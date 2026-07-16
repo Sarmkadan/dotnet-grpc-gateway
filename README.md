@@ -1530,6 +1530,175 @@ class Program
         // Setup dependency injection
         var services = new ServiceCollection();
         services.AddLogging(configure => configure.AddConsole());
+        services.AddMemoryCache();
+        services.AddSingleton<ICacheService, MemoryCacheService>();
+
+        var serviceProvider = services.BuildServiceProvider();
+        var cacheService = serviceProvider.GetRequiredService<ICacheService>();
+
+        // 1. Set a value in cache with default 5-minute expiration
+        await cacheService.SetAsync("user:123", new { Id = 123, Name = "John Doe", Email = "john@example.com" });
+        Console.WriteLine("Value cached successfully");
+
+        // 2. Get a value from cache
+        var cachedUser = await cacheService.GetAsync<object>("user:123");
+        if (cachedUser != null)
+        {
+            Console.WriteLine($"Cache hit! User: {cachedUser}");
+        }
+        else
+        {
+            Console.WriteLine("Cache miss - value not found");
+        }
+
+        // 3. Check if a key exists in cache
+        var exists = await cacheService.ExistsAsync("user:123");
+        Console.WriteLine($"Key 'user:123' exists: {exists}");
+
+        // 4. Set a value with custom expiration (30 seconds)
+        await cacheService.SetAsync("temp:data", "Temporary data", TimeSpan.FromSeconds(30));
+        Console.WriteLine("Temporary value cached for 30 seconds");
+
+        // 5. Remove a value from cache
+        await cacheService.RemoveAsync("temp:data");
+        Console.WriteLine("Temporary value removed from cache");
+
+        // 6. Get cache statistics
+        var stats = await cacheService.GetStatisticsAsync();
+        Console.WriteLine($"\nCache Statistics:");
+        Console.WriteLine($" - Name: {cacheService.Name}");
+        Console.WriteLine($" - Entry count: {stats.EntryCount}");
+        Console.WriteLine($" - Hit count: {stats.HitCount}");
+        Console.WriteLine($" - Miss count: {stats.MissCount}");
+        Console.WriteLine($" - Hit rate: {stats.HitRate:P2}");
+        Console.WriteLine($" - Approximate size: {stats.ApproximateSizeBytes} bytes");
+        Console.WriteLine($" - Max size: {cacheService.MaxSize}");
+        Console.WriteLine($" - Duration: {cacheService.Duration}");
+        Console.WriteLine($" - Absolute expiration: {cacheService.AbsoluteExpiration}");
+        Console.WriteLine($" - Sliding expiration: {cacheService.SlidingExpiration}");
+
+        // 7. Clear the entire cache
+        await cacheService.ClearAsync();
+        Console.WriteLine("Cache cleared");
+    }
+}
+```
+
+## ConfigurationUtility
+
+`ConfigurationUtility` provides type-safe access to configuration values with fallback defaults and validation utilities. It simplifies reading configuration from various sources (appsettings.json, environment variables, command-line arguments) with support for type conversion, section binding, and pattern-based key discovery. The utility includes methods for getting typed configuration values, validating required keys, merging multiple configuration sources, and checking environment types.
+
+### Example Usage
+
+```csharp
+using System;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Hosting;
+using DotNetGrpcGateway.Utilities;
+
+class Program
+{
+    static void Main()
+    {
+        // 1. Setup configuration
+        var configuration = new ConfigurationBuilder()
+            .AddJsonFile("appsettings.json")
+            .AddEnvironmentVariables()
+            .AddCommandLine(new[] { "--timeout=30" })
+            .Build();
+
+        var env = new HostBuilderContext(new Dictionary<object, object?>()).HostingEnvironment;
+        env.EnvironmentName = Environments.Development;
+
+        // 2. Get typed configuration values with defaults
+        var timeout = ConfigurationUtility.GetTimeSpanValue(configuration, "Gateway:Timeout", TimeSpan.FromSeconds(60));
+        var maxConnections = ConfigurationUtility.GetIntValue(configuration, "Gateway:MaxConnections", 100);
+        var enableDebug = ConfigurationUtility.GetBoolValue(configuration, "Gateway:EnableDebug", false);
+        var serviceName = ConfigurationUtility.GetConfigValue<string>(configuration, "Gateway:ServiceName", "DefaultService");
+
+        Console.WriteLine($"Configuration values:");
+        Console.WriteLine($" - Timeout: {timeout}");
+        Console.WriteLine($" - MaxConnections: {maxConnections}");
+        Console.WriteLine($" - EnableDebug: {enableDebug}");
+        Console.WriteLine($" - ServiceName: {serviceName}");
+
+        // 3. Validate required configuration keys
+        var isValid = ConfigurationUtility.ValidateRequiredKey(configuration, "Gateway:ServiceName");
+        Console.WriteLine($"\nRequired key 'Gateway:ServiceName' is valid: {isValid}");
+
+        // 4. Get configuration section and bind to object
+        var gatewayConfig = ConfigurationUtility.GetSection<GatewayConfig>(configuration, "Gateway");
+        if (gatewayConfig != null)
+        {
+            Console.WriteLine($"\nGateway configuration:");
+            Console.WriteLine($" - ListenAddress: {gatewayConfig.ListenAddress}");
+            Console.WriteLine($" - Port: {gatewayConfig.Port}");
+            Console.WriteLine($" - EnableMetrics: {gatewayConfig.EnableMetrics}");
+        }
+
+        // 5. Get all configuration keys matching a pattern
+        var gatewayKeys = ConfigurationUtility.GetKeysMatchingPattern(configuration, "Gateway:");
+        Console.WriteLine($"\nGateway configuration keys: {gatewayKeys.Count()}");
+        foreach (var key in gatewayKeys.Take(5))
+        {
+            Console.WriteLine($" - {key}");
+        }
+
+        // 6. Check environment type
+        var isDev = ConfigurationUtility.IsDevelopment(env);
+        var isProd = ConfigurationUtility.IsProduction(env);
+        Console.WriteLine($"\nEnvironment:");
+        Console.WriteLine($" - Development: {isDev}");
+        Console.WriteLine($" - Production: {isProd}");
+
+        // 7. Merge multiple configuration sources
+        var source1 = new Dictionary<string, string?>(StringComparer.OrdinalIgnoreCase)
+        {
+            { "Timeout", "10" },
+            { "MaxConnections", "50" }
+        };
+        
+        var source2 = new Dictionary<string, string?>(StringComparer.OrdinalIgnoreCase)
+        {
+            { "Timeout", "20" },
+            { "EnableDebug", "true" }
+        };
+        
+        var mergedConfig = ConfigurationUtility.MergeConfigurations(source1, source2);
+        Console.WriteLine($"\nMerged configuration:");
+        foreach (var kvp in mergedConfig)
+        {
+            Console.WriteLine($" - {kvp.Key}: {kvp.Value}");
+        }
+    }
+}
+
+// Example configuration class for binding
+public class GatewayConfig
+{
+    public string? ListenAddress { get; set; }
+    public int Port { get; set; }
+    public bool EnableMetrics { get; set; }
+    public bool EnableReflection { get; set; }
+}
+```
+
+### Example Usage
+
+```csharp
+using System;
+using System.Threading.Tasks;
+using DotNetGrpcGateway.Caching;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
+
+class Program
+{
+    static async Task Main()
+    {
+        // Setup dependency injection
+        var services = new ServiceCollection();
+        services.AddLogging(configure => configure.AddConsole());
         services.AddSingleton<ICacheService, MemoryCacheService>();
 
         var serviceProvider = services.BuildServiceProvider();
