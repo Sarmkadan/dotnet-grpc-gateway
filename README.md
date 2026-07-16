@@ -1535,6 +1535,93 @@ class Program
 }
 ```
 
+## GatewayStatisticsTests
+
+`GatewayStatisticsTests` is a comprehensive test class that validates the behavior of the `GatewayStatistics` class, which tracks and analyzes gateway performance metrics including request counts, success rates, response times, and service-specific statistics. The tests verify validation logic for negative values, boundary conditions, and proper calculation of averages and rates, ensuring the statistics system correctly monitors gateway performance.
+
+### Example Usage
+
+```csharp
+using System;
+using Xunit;
+using DotNetGrpcGateway.Domain;
+using DotNetGrpcGateway.Services;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
+
+class GatewayStatisticsExample
+{
+    static void Main()
+    {
+        // Setup dependency injection
+        var services = new ServiceCollection();
+        services.AddLogging(configure => configure.AddConsole());
+        services.AddSingleton<GatewayStatistics>();
+        
+        var serviceProvider = services.BuildServiceProvider();
+        var gatewayStatistics = serviceProvider.GetRequiredService<GatewayStatistics>();
+        
+        // 1. Record some requests
+        gatewayStatistics.RecordRequest("UserService", "GetUserById", 45.2, true);
+        gatewayStatistics.RecordRequest("UserService", "GetUserById", 32.8, true);
+        gatewayStatistics.RecordRequest("PaymentService", "ProcessPayment", 128.5, false);
+        gatewayStatistics.RecordRequest("PaymentService", "ProcessPayment", 95.3, true);
+        
+        // 2. Record service-specific metrics
+        gatewayStatistics.RecordServiceRequest("UserService", 120);
+        gatewayStatistics.RecordServiceRequest("PaymentService", 85);
+        gatewayStatistics.RecordServiceRequest("UserService", 95);
+        
+        // 3. Record method calls
+        gatewayStatistics.RecordMethodCall("UserService", "GetUserById", 38.5);
+        gatewayStatistics.RecordMethodCall("UserService", "GetUserById", 42.1);
+        gatewayStatistics.RecordMethodCall("PaymentService", "ProcessPayment", 112.8);
+        
+        // 4. Record errors
+        gatewayStatistics.RecordError("PaymentService", "ProcessPayment", "Insufficient funds");
+        gatewayStatistics.RecordError("PaymentService", "ProcessPayment", "Invalid card");
+        
+        // 5. Record cache hits
+        gatewayStatistics.RecordCacheHit("UserService", "GetUserById");
+        gatewayStatistics.RecordCacheHit("UserService", "GetUserById");
+        
+        // 6. Update service health
+        gatewayStatistics.UpdateServiceHealth("UserService", 2, 0);
+        gatewayStatistics.UpdateServiceHealth("PaymentService", 1, 1);
+        
+        // 7. Get overall statistics
+        var overallStats = gatewayStatistics.GetOverallStatistics();
+        Console.WriteLine($"Overall Statistics:");
+        Console.WriteLine($" - Total Requests: {overallStats.TotalRequests}");
+        Console.WriteLine($" - Successful Requests: {overallStats.SuccessfulRequests}");
+        Console.WriteLine($" - Failed Requests: {overallStats.FailedRequests}");
+        Console.WriteLine($" - Success Rate: {overallStats.SuccessRatePct:F1}%");
+        Console.WriteLine($" - Average Response Time: {overallStats.AverageResponseTimeMs:F1}ms");
+        Console.WriteLine($" - Min Response Time: {overallStats.MinResponseTimeMs}ms");
+        Console.WriteLine($" - Max Response Time: {overallStats.MaxResponseTimeMs}ms");
+        
+        // 8. Get service-specific statistics
+        var userServiceStats = gatewayStatistics.GetServiceStatistics("UserService");
+        Console.WriteLine($"\nUserService Statistics:");
+        Console.WriteLine($" - Total Requests: {userServiceStats.TotalRequests}");
+        Console.WriteLine($" - Success Rate: {userServiceStats.SuccessRatePct:F1}%");
+        Console.WriteLine($" - Average Response Time: {userServiceStats.AverageResponseTimeMs:F1}ms");
+        Console.WriteLine($" - Errors: {userServiceStats.ErrorCount}");
+        Console.WriteLine($" - Cache Hit Rate: {userServiceStats.CacheHitRatePct:F1}%");
+        
+        // 9. Get method-specific statistics
+        var getUserMethodStats = gatewayStatistics.GetMethodStatistics("UserService", "GetUserById");
+        Console.WriteLine($"\nGetUserById Method Statistics:");
+        Console.WriteLine($" - Total Calls: {getUserMethodStats.TotalCalls}");
+        Console.WriteLine($" - Average Response Time: {getUserMethodStats.AverageResponseTimeMs:F1}ms");
+        
+        // 10. Validate statistics (should not throw)
+        gatewayStatistics.Validate();
+        Console.WriteLine("\nStatistics validation passed!");
+    }
+}
+```
+
 ## ReflectionController
 
 `ReflectionController` is a REST API controller that exposes gRPC Server Reflection metadata and health checks for the reflection subsystem. It provides endpoints for discovering and refreshing reflection information about registered gRPC services, enabling runtime API inspection without direct access to .proto source files.
