@@ -1,608 +1,233 @@
-# Architecture Guide
+# Architecture
 
-This document describes the architecture and design patterns used in dotnet-grpc-gateway.
+This document describes how dotnet-grpc-gateway is actually built - the layout of the
+single ASP.NET Core project, the request pipeline, the main abstractions, and the
+decisions behind them (including the compromises). If something here disagrees with
+the code, the code wins; fix the doc.
 
-## System Overview
+## What it is
 
-```
-┌─────────────────────────────────────────────────────────┐
-│              Client Applications                         │
-│  (Web Browsers, Native Apps, SPAs)                       │
-└────────────────────┬────────────────────────────────────┘
-                     │ HTTP/1.1 + gRPC-Web
-                     │
-        ┌────────────▼──────────────┐
-        │   Load Balancer / Proxy   │ (Optional)
-        └────────────┬──────────────┘
-                     │
-    ┌────────────────▼────────────────────────────────────┐
-    │         dotnet-grpc-gateway                          │
-    │  ┌──────────────────────────────────────────────┐   │
-    │  │  HTTP Request Pipeline                       │   │
-    │  │  1. CORS Middleware                          │   │
-    │  │  2. Authentication Middleware                │   │
-    │  │  3. Request Logging Middleware               │   │
-    │  │  4. Rate Limiting Middleware                 │   │
-    │  │  5. Error Handling Middleware                │   │
-    │  └──────────────────────────────────────────────┘   │
-    │                                                      │
-    │  ┌──────────────────────────────────────────────┐   │
-    │  │  Route Resolution & Service Discovery        │   │
-    │  │  - Pattern Matching (Prefix, Exact, Regex)   │   │
-    │  │  - Priority-based Selection                  │   │
-    │  │  - Health Status Checking                    │   │
-    │  └──────────────────────────────────────────────┘   │
-    │                                                      │
-    │  ┌──────────────────────────────────────────────┐   │
-    │  │  gRPC Protocol Translation Layer              │   │
-    │  │  - gRPC-Web Protocol Handler                 │   │
-    │  │  - Message Serialization (Protobuf)         │   │
-    │  │  - Compression/Decompression                │   │
-    │  └──────────────────────────────────────────────┘   │
-    │                                                      │
-    │  ┌──────────────────────────────────────────────┐   │
-    │  │  Business Logic & Services                    │   │
-    │  │  - Metrics Collection                         │   │
-    │  │  - Cache Management                           │   │
-    │  │  - Webhook Integration                        │   │
-    │  │  - Performance Monitoring                     │   │
-    │  └──────────────────────────────────────────────┘   │
-    │                                                      │
-    │  ┌──────────────────────────────────────────────┐   │
-    │  │  Event System (Pub-Sub)                      │   │
-    │  │  - Service Registration Events               │   │
-    │  │  - Health Status Events                       │   │
-    │  │  - Route Configuration Events                │   │
-    │  │  - Performance Anomaly Events                │   │
-    │  └──────────────────────────────────────────────┘   │
-    │                                                      │
-    │  ┌──────────────────────────────────────────────┐   │
-    │  │  Background Services                          │   │
-    │  │  - Health Check Service (every 30s)          │   │
-    │  │  - Metrics Aggregation (every 60s)           │   │
-    │  │  - Cache Expiration Monitor                  │   │
-    │  │  - Service Cleanup                           │   │
-    │  └──────────────────────────────────────────────┘   │
-    │                                                      │
-    └──────────────┬──────────────────────┬───────────────┘
-                   │                      │
-        gRPC (5001-5010)            PostgreSQL (5432)
-                   │                      │
-     ┌─────────────▼───┐      ┌──────────▼──────────┐
-     │  Backend gRPC   │      │  Configuration DB   │
-     │  Services       │      │  & Metrics          │
-     │  - User Service │      │                     │
-     │  - Order Service│      │  - Routes           │
-     │  - Product Svc  │      │  - Services         │
-     │  - Custom Svc   │      │  - Auth Tokens      │
-     └─────────────────┘      │  - Metrics History  │
-                               │  - Health Status    │
-                               └─────────────────────┘
-```
+A self-hosted gRPC-Web gateway: browsers speak gRPC-Web over HTTP/1.1 to this
+service, which manages a registry of backend gRPC services and routes, and exposes a
+REST management/observability API on top. It replaces the "run Envoy in front of
+your gRPC services" setup with a single .NET process.
 
-## Layer Architecture
+Everything lives in one project: `src/dotnet-grpc-gateway` (`net10.0`, root namespace
+`DotNetGrpcGateway`). There is no separate Domain/Application/Infrastructure project
+split - the layering is by folder, which is deliberate: the deployable unit is one
+gateway process, and a multi-project split would buy compile-time enforcement of
+layering at the cost of ceremony that a project this size does not need yet.
 
-### 1. **Presentation Layer** (Controllers)
-
-Handles HTTP requests and responses. Three main controllers:
-
-- **GatewayController**: Core gateway operations (services, routes, config)
-- **MetricsController**: Performance statistics and analytics
-- **ServiceDiscoveryController**: Service metadata and route matching
-- **HealthController**: Health and readiness probes
-
-**Responsibilities**:
-- Route HTTP requests to services
-- Validate input parameters
-- Format responses (JSON, CSV, XML)
-- Handle HTTP status codes
-
-### 2. **Application/Business Logic Layer** (Services)
-
-Implements core business logic with dependency injection:
+## Project layout
 
 ```
-IGatewayService
-├── RegisterServiceAsync()
-├── UnregisterServiceAsync()
-├── AddRouteAsync()
-├── RemoveRouteAsync()
-└── GetConfigurationAsync()
-
-IServiceDiscoveryService
-├── PerformHealthCheckAsync()
-├── GetAllServicesHealthAsync()
-└── MonitorServiceHealthAsync()
-
-IRouteResolutionService
-├── ResolveRouteAsync()
-└── FindMatchingRouteAsync()
-
-IMetricsCollectionService
-├── GetTodayStatisticsAsync()
-├── GetSlowRequestsAsync()
-└── GetAverageResponseTimeAsync()
-
-ICacheService
-├── Set()
-├── TryGetValue()
-├── Remove()
-└── GetCacheStatistics()
-
-IValidationService
-├── ValidateServiceAsync()
-├── ValidateRouteAsync()
-└── ValidateAuthTokenAsync()
+src/dotnet-grpc-gateway/
+├── Program.cs            # composition root: DI, middleware pipeline, Serilog
+├── Configuration/        # ServiceCollectionExtensions (AddGatewayServices etc.)
+├── Controllers/          # REST management API (gateway, metrics, health, ...)
+├── Domain/               # entities: GrpcService, GatewayRoute, RequestMetric, ...
+├── Services/             # application services + hosted background services
+├── Infrastructure/       # repositories, circuit breaker, perf monitor, logging
+├── Middleware/           # auth, rate limiting, logging, gRPC-Web helpers
+├── Events/               # in-process pub-sub (IEventPublisher + handlers)
+├── Caching/              # ICacheService over IMemoryCache
+├── Formatters/           # JSON/CSV/XML output formatters + factory
+├── Streaming/            # streaming session abstractions
+├── Integration/          # webhooks, HttpClient provider
+├── Options/              # DotnetGrpcGatewayOptions (bound from configuration)
+├── Exceptions/           # GatewayException hierarchy
+└── Utilities/, Extensions/, Constants/
 ```
 
-### 3. **Domain Layer** (Models)
+Tests live in `tests/dotnet-grpc-gateway.Tests`, benchmarks (BenchmarkDotNet) in
+`benchmarks/`, runnable examples in `examples/`.
 
-Core business entities with business logic:
+## Composition root and pipeline
 
-```csharp
-GatewayConfiguration     // Gateway settings
-GrpcService             // Registered backend service
-GatewayRoute            // Routing rule
-RequestMetric           // Single request measurement
-AuthenticationToken     // API access token
-ServiceHealthReport     // Health check result
-GatewayStatistics       // Aggregated daily stats
-```
+`Program.cs` is the single composition root. DI registrations are grouped into
+extension methods in `Configuration/ServiceCollectionExtensions.cs`
+(`AddGatewayServices`, `AddGatewayConfiguration`, `AddGatewayHealthChecks`,
+`AddGatewayReflection`) so Program.cs stays a readable table of contents.
 
-### 4. **Data Access Layer** (Repositories)
-
-Repository pattern for data persistence:
-
-```csharp
-IGatewayRepository      // Gateway configuration storage
-IServiceRegistry        // Service management
-IRouteRepository        // Route storage
-IMetricsRepository      // Metrics persistence
-IUnitOfWork             // Transaction management
-```
-
-**Implementation**: PostgreSQL with Entity Framework Core
-
-### 5. **Infrastructure Layer**
-
-#### Middleware Pipeline
+The middleware pipeline, in order:
 
 ```
-1. CORS Middleware              // Cross-origin requests
-   ├── AllowAnyOrigin()
-   ├── AllowAnyMethod()
-   └── AllowAnyHeader()
-
-2. Request Logging Middleware   // Log all requests/responses
-   ├── Log request metadata
-   ├── Measure latency
-   └── Capture response status
-
-3. Authentication Middleware    // Verify API tokens
-   ├── Extract bearer token
-   ├── Validate token
-   └── Set user context
-
-4. Rate Limiting Middleware     // Token bucket algorithm
-   ├── Track client IP
-   ├── Increment counter
-   └── Return 429 if exceeded
-
-5. Error Handling Middleware    // Catch exceptions
-   ├── Format error response
-   ├── Log stack trace
-   └── Return 500 status
-
-6. gRPC-Web Handler             // Protocol translation
-   ├── Parse gRPC-Web request
-   ├── Forward to gRPC service
-   └── Convert response back
+ErrorHandlingMiddleware              # outermost - catches everything below
+UseRouting
+RequestLoggingMiddleware
+RateLimitingMiddleware
+UseAuthentication / UseAuthorization # "ApiKey" scheme
+UseCors("GrpcWebPolicy")
+UseGrpcWeb                           # Grpc.AspNetCore.Web protocol translation
+GrpcWebCompressionMiddleware
+GrpcWebTrailerForwardingMiddleware
+RequestResponseCapturingMiddleware
+MapControllers
+MapHealthChecks("/health")
 ```
 
-#### Support Services
+Rationale for the ordering:
 
-**PerformanceMonitor**: Real-time latency tracking
-- Maintains circular buffers for P50, P95, P99
-- Updates every 1 second
-- Minimal overhead
+- **Error handling is first** so it wraps every other middleware. It converts the
+  `GatewayException` hierarchy into structured error responses and is the only place
+  that turns unhandled exceptions into HTTP 500s.
+- **Rate limiting runs before authentication** on purpose: rejecting a flooded
+  client should not cost a token lookup per request.
+- **CORS before UseGrpcWeb**: the browser's preflight has to be answered before any
+  protocol translation happens, and the policy explicitly exposes the
+  `Grpc-Status` / `Grpc-Message` / trailer headers gRPC-Web clients need.
+- The two custom gRPC-Web middlewares (compression, trailer forwarding) exist
+  because the stock `UseGrpcWeb` does not compress gRPC-Web bodies and some
+  HTTP/1.1 clients lose trailers.
 
-**StructuredLogger**: Consistent logging
-- Serilog integration
-- Structured key-value pairs
-- Daily log rotation
+Logging is Serilog (console + daily rolling file under `logs/`), configured before
+the host builds so startup failures are captured too.
 
-**RequestContext**: Async-safe request correlation
-- Correlation ID tracking
-- User context propagation
-- Scoped to request
+## Core abstractions
 
-## Design Patterns
+Registered in `AddGatewayServices` (see `ServiceCollectionExtensions.cs`):
 
-### 1. **Dependency Injection**
+| Abstraction | Role |
+|---|---|
+| `IGatewayService` | orchestrates register/unregister services, add/remove routes |
+| `IServiceRegistry`, `IRouteRepository`, `IGatewayRepository`, `IMetricsRepository` | persistence of services / routes / gateway config / metrics |
+| `IUnitOfWork` | groups the four repositories behind a transaction-shaped API |
+| `IRouteResolutionService` | matches an incoming path to a `GatewayRoute` (exact / prefix / regex, priority-ordered) |
+| `IServiceDiscoveryService` | health-checks registered backends |
+| `IReflectionService` | discovers backend service surface via gRPC Server Reflection |
+| `IGrpcClientFactory` | creates/caches gRPC channels per backend (typed HttpClient) |
+| `ILoadBalancerService` | picks an endpoint per service; strategies incl. RoundRobin (default), LeastConnections, Random, Weighted |
+| `ICircuitBreakerRegistry` / `ICircuitBreaker` | per-service circuit breaker (closed/open/half-open, tunables in `CircuitBreakerOptions`) |
+| `IMetricsCollectionService`, `IRequestMetricsAnalyzerService` | record and analyze `RequestMetric`s |
+| `IRequestLogService` | fixed-size ring buffer (10 000 entries) of request/response captures |
+| `ICacheService` | thin wrapper over `IMemoryCache` with stats |
+| `IEventPublisher` | in-process pub-sub for `GatewayEvent`s |
+| `IValidationService` | FluentValidation-based input validation |
+| `IStreamingGatewayService` | bidirectional streaming sessions with backpressure (see `Streaming/`) |
 
-All services use constructor injection:
+The REST surface (`Controllers/`) sits on top of these: `GatewayController`
+(services/routes/config CRUD), `MetricsController`, `ServiceDiscoveryController`,
+`ReflectionController`, `LoadBalancerController`, `CircuitBreakerController`,
+`RequestLogsController`, `HealthController`. Responses can be shaped as JSON, CSV
+or XML via `OutputFormatterFactory`.
 
-```csharp
-public class GatewayController : ControllerBase
-{
-    private readonly IGatewayService _service;
-    
-    public GatewayController(IGatewayService service)
-    {
-        _service = service;
-    }
-}
-```
+### Background services
 
-**Benefits**: Testability, loose coupling, easy mocking
+Four `IHostedService` workers, all with deliberate startup delays so they never
+compete with request warm-up:
 
-### 2. **Repository Pattern**
+- `HealthCheckBackgroundService` - `PeriodicTimer`, interval from
+  `DotnetGrpcGatewayOptions.HealthCheck.IntervalSeconds`; pings each registered
+  backend and publishes `ServiceHealthCheckFailedEvent` on failure.
+- `MetricsAggregationBackgroundService` - rolls raw `RequestMetric`s into
+  `GatewayStatistics`.
+- `CacheExpirationBackgroundService` - sweeps the cache every 10 minutes.
+- `ServiceCleanupBackgroundService` - hourly, removes long-dead registrations.
 
-Abstracts data access:
+Background singletons reach scoped services through DI scopes - they never capture
+scoped instances directly.
 
-```csharp
-public interface IGatewayRepository
-{
-    Task<GatewayService> GetByIdAsync(int id);
-    Task<List<GatewayService>> GetAllAsync();
-    Task AddAsync(GatewayService service);
-    Task UpdateAsync(GatewayService service);
-    Task DeleteAsync(int id);
-}
-```
+### Event system
 
-**Benefits**: Database independence, easier testing, clean separation
+`IEventPublisher` is a simple in-process dispatcher; handlers implement
+`IEventHandler<TEvent>` and are resolved from DI (one handler class per event type
+under `Events/EventHandlers/`). Events cover service registration/unregistration,
+route add/remove, health-check failures, config updates and throttling. This is
+observer-pattern decoupling, not a message bus: publishing is in-process and
+best-effort. If you need durable or cross-instance events, that is an extension
+point - do not bolt it onto `EventPublisher`.
 
-### 3. **Unit of Work Pattern**
+## Persistence: the honest part
 
-Manages transactions:
+**The repositories are in-memory.** `GatewayRepository`, `ServiceRegistry`,
+`RouteRepository` and `MetricsRepository` each keep a `Dictionary<int, T>` and hand
+out `Task.FromResult`. They take an `IConnectionStringProvider` in the constructor,
+and the csproj references Npgsql + Dapper, but no SQL is executed anywhere yet.
+`UnitOfWork.CommitAsync` / `RollbackAsync` are likewise no-ops shaped like a
+transaction API.
 
-```csharp
-public interface IUnitOfWork
-{
-    IGatewayRepository Gateway { get; }
-    IServiceRegistry Services { get; }
-    IRouteRepository Routes { get; }
-    Task<int> SaveChangesAsync();
-}
-```
+Consequences you must know:
 
-**Benefits**: Consistent transactions, atomicity
+- **State does not survive a restart.** Registered services and routes are gone
+  when the process dies. `docker-compose.yml` provisions PostgreSQL and passes a
+  connection string, but today that database stores nothing.
+- The repositories are registered as **singletons** precisely because they are
+  dictionary-backed - a scoped lifetime would give each request a fresh empty
+  store. When a Dapper/Npgsql implementation lands, switch them back to scoped and
+  give `UnitOfWork` a real `NpgsqlTransaction`; the interfaces were shaped for
+  that from the start, which is why `IConnectionStringProvider` is already
+  threaded through.
+- Multi-instance deployment behind a load balancer is **not** currently viable for
+  the management plane: each instance would have its own registry. The data plane
+  (proxying) works if all instances are configured identically.
 
-### 4. **Factory Pattern**
+This is a known, accepted trade-off: the interfaces define the contract, the
+storage engine is swappable, and in-memory was the cheapest way to make the whole
+gateway testable end-to-end without a database.
 
-GrpcClientFactory creates gRPC clients:
+## Data flow
 
-```csharp
-public interface IGrpcClientFactory
-{
-    TClient CreateClient<TClient>(GrpcService service) 
-        where TClient : class;
-}
-```
-
-**Benefits**: Centralized client creation, caching, pooling
-
-### 5. **Observer Pattern (Events)**
-
-EventPublisher implements pub-sub:
-
-```csharp
-public interface IEventPublisher
-{
-    void Publish<T>(T @event) where T : GatewayEvent;
-    void Subscribe<T>(IEventHandler<T> handler) where T : GatewayEvent;
-}
-```
-
-**Benefits**: Loose coupling, asynchronous notifications
-
-### 6. **Strategy Pattern**
-
-Route matching strategies:
-
-```csharp
-public enum RouteMatchType
-{
-    Exact,      // Exact string match
-    Prefix,     // Wildcard prefix match
-    Regex       // Regular expression match
-}
-```
-
-**Benefits**: Flexible matching, easy extension
-
-### 7. **Decorator Pattern**
-
-Middleware wraps request processing:
-
-```csharp
-app.UseMiddleware<RequestLoggingMiddleware>();  // Logs
-app.UseMiddleware<RateLimitingMiddleware>();    // Rate limits
-app.UseMiddleware<AuthenticationMiddleware>();  // Auth
-```
-
-**Benefits**: Composable functionality, separation of concerns
-
-## Data Model
-
-### Service Registration Flow
+Proxied request (gRPC-Web from a browser):
 
 ```
-RegisterService
-    ↓
-Validate Service
-    ↓
-Insert into Database
-    ↓
-Publish ServiceRegisteredEvent
-    ↓
-Start Health Check Timer
-    ↓
-Return Service ID
+client → ErrorHandling → RequestLogging → RateLimiting → Auth → CORS
+       → gRPC-Web translation (+compression, trailer forwarding)
+       → RouteResolutionService (exact/prefix/regex, priority)
+       → LoadBalancerService picks endpoint
+       → CircuitBreakerRegistry gate
+       → GrpcClientFactory channel → backend gRPC service
+       → RequestResponseCapturing stores entry in ring buffer
+       → MetricsCollectionService records RequestMetric
 ```
 
-### Request Processing Flow
+Management request (REST): same pipeline until routing, then a controller calls the
+matching application service, which goes through `IUnitOfWork` / repositories and
+may publish a `GatewayEvent` (e.g. `RouteAddedEvent`) whose handlers do
+logging/webhook side effects.
 
-```
-HTTP Request
-    ↓
-CORS Check
-    ↓
-Authentication
-    ↓
-Rate Limit Check
-    ↓
-Route Matching
-    ↓
-Check Cache
-    ├─ Hit → Return cached response
-    └─ Miss → Forward to gRPC Service
-    ↓
-gRPC Call
-    ↓
-Record Metrics
-    ↓
-Update Cache (if enabled)
-    ↓
-Return Response
-```
+## Cross-cutting decisions and trade-offs
 
-### Health Check Flow
+- **API-key authentication only** (`AddApiKeyAuthentication`, "ApiKey" scheme).
+  Chosen over JWT/OIDC because the management API is meant to sit behind an
+  internal network edge; tokens are modeled by `AuthenticationToken` in Domain.
+  Trade-off: no per-user identity or claims - add a proper OIDC scheme if the API
+  is ever exposed publicly.
+- **In-process rate limiting** (`RateLimitingMiddleware`, per-client counters).
+  Fine for one instance; not coordinated across instances (see persistence note).
+- **10 MB gRPC message caps** in both directions - a guardrail against a browser
+  client accidentally streaming a file through the gateway. Raise consciously.
+- **`PerformanceMonitor` keeps latency percentiles in fixed-size in-memory
+  buffers** - constant memory, but percentiles reflect the recent window only.
+- **`RequestLogService` is a bounded ring buffer (10 000 entries)**, not a log
+  store: it exists for "what just happened" debugging via `RequestLogsController`,
+  not for audit. Old entries are overwritten by design.
+- **Explicit DI registration over assembly scanning**: registrations are grouped
+  in extension methods, explicit and greppable; the cost is remembering to add new
+  services by hand.
 
-```
-HealthCheckBackgroundService
-    ├─ Every 30 seconds
-    ├─ For each registered service
-    ├─ Send gRPC health check
-    ├─ Update service status
-    ├─ Publish HealthCheckEvent
-    └─ If failed 3x → Unregister service
-```
+## Extension points
 
-## Performance Considerations
+- **Storage**: implement the four repository interfaces against PostgreSQL
+  (Npgsql/Dapper are already referenced), register them scoped, give `UnitOfWork`
+  a real transaction. No caller changes needed.
+- **Load balancing**: add a member to `LoadBalancingStrategy` and a case in
+  `LoadBalancerService`.
+- **Events**: implement `IEventHandler<TEvent>` and register it; the publisher
+  resolves all handlers for the event type.
+- **Output formats**: implement `IOutputFormatter` and extend
+  `OutputFormatterFactory`.
+- **Middleware**: standard ASP.NET Core `UseMiddleware<T>` - register anything
+  that must have its failures translated *after* `ErrorHandlingMiddleware`.
+- **Discovery**: `IReflectionService` wraps gRPC Server Reflection; alternative
+  discovery (Consul, DNS) belongs behind `IServiceDiscoveryService`.
 
-### Memory Optimization
+## Known limitations
 
-- **Circular Buffers**: P50/P95/P99 use fixed-size buffers
-- **Object Pooling**: Request/response objects reused
-- **Streaming**: Large responses streamed, not buffered
-- **Cache Limits**: Configurable cache size with LRU eviction
-
-### CPU Optimization
-
-- **Async/Await**: Non-blocking request handling
-- **SIMD**: Protobuf serialization uses optimized libraries
-- **Lazy Loading**: Services loaded on-demand
-- **Compiled Regex**: Route patterns pre-compiled
-
-### Network Optimization
-
-- **Connection Pooling**: HTTP/2 for backend services
-- **Compression**: gzip compression support
-- **Keep-Alive**: TCP connection reuse
-- **Batch Requests**: Multiple gRPC calls grouped
-
-## Security Architecture
-
-### Authentication Flow
-
-```
-Client Request
-    ↓
-Extract Bearer Token from Authorization Header
-    ↓
-Validate Token Signature
-    ↓
-Check Token Expiration
-    ↓
-Set User Principal
-    ↓
-Continue Pipeline
-```
-
-### Rate Limiting
-
-Token bucket algorithm per IP:
-
-```
-For each request:
-    bucket = GetBucketForIp(clientIp)
-    if bucket.TokensAvailable >= 1:
-        bucket.Consume(1)
-        Allow request
-    else:
-        Return 429 Too Many Requests
-```
-
-### Authorization
-
-Per-route authentication requirements:
-
-```
-Route { Pattern = "admin.*", RequiresAuthentication = true }
-    ↓
-If request matches pattern AND not authenticated
-    ↓
-Return 401 Unauthorized
-```
-
-## Scalability
-
-### Horizontal Scaling
-
-Deploy multiple gateway instances behind load balancer:
-
-```
-Load Balancer
-    ├── Gateway Instance 1 (Pod 1)
-    ├── Gateway Instance 2 (Pod 2)
-    ├── Gateway Instance 3 (Pod 3)
-    └── Gateway Instance 4 (Pod 4)
-         ↓
-    Shared PostgreSQL Database
-```
-
-**Key**: Stateless design allows unlimited scaling
-
-### Vertical Scaling
-
-Increase single instance resources:
-
-- Increase `MaxConcurrentConnections`
-- Tune JIT compilation
-- Increase cache size
-- Use SSD for logs
-
-### Database Scaling
-
-For high metrics volume:
-
-- Partition metrics by date
-- Archive old metrics
-- Use read replicas for reporting
-- Consider time-series database (TimescaleDB)
-
-## Extension Points
-
-### Adding Custom Middleware
-
-```csharp
-public class CustomMiddleware
-{
-    private readonly RequestDelegate _next;
-    
-    public CustomMiddleware(RequestDelegate next)
-    {
-        _next = next;
-    }
-    
-    public async Task InvokeAsync(HttpContext context)
-    {
-        // Before request
-        await _next(context);
-        // After response
-    }
-}
-
-// Register: app.UseMiddleware<CustomMiddleware>();
-```
-
-### Adding Custom Event Handlers
-
-```csharp
-public class CustomEventHandler : IEventHandler<ServiceRegisteredEvent>
-{
-    public async Task HandleAsync(ServiceRegisteredEvent @event)
-    {
-        // React to service registration
-    }
-}
-
-// Register: services.AddScoped<IEventHandler<ServiceRegisteredEvent>, CustomEventHandler>();
-```
-
-### Adding Custom Metrics
-
-```csharp
-public class CustomMetricsService
-{
-    private readonly IMetricsRepository _repo;
-    
-    public async Task RecordCustomMetricAsync(string name, double value)
-    {
-        // Store custom metric
-    }
-}
-```
-
-## Testing Strategy
-
-### Unit Testing
-
-Test individual services with mocked dependencies:
-
-```csharp
-[Test]
-public async Task RegisterService_ValidInput_ReturnsServiceId()
-{
-    // Arrange
-    var mockRepo = new Mock<IGatewayRepository>();
-    var service = new GatewayService(mockRepo.Object);
-    
-    // Act
-    var result = await service.RegisterServiceAsync(...);
-    
-    // Assert
-    Assert.That(result.Id, Is.GreaterThan(0));
-}
-```
-
-### Integration Testing
-
-Test service interactions:
-
-```csharp
-[Test]
-public async Task Route_ServiceRegistered_SuccessfullyRouted()
-{
-    // Start gateway
-    // Register service
-    // Make request
-    // Verify response
-}
-```
-
-### Performance Testing
-
-Load testing:
-
-```bash
-dotnet run --project tests/DotNetGrpcGateway.LoadTests
-```
-
-## Deployment Architecture
-
-### Development
-
-Single-container setup with embedded database.
-
-### Production
-
-Multi-tier deployment:
-
-```
-Internet
-    ↓
-CDN (CloudFront/CloudFlare)
-    ↓
-Load Balancer
-    ↓
-Gateway Cluster (3-5 instances)
-    ↓
-Database Cluster (Primary + Replicas)
-    ↓
-Backend gRPC Services (Multiple instances)
-```
-
-See [DEPLOYMENT.md](DEPLOYMENT.md) for details.
+- No durable storage (see above) - a restart wipes registry, routes and metrics.
+- Single-instance management plane; no distributed rate limiting or shared
+  circuit-breaker state.
+- Health checking is poll-based (no push/watch), interval-configurable.
+- `UnitOfWork` transactions are advisory no-ops until real persistence lands.
+- The `docs/` folder contains generated per-type reference pages of varying
+  quality; this file plus `GETTING-STARTED.md` and `DEPLOYMENT.md` are the curated
+  entry points.
