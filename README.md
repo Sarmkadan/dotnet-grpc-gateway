@@ -310,6 +310,96 @@ class Program
 }
 ```
 
+## ILoadBalancerService
+
+`ILoadBalancerService` manages endpoint pools for gRPC services and selects the next endpoint to use based on a configurable load balancing strategy. It provides methods for registering/deregistering endpoints, retrieving endpoint lists, updating health status, and recording request metrics. The service supports RoundRobin, Random, and LeastConnections strategies to distribute traffic across healthy endpoints.
+
+### Example Usage
+
+```csharp
+using System;
+using System.Linq;
+using DotNetGrpcGateway.Domain;
+using DotNetGrpcGateway.Services;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
+
+class Program
+{
+    static void Main()
+    {
+        // Setup dependency injection
+        var services = new ServiceCollection();
+        services.AddLogging(configure => configure.AddConsole());
+        services.AddSingleton<ILoadBalancerService, LoadBalancerService>();
+        
+        var serviceProvider = services.BuildServiceProvider();
+        var loadBalancer = serviceProvider.GetRequiredService<ILoadBalancerService>();
+
+        // 1. Register endpoints for a service
+        var endpoint1 = new ServiceEndpoint { 
+            Id = 1, 
+            ServiceId = 10, 
+            Host = "backend1.example.com", 
+            Port = 5001,
+            Weight = 2
+        };
+        
+        var endpoint2 = new ServiceEndpoint { 
+            Id = 2, 
+            ServiceId = 10, 
+            Host = "backend2.example.com", 
+            Port = 5002,
+            Weight = 1
+        };
+        
+        loadBalancer.RegisterEndpoint(endpoint1);
+        loadBalancer.RegisterEndpoint(endpoint2);
+
+        // 2. Set load balancing strategy
+        loadBalancer.Strategy = LoadBalancingStrategy.RoundRobin;
+        Console.WriteLine($"Load balancing strategy: {loadBalancer.Strategy}");
+
+        // 3. Get all registered endpoints
+        var endpoints = loadBalancer.GetEndpoints(10);
+        Console.WriteLine($"Registered endpoints: {endpoints.Count}");
+        foreach (var ep in endpoints)
+        {
+            Console.WriteLine($" - Endpoint {ep.Id}: {ep.Host}:{ep.Port} (Healthy: {ep.IsHealthy})");
+        }
+
+        // 4. Get next endpoint using RoundRobin strategy
+        var selectedEndpoint = loadBalancer.GetNextEndpoint(10);
+        Console.WriteLine($"\nSelected endpoint: {selectedEndpoint?.Host}:{selectedEndpoint?.Port}");
+
+        // 5. Update endpoint health status
+        loadBalancer.UpdateEndpointHealth(10, 1, true);
+        loadBalancer.UpdateEndpointHealth(10, 2, false);
+        Console.WriteLine("Updated endpoint health status");
+
+        // 6. Record request completion
+        loadBalancer.RecordRequestCompleted(10, 1, 45.2, true);
+        loadBalancer.RecordRequestCompleted(10, 2, 38.7, false);
+
+        // 7. Switch to Random strategy
+        loadBalancer.Strategy = LoadBalancingStrategy.Random;
+        Console.WriteLine($"\nSwitched to strategy: {loadBalancer.Strategy}");
+
+        // 8. Get next endpoint using Random strategy
+        var randomEndpoint = loadBalancer.GetNextEndpoint(10);
+        Console.WriteLine($"Randomly selected endpoint: {randomEndpoint?.Host}:{randomEndpoint?.Port}");
+
+        // 9. Deregister an endpoint
+        loadBalancer.DeregisterEndpoint(10, 2);
+        Console.WriteLine("Deregistered endpoint 2");
+
+        // 10. Verify remaining endpoints
+        var remainingEndpoints = loadBalancer.GetEndpoints(10);
+        Console.WriteLine($"Remaining endpoints: {remainingEndpoints.Count}");
+    }
+}
+```
+
 ## IMetricsCollectionService
 
 `IMetricsCollectionService` is responsible for collecting, aggregating, and analyzing metrics related to gateway requests and service performance. It provides methods for recording request metrics, retrieving statistics, identifying slow requests, and analyzing service usage patterns.
