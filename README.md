@@ -1139,6 +1139,78 @@ class GatewayMiddleware
 }
 ```
 
+## ServiceDiscoveryController
+
+`ServiceDiscoveryController` is a REST API controller that provides endpoints for service discovery, registration, and route management within the gRPC gateway. It serves as the primary interface for discovering registered services, managing service routes, and resolving route patterns dynamically. The controller integrates with `IGatewayService` for service management, `IServiceDiscoveryService` for health monitoring, and `IRouteManagementService` for route resolution.
+
+### Example Usage
+
+```csharp
+using System;
+using System.Collections.Generic;
+using System.Net.Http;
+using System.Net.Http.Json;
+using System.Threading.Tasks;
+using DotNetGrpcGateway.Domain;
+
+class Program
+{
+    static async Task Main()
+    {
+        // Setup HTTP client to call service discovery endpoints
+        var httpClient = new HttpClient();
+        var baseUrl = "https://localhost:5001/api/serviceDiscovery";
+
+        // 1. Get all registered services
+        var servicesResponse = await httpClient.GetAsync($"{baseUrl}/services");
+        if (servicesResponse.IsSuccessStatusCode)
+        {
+            var services = await servicesResponse.Content.ReadFromJsonAsync<List<ServiceInfo>>();
+            Console.WriteLine($"Registered services: {services?.Count}");
+            foreach (var service in services ?? new List<ServiceInfo>())
+            {
+                Console.WriteLine($" - {service.Name} ({service.ServiceFullName}) at {service.Host}:{service.Port}");
+            }
+        }
+
+        // 2. Get routes for a specific service
+        var serviceId = 1; // Replace with actual service ID
+        var routesResponse = await httpClient.GetAsync($"{baseUrl}/services/{serviceId}/routes");
+        if (routesResponse.IsSuccessStatusCode)
+        {
+            var routes = await routesResponse.Content.ReadFromJsonAsync<List<GatewayRoute>>();
+            Console.WriteLine($"\nRoutes for service {serviceId}: {routes?.Count}");
+            foreach (var route in routes ?? new List<GatewayRoute>())
+            {
+                Console.WriteLine($" - Route ID {route.Id}: {route.Pattern} (Priority: {route.Priority})");
+            }
+        }
+
+        // 3. Find matching route for a path
+        var matchResponse = await httpClient.PostAsJsonAsync($"{baseUrl}/route-match", 
+            new { Path = "/api/users/get" });
+        if (matchResponse.IsSuccessStatusCode)
+        {
+            var matchResult = await matchResponse.Content.ReadFromJsonAsync<RouteMatchResult>();
+            Console.WriteLine($"\nMatching route found:");
+            Console.WriteLine($" - Route ID: {matchResult?.RouteId}");
+            Console.WriteLine($" - Pattern: {matchResult?.Pattern}");
+            Console.WriteLine($" - Target Service: {matchResult?.ServiceId} ({matchResult?.ServiceName})");
+            Console.WriteLine($" - Priority: {matchResult?.Priority}");
+        }
+
+        // 4. Check for conflicting routes
+        var conflictsResponse = await httpClient.PostAsJsonAsync($"{baseUrl}/route-conflicts",
+            new { Pattern = "/api/users/*" });
+        if (conflictsResponse.IsSuccessStatusCode)
+        {
+            var conflicts = await conflictsResponse.Content.ReadFromJsonAsync<List<GatewayRoute>>();
+            Console.WriteLine($"\nConflicting routes for pattern '/api/users/*': {conflicts?.Count}");
+        }
+    }
+}
+```
+
 ## IServiceDiscoveryService
 
 `IServiceDiscoveryService` is responsible for discovering and monitoring the health of registered gRPC services. It provides methods for performing health checks, retrieving the latest health report, updating service health status, discovering available services, and retrieving the health status of all services.
