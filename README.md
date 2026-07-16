@@ -463,9 +463,59 @@ class Program
 }
 ```
 
-## IRequestMetricsAnalyzerService
+## IValidationService
 
-`IRequestMetricsAnalyzerService` analyzes request metrics to identify patterns, trends, and potential issues. It provides methods for analyzing overall request patterns, evaluating individual endpoint health, and detecting anomalies in service behavior. This service helps identify performance bottlenecks, track service health, and generate actionable insights from gateway metrics.
+`IValidationService` provides validation capabilities for gateway configuration, gRPC services, routes, and authentication tokens. It validates gateway settings, service configurations, route definitions, IP addresses, and authentication/authorization tokens to ensure the gateway operates with valid and secure configurations.
+
+### Example Usage
+
+```csharp
+using System;
+using System.Threading.Tasks;
+using DotNetGrpcGateway.Domain;
+using DotNetGrpcGateway.Services;
+using Microsoft.Extensions.DependencyInjection;
+
+class Program
+{
+    static async Task Main(IServiceProvider serviceProvider)
+    {
+        var validationService = serviceProvider.GetRequiredService<IValidationService>();
+
+        // 1. Validate gateway configuration
+        var config = new GatewayConfiguration { Name = "MyGateway", Port = 5000 };
+        validationService.ValidateGatewayConfiguration(config);
+        Console.WriteLine("Gateway configuration validated successfully");
+
+        // 2. Validate gRPC service
+        var service = new GrpcService { Name = "UserService", Host = "localhost", Port = 5001 };
+        validationService.ValidateGrpcService(service);
+        Console.WriteLine("gRPC service validated successfully");
+
+        // 3. Validate gateway route
+        var route = new GatewayRoute { Pattern = "/api/users", TargetServiceId = 10, Priority = 1 };
+        validationService.ValidateGatewayRoute(route);
+        Console.WriteLine("Gateway route validated successfully");
+
+        // 4. Validate request metric
+        var metric = new RequestMetric { ServiceName = "UserService", MethodName = "GetUser", DurationMs = 45.2, ClientIpAddress = "192.168.1.100" };
+        validationService.ValidateRequestMetric(metric);
+        Console.WriteLine("Request metric validated successfully");
+
+        // 5. Validate IP address
+        var ipValid = validationService.ValidateIpAddress("192.168.1.100");
+        Console.WriteLine($"IP address valid: {ipValid}");
+
+        // 6. Validate authentication token
+        var tokenValid = await validationService.ValidateAuthenticationTokenAsync("eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0IiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c");
+        Console.WriteLine($"Authentication token valid: {tokenValid}");
+
+        // 7. Validate authorization
+        var authValid = await validationService.ValidateAuthorizationAsync("user-123", 10);
+        Console.WriteLine($"Authorization valid: {authValid}");
+    }
+}
+```
 
 ### Example Usage
 
