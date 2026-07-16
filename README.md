@@ -1501,6 +1501,125 @@ class Program
 }
 ```
 
+## ValidationUtility
+
+`ValidationUtility` provides validation methods for common patterns and data formats used throughout the gRPC gateway. It includes utilities for validating URIs, IP addresses, ports, hostnames, GUIDs, service names, protocols, paths, and numeric ranges. The class also provides a helper method to throw validation exceptions when conditions are not met, enabling concise validation code.
+
+### Example Usage
+
+```csharp
+using System;
+using DotNetGrpcGateway.Utilities;
+using DotNetGrpcGateway.Exceptions;
+
+class Program
+{
+    static void Main()
+    {
+        // 1. Validate URIs
+        var httpUrl = "https://example.com/api";
+        var invalidUrl = "not-a-valid-url";
+        Console.WriteLine($"Is '{httpUrl}' a valid URI? {ValidationUtility.IsValidUri(httpUrl)}");
+        Console.WriteLine($"Is '{invalidUrl}' a valid URI? {ValidationUtility.IsValidUri(invalidUrl)}");
+
+        // 2. Validate IP addresses
+        var ipv4 = "192.168.1.1";
+        var ipv6 = "2001:0db8:85a3:0000:0000:8a2e:0370:7334";
+        var invalidIp = "999.999.999.999";
+        Console.WriteLine($"Is '{ipv4}' a valid IP? {ValidationUtility.IsValidIpAddress(ipv4)}");
+        Console.WriteLine($"Is '{ipv6}' a valid IP? {ValidationUtility.IsValidIpAddress(ipv6)}");
+        Console.WriteLine($"Is '{invalidIp}' a valid IP? {ValidationUtility.IsValidIpAddress(invalidIp)}");
+
+        // 3. Validate ports
+        var validPort = 8080;
+        var invalidPort = 99999;
+        Console.WriteLine($"Is port {validPort} valid? {ValidationUtility.IsValidPort(validPort)}");
+        Console.WriteLine($"Is port {invalidPort} valid? {ValidationUtility.IsValidPort(invalidPort)}");
+
+        // 4. Validate hostnames
+        var validHostname = "example.com";
+        var invalidHostname = "invalid..hostname";
+        Console.WriteLine($"Is '{validHostname}' a valid hostname? {ValidationUtility.IsValidHostname(validHostname)}");
+        Console.WriteLine($"Is '{invalidHostname}' a valid hostname? {ValidationUtility.IsValidHostname(invalidHostname)}");
+
+        // 5. Validate GUIDs
+        var validGuid = "550e8400-e29b-41d4-a716-446655440000";
+        var invalidGuid = "not-a-guid";
+        Console.WriteLine($"Is '{validGuid}' a valid GUID? {ValidationUtility.IsValidGuid(validGuid)}");
+        Console.WriteLine($"Is '{invalidGuid}' a valid GUID? {ValidationUtility.IsValidGuid(invalidGuid)}");
+
+        // 6. Check for null or empty values
+        var nullValue = (string)null;
+        var emptyString = "";
+        var nonEmptyString = "hello";
+        var emptyList = new System.Collections.Generic.List<int>();
+        Console.WriteLine($"Is null value empty? {ValidationUtility.IsNullOrEmpty(nullValue)}");
+        Console.WriteLine($"Is empty string empty? {ValidationUtility.IsNullOrEmpty(emptyString)}");
+        Console.WriteLine($"Is non-empty string empty? {ValidationUtility.IsNullOrEmpty(nonEmptyString)}");
+        Console.WriteLine($"Is empty list empty? {ValidationUtility.IsNullOrEmpty(emptyList)}");
+
+        // 7. Validate numeric ranges
+        var inRange = 42;
+        var outOfRange = 200;
+        Console.WriteLine($"Is {inRange} in range 0-100? {ValidationUtility.IsInRange(inRange, 0, 100)}");
+        Console.WriteLine($"Is {outOfRange} in range 0-100? {ValidationUtility.IsInRange(outOfRange, 0, 100)}");
+
+        // 8. Validate percentage values
+        var validPercentage = 75;
+        var invalidPercentage = 150;
+        Console.WriteLine($"Is {validPercentage}% a valid percentage? {ValidationUtility.IsValidPercentage(validPercentage)}");
+        Console.WriteLine($"Is {invalidPercentage}% a valid percentage? {ValidationUtility.IsValidPercentage(invalidPercentage)}");
+
+        // 9. Validate minimum length
+        var shortString = "hi";
+        var longString = "hello world";
+        Console.WriteLine($"Does '{shortString}' meet min length 5? {ValidationUtility.MeetsMinimumLength(shortString, 5)}");
+        Console.WriteLine($"Does '{longString}' meet min length 5? {ValidationUtility.MeetsMinimumLength(longString, 5)}");
+
+        // 10. Validate service names
+        var validServiceName = "MyService.V1";
+        var invalidServiceName = "My Service!";
+        Console.WriteLine($"Is '{validServiceName}' a valid service name? {ValidationUtility.IsValidServiceName(validServiceName)}");
+        Console.WriteLine($"Is '{invalidServiceName}' a valid service name? {ValidationUtility.IsValidServiceName(invalidServiceName)}");
+
+        // 11. Validate protocols
+        var validProtocol1 = "https";
+        var validProtocol2 = "grpc";
+        var invalidProtocol = "ftp";
+        Console.WriteLine($"Is '{validProtocol1}' a valid protocol? {ValidationUtility.IsValidProtocol(validProtocol1)}");
+        Console.WriteLine($"Is '{validProtocol2}' a valid protocol? {ValidationUtility.IsValidProtocol(validProtocol2)}");
+        Console.WriteLine($"Is '{invalidProtocol}' a valid protocol? {ValidationUtility.IsValidProtocol(invalidProtocol)}");
+
+        // 12. Validate paths
+        var validPath = "/api/users";
+        var invalidPath = "/api/../config";
+        Console.WriteLine($"Is '{validPath}' a valid path? {ValidationUtility.IsValidPath(validPath)}");
+        Console.WriteLine($"Is '{invalidPath}' a valid path? {ValidationUtility.IsValidPath(invalidPath)}");
+
+        // 13. Validate timeouts
+        var validTimeout = 5000;
+        var invalidTimeout = 500000;
+        Console.WriteLine($"Is {validTimeout}ms a valid timeout? {ValidationUtility.IsValidTimeout(validTimeout)}");
+        Console.WriteLine($"Is {invalidTimeout}ms a valid timeout? {ValidationUtility.IsValidTimeout(invalidTimeout)}");
+
+        // 14. Use Ensure for validation with exceptions
+        try
+        {
+            ValidationUtility.Ensure(ValidationUtility.IsValidUri(httpUrl), "URL must be valid");
+            Console.WriteLine("URL validation passed!");
+        }
+        catch (ValidationException ex)
+        {
+            Console.WriteLine($"Validation failed: {ex.Message}");
+        }
+
+        // 15. Decimal range validation
+        var decimalValue = 50.5m;
+        Console.WriteLine($"Is {decimalValue} in range 0-100? {ValidationUtility.IsInRange(decimalValue, 0, 100)}");
+    }
+}
+```
+
 ## MemoryCacheService
 
 `MemoryCacheService` provides an in-memory caching implementation using `IMemoryCache`. It offers thread-safe caching operations with support for expiration, statistics tracking, and cache management. The service tracks cache hits/misses, maintains metadata about cached entries, and provides methods for checking cache existence, clearing the cache, and retrieving cache statistics.
