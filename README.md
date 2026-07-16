@@ -283,6 +283,41 @@ circuitBreaker.Reset();
 Console.WriteLine($"After reset - State: {circuitBreaker.State}, Failures: {circuitBreaker.ConsecutiveFailures}");  // Closed, 0
 ```
 
+## BasicServiceRegistrationExample
+
+`BasicServiceRegistrationExample` demonstrates how to register a gRPC service with the gateway using the REST API. It covers the complete lifecycle from service registration to health checking and unregistration, providing a practical starting point for integrating services with the gRPC gateway infrastructure.
+
+### Example Usage
+
+```csharp
+using DotNetGrpcGateway.Examples;
+
+// 1. Create an instance of the basic service registration example
+var example = new BasicServiceRegistrationExample();
+
+Console.WriteLine("=== Basic Service Registration Example ===\n");
+
+// 2. Register a new gRPC service with the gateway
+Console.WriteLine("Step 1: Registering UserService...");
+await example.RegisterServiceAsync();
+await Task.Delay(1000);
+
+// 3. Verify the service was registered by retrieving all services
+Console.WriteLine("\nStep 2: Verifying service registration...");
+await example.VerifyServiceRegistrationAsync();
+await Task.Delay(1000);
+
+// 4. Check health status of the registered service
+Console.WriteLine("\nStep 3: Checking service health (service ID: 1)...");
+await example.CheckServiceHealthAsync(1);
+await Task.Delay(1000);
+
+// 5. Unregister the service from the gateway (optional)
+// await example.UnregisterServiceAsync(1);
+
+Console.WriteLine("\n=== Example complete ===");
+```
+
 ## HealthChecksAndMonitoringExample
 
 `HealthChecksAndMonitoringExample` demonstrates comprehensive health checking and monitoring capabilities of the gRPC gateway. It provides methods to check gateway health status, monitor individual service health, perform readiness and liveness probes (for Kubernetes environments), and poll health status over time. This example is essential for production monitoring, load balancer integration, and ensuring service reliability.
