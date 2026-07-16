@@ -283,6 +283,43 @@ circuitBreaker.Reset();
 Console.WriteLine($"After reset - State: {circuitBreaker.State}, Failures: {circuitBreaker.ConsecutiveFailures}");  // Closed, 0
 ```
 
+## HealthChecksAndMonitoringExample
+
+`HealthChecksAndMonitoringExample` demonstrates comprehensive health checking and monitoring capabilities of the gRPC gateway. It provides methods to check gateway health status, monitor individual service health, perform readiness and liveness probes (for Kubernetes environments), and poll health status over time. This example is essential for production monitoring, load balancer integration, and ensuring service reliability.
+
+### Example Usage
+
+```csharp
+using DotNetGrpcGateway.Examples;
+
+// 1. Create an instance of the health monitoring example
+var example = new HealthChecksAndMonitoringExample();
+
+Console.WriteLine("=== Health Checks & Monitoring Example ===");
+
+// 2. Check basic gateway health status
+Console.WriteLine("\nStep 1: Checking gateway health...");
+await example.CheckGatewayHealthAsync();
+
+// 3. Get detailed health information including uptime and metrics
+await example.DisplayDetailedHealthStatusAsync();
+
+// 4. Check health status of all registered services
+await example.DisplayAllServicesHealthAsync();
+
+// 5. Get detailed health information for a specific service
+await example.DisplayServiceHealthDetailAsync(1);
+
+// 6. Check readiness probe (for load balancers)
+await example.CheckReadinessAsync();
+
+// 7. Check liveness probe (for Kubernetes)
+await example.CheckLivenessAsync();
+
+// 8. Poll health status over a period of time for monitoring
+await example.PollHealthStatusAsync(intervalSeconds: 5, durationSeconds: 30);
+```
+
 ## RequestLogServiceTests
 
 `RequestLogServiceTests` is a comprehensive test class that validates the behavior of request logging functionality in the gRPC gateway. It tests various scenarios including successful requests, failed requests, slow requests, large payloads, cache hits/misses, and retry behavior. The tests ensure that log entries are created with appropriate log levels (INFO, WARN, ERROR) and contain the expected message patterns and metadata for different request outcomes.
