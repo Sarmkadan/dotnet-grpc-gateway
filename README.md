@@ -2035,6 +2035,56 @@ class GatewayMiddleware
 }
 ```
 
+## HttpUtility
+
+`HttpUtility` provides HTTP-related utilities for request/response handling and header manipulation. It simplifies common HTTP operations like header parsing, content negotiation, and status code classification. The class includes methods for working with Accept headers, building authorization headers, extracting Bearer tokens, adding gRPC-Web specific headers, and determining content type categories.
+
+### Example Usage
+
+```csharp
+using System;
+using System.Net.Http;
+using System.Net.Http.Headers;
+using DotNetGrpcGateway.Utilities;
+
+class Program
+{
+    static void Main()
+    {
+        // 1. Get accepted content type from Accept header
+        var acceptHeader = "application/json, text/xml";
+        var contentType = HttpUtility.GetAcceptedContentType(acceptHeader);
+        Console.WriteLine($"Accepted content type: {contentType}");
+        
+        // 2. Build authorization header
+        var token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...";
+        var authHeader = HttpUtility.BuildAuthorizationHeader(token);
+        Console.WriteLine($"Authorization header: {authHeader}");
+        
+        // 3. Extract Bearer token
+        var extractedToken = HttpUtility.ExtractBearerToken(authHeader);
+        Console.WriteLine($"Extracted token: {extractedToken}");
+        
+        // 4. Add gRPC-Web headers to HttpRequestHeaders
+        var httpClient = new HttpClient();
+        var request = new HttpRequestMessage(HttpMethod.Get, "https://api.example.com/grpc");
+        request.Headers.AddGrpcWebHeaders();
+        Console.WriteLine("Added gRPC-Web headers");
+        
+        // 5. Check status code categories
+        Console.WriteLine($"Status 200 is success: {HttpUtility.IsSuccessStatusCode(200)}");
+        Console.WriteLine($"Status 404 is client error: {HttpUtility.IsClientError(404)}");
+        Console.WriteLine($"Status 500 is server error: {HttpUtility.IsServerError(500)}");
+        Console.WriteLine($"Status 200 category: {HttpUtility.GetStatusCodeCategory(200)}");
+        
+        // 6. Check content types
+        Console.WriteLine($"application/json is JSON: {HttpUtility.IsJsonContentType("application/json")}");
+        Console.WriteLine($"application/xml is XML: {HttpUtility.IsXmlContentType("application/xml")}");
+        Console.WriteLine($"application/x-www-form-urlencoded is form: {HttpUtility.IsFormContentType("application/x-www-form-urlencoded")}");
+    }
+}
+```
+
 ## IRouteManagementService
 
 `IRouteManagementService` is responsible for advanced route management operations in the gRPC gateway. It handles retrieving routes by service, finding matching routes for incoming requests, identifying conflicting route patterns, and validating route configurations to ensure proper routing and prevent conflicts.
