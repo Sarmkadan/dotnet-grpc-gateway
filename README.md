@@ -309,5 +309,68 @@ class Program
     }
 }
 ```
+
+## IMetricsCollectionService
+
+`IMetricsCollectionService` is responsible for collecting, aggregating, and analyzing metrics related to gateway requests and service performance. It provides methods for recording request metrics, retrieving statistics, identifying slow requests, and analyzing service usage patterns.
+
+### Example Usage
+
+```csharp
+using System;
+using System.Collections.Generic;
+using System.Threading.Tasks;
+using DotNetGrpcGateway.Domain;
+using DotNetGrpcGateway.Services;
+
+class Program
+{
+  static async Task Main(IServiceProvider serviceProvider)
+  {
+    var metricsService = serviceProvider.GetRequiredService<IMetricsCollectionService>();
+
+    // 1. Record a request metric
+    var metric = new RequestMetric
+    {
+      ServiceName = "UserService",
+      MethodName = "GetUserById",
+      DurationMs = 45.2,
+      IsSuccessful = true,
+      RequestSizeBytes = 1024,
+      GrpcStatusCode = "OK",
+      Timestamp = DateTime.UtcNow
+    };
+    await metricsService.RecordRequestMetricAsync(metric);
+
+    // 2. Get today's statistics
+    var todayStats = await metricsService.GetTodayStatisticsAsync();
+    Console.WriteLine($"Today's requests: {todayStats.TotalRequests}");
+    Console.WriteLine($"Success rate: {todayStats.SuccessRate:P}");
+    Console.WriteLine($"Average response time: {todayStats.AverageResponseTimeMs}ms");
+
+    // 3. Get statistics for a specific date
+    var yesterdayStats = await metricsService.GetStatisticsAsync(DateTime.UtcNow.AddDays(-1));
+    Console.WriteLine($"Yesterday's requests: {yesterdayStats.TotalRequests}");
+
+    // 4. Get slow requests (threshold: 1000ms)
+    var slowRequests = await metricsService.GetSlowRequestsAsync(1000);
+    Console.WriteLine($"Slow requests (>1000ms): {slowRequests.Count}");
+
+    // 5. Get requests per service
+    var requestsPerService = await metricsService.GetRequestsPerServiceAsync();
+    foreach (var kvp in requestsPerService)
+    {
+      Console.WriteLine($"{kvp.Key}: {kvp.Value} requests");
+    }
+
+    // 6. Get average response time
+    var avgResponseTime = await metricsService.GetAverageResponseTimeAsync();
+    Console.WriteLine($"Average response time: {avgResponseTime}ms");
+
+    // 7. Update service metrics
+    await metricsService.UpdateServiceMetricsAsync(1, 75.5, true);
+  }
+}
+```
 ```
 
