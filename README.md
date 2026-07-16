@@ -1377,6 +1377,68 @@ class GatewayMiddleware
 }
 ```
 
+## StringUtility
+
+`StringUtility` provides common string manipulation and validation utilities for the gRPC gateway. It includes methods for truncating strings, normalizing whitespace, generating URL-friendly slugs, masking sensitive data, pattern matching with wildcards, and case conversion utilities. These methods are designed to ensure consistent string handling across the application.
+
+### Example Usage
+
+```csharp
+using System;
+using DotNetGrpcGateway.Utilities;
+
+class Program
+{
+    static void Main()
+    {
+        // 1. Truncate a long string
+        var longText = "This is a very long text that needs to be truncated for display purposes";
+        var truncated = StringUtility.Truncate(longText, 50);
+        Console.WriteLine($"Truncated: {truncated}");
+        
+        // 2. Normalize whitespace
+        var messyText = "  Hello    World  \n\t  ";
+        var normalized = StringUtility.NormalizeWhitespace(messyText);
+        Console.WriteLine($"Normalized: '{normalized}'");
+        
+        // 3. Convert to URL-friendly slug
+        var title = "How to Build a gRPC Gateway in .NET";
+        var slug = StringUtility.ToSlug(title);
+        Console.WriteLine($"Slug: {slug}");
+        
+        // 4. Mask sensitive data
+        var apiKey = "sk_live_1234567890abcdef";
+        var masked = StringUtility.MaskSensitiveData(apiKey);
+        Console.WriteLine($"Masked API key: {masked}");
+        
+        // 5. Check if string matches wildcard pattern
+        var methodName = "UserService.GetUserById";
+        var matches = StringUtility.MatchesWildcardPattern(methodName, "*.Get*");
+        Console.WriteLine($"Matches pattern: {matches}");
+        
+        // 6. Convert camelCase to PascalCase
+        var camelCase = "userService";
+        var pascalCase = StringUtility.ToPascalCase(camelCase);
+        Console.WriteLine($"PascalCase: {pascalCase}");
+        
+        // 7. Convert to kebab-case
+        var pascalCase2 = "UserService";
+        var kebabCase = StringUtility.ToKebabCase(pascalCase2);
+        Console.WriteLine($"Kebab-case: {kebabCase}");
+        
+        // 8. Validate email format
+        var email = "user@example.com";
+        var isValidEmail = StringUtility.IsValidEmail(email);
+        Console.WriteLine($"Is valid email: {isValidEmail}");
+        
+        // 9. Check if alphanumeric
+        var alphanumeric = "User123";
+        var isAlphanumeric = StringUtility.IsAlphanumeric(alphanumeric);
+        Console.WriteLine($"Is alphanumeric: {isAlphanumeric}");
+    }
+}
+```
+
 ## JsonSerializationUtility
 
 `JsonSerializationUtility` provides consistent JSON serialization and deserialization utilities with configurable formatting options. It ensures uniform JSON formatting across the application using standardized `System.Text.Json` settings with camelCase property naming, null value handling, and error resilience. The utility supports both compact and pretty-printed serialization, safe deserialization with error reporting, JSON validation, formatting, object merging, and path-based value extraction.
