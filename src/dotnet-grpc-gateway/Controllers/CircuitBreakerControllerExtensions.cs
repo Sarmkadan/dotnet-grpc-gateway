@@ -166,7 +166,7 @@ public static class CircuitBreakerControllerExtensions
     /// <summary>
     /// Represents the basic status information for a circuit breaker.
     /// </summary>
-    private sealed class CircuitBreakerStatus
+    public sealed class CircuitBreakerStatus
     {
         public int ServiceId { get; set; }
         public string State { get; set; } = string.Empty;
@@ -177,7 +177,7 @@ public static class CircuitBreakerControllerExtensions
     /// <summary>
     /// Represents an enhanced status with metrics for a circuit breaker.
     /// </summary>
-    private sealed class CircuitBreakerStatusWithMetrics
+    public sealed class CircuitBreakerStatusWithMetrics
     {
         public int ServiceId { get; set; }
         public string State { get; set; } = string.Empty;
@@ -189,7 +189,7 @@ public static class CircuitBreakerControllerExtensions
     /// <summary>
     /// Represents a successful reset operation result.
     /// </summary>
-    private sealed class CircuitBreakerResetResult
+    public sealed class CircuitBreakerResetResult
     {
         public int ServiceId { get; set; }
         public string State { get; set; } = string.Empty;
@@ -198,7 +198,7 @@ public static class CircuitBreakerControllerExtensions
     /// <summary>
     /// Represents an error result for a circuit breaker operation.
     /// </summary>
-    private sealed class CircuitBreakerErrorResult
+    public sealed class CircuitBreakerErrorResult
     {
         public int ServiceId { get; set; }
         public string Error { get; set; } = string.Empty;
