@@ -37,17 +37,17 @@ public static class CircuitBreakerControllerExtensions
             var breaker = registry.TryGet(serviceId);
             if (breaker is not null)
             {
-                result[serviceId] = new
+                result[serviceId] = new CircuitBreakerStatus
                 {
-                    serviceId,
-                    state = breaker.State.ToString(),
-                    consecutiveFailures = breaker.ConsecutiveFailures,
-                    openedAt = breaker.OpenedAt
+                    ServiceId = serviceId,
+                    State = breaker.State.ToString(),
+                    ConsecutiveFailures = breaker.ConsecutiveFailures,
+                    OpenedAt = breaker.OpenedAt
                 };
             }
         }
 
-        return controller.Ok((IReadOnlyDictionary<int, object>)result);
+        return controller.Ok(result);
     }
 
     /// <summary>
@@ -69,18 +69,18 @@ public static class CircuitBreakerControllerExtensions
             var breaker = controller.GetRegistry().TryGet(serviceId);
             if (breaker is not null)
             {
-                result[serviceId] = new
+                result[serviceId] = new CircuitBreakerStatusWithMetrics
                 {
-                    serviceId,
-                    state = breaker.State.ToString(),
-                    consecutiveFailures = breaker.ConsecutiveFailures,
-                    openedAt = breaker.OpenedAt,
-                    isHalfOpen = breaker.State == Infrastructure.CircuitBreakerState.HalfOpen
+                    ServiceId = serviceId,
+                    State = breaker.State.ToString(),
+                    ConsecutiveFailures = breaker.ConsecutiveFailures,
+                    OpenedAt = breaker.OpenedAt,
+                    IsHalfOpen = breaker.State == Infrastructure.CircuitBreakerState.HalfOpen
                 };
             }
         }
 
-        return controller.Ok((IReadOnlyDictionary<int, object>)result);
+        return controller.Ok(result);
     }
 
     /// <summary>
@@ -101,20 +101,28 @@ public static class CircuitBreakerControllerExtensions
         var registry = controller.GetRegistry();
 
         foreach (var serviceId in serviceIds)
-    {
-        var breaker = registry.TryGet(serviceId);
-        if (breaker is not null)
         {
-            registry.Reset(serviceId);
-            result[serviceId] = new { serviceId, state = Infrastructure.CircuitBreakerState.Closed.ToString() };
+            var breaker = registry.TryGet(serviceId);
+            if (breaker is not null)
+            {
+                registry.Reset(serviceId);
+                result[serviceId] = new CircuitBreakerResetResult
+                {
+                    ServiceId = serviceId,
+                    State = Infrastructure.CircuitBreakerState.Closed.ToString()
+                };
+            }
+            else
+            {
+                result[serviceId] = new CircuitBreakerErrorResult
+                {
+                    ServiceId = serviceId,
+                    Error = $"No circuit breaker registered for service {serviceId}"
+                };
+            }
         }
-        else
-        {
-            result[serviceId] = new { serviceId, error = $"No circuit breaker registered for service {serviceId}" };
-        }
-    }
 
-        return controller.Ok((IReadOnlyDictionary<int, object>)result);
+        return controller.Ok(result);
     }
 
     /// <summary>
@@ -136,22 +144,63 @@ public static class CircuitBreakerControllerExtensions
             var breaker = controller.GetRegistry().TryGet(serviceId);
             if (breaker?.State == Infrastructure.CircuitBreakerState.Open)
             {
-                result[serviceId] = new
+                result[serviceId] = new CircuitBreakerStatus
                 {
-                    serviceId,
-                    state = breaker.State.ToString(),
-                    consecutiveFailures = breaker.ConsecutiveFailures,
-                    openedAt = breaker.OpenedAt
+                    ServiceId = serviceId,
+                    State = breaker.State.ToString(),
+                    ConsecutiveFailures = breaker.ConsecutiveFailures,
+                    OpenedAt = breaker.OpenedAt
                 };
             }
         }
 
-        return controller.Ok((IReadOnlyDictionary<int, object>)result);
+        return controller.Ok(result);
     }
 
     private static Services.ICircuitBreakerRegistry GetRegistry(this CircuitBreakerController controller)
     {
         ArgumentNullException.ThrowIfNull(controller);
         return controller.HttpContext.RequestServices.GetRequiredService<Services.ICircuitBreakerRegistry>();
+    }
+
+    /// <summary>
+    /// Represents the basic status information for a circuit breaker.
+    /// </summary>
+    private sealed class CircuitBreakerStatus
+    {
+        public int ServiceId { get; set; }
+        public string State { get; set; } = string.Empty;
+        public int ConsecutiveFailures { get; set; }
+        public DateTime? OpenedAt { get; set; }
+    }
+
+    /// <summary>
+    /// Represents an enhanced status with metrics for a circuit breaker.
+    /// </summary>
+    private sealed class CircuitBreakerStatusWithMetrics
+    {
+        public int ServiceId { get; set; }
+        public string State { get; set; } = string.Empty;
+        public int ConsecutiveFailures { get; set; }
+        public DateTime? OpenedAt { get; set; }
+        public bool IsHalfOpen { get; set; }
+    }
+
+    /// <summary>
+    /// Represents a successful reset operation result.
+    /// </summary>
+    private sealed class CircuitBreakerResetResult
+    {
+        public int ServiceId { get; set; }
+        public string State { get; set; } = string.Empty;
+    }
+
+    /// <summary>
+    /// Represents an error result for a circuit breaker operation.
+    /// </summary>
+    private sealed class CircuitBreakerErrorResult
+    {
+        public int ServiceId { get; set; }
+        public string Error { get; set; } = string.Empty;
     }
 }
