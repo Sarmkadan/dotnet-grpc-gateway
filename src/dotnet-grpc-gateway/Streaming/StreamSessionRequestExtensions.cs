@@ -1,12 +1,7 @@
 #nullable enable
-// =============================================================================
-// Author: [Your Name]
-// =============================================================================
 
 using System;
 using System.Collections.Generic;
-using System.Globalization;
-using DotNetGrpcGateway.Streaming;
 
 namespace DotNetGrpcGateway.Streaming;
 
@@ -36,7 +31,9 @@ public static class StreamSessionRequestExtensions
     public static IReadOnlyDictionary<string, string> GetValidHeaders(this StreamSessionRequest request)
     {
         ArgumentNullException.ThrowIfNull(request);
-        var validHeaders = new Dictionary<string, string>();
+        ArgumentNullException.ThrowIfNull(request.Headers);
+
+        var validHeaders = new Dictionary<string, string>(request.Headers.Count);
         foreach (var header in request.Headers)
         {
             if (!string.IsNullOrEmpty(header.Key))
