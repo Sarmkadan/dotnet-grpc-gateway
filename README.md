@@ -1037,6 +1037,88 @@ catch (ArgumentException ex)
 }
 ```
 
+## CircuitBreakerControllerExtensions
+
+`CircuitBreakerControllerExtensions` provides extension methods for the `CircuitBreakerController` that enable batch operations and enhanced monitoring capabilities for circuit breakers. These methods allow querying multiple circuit breakers simultaneously, resetting multiple breakers in one call, and retrieving detailed status information including metrics.
+
+The extension methods integrate with the circuit breaker registry to provide comprehensive monitoring and management of circuit breaker states across multiple services.
+
+### Example Usage
+
+```csharp
+using DotNetGrpcGateway.Controllers;
+using Microsoft.AspNetCore.Mvc;
+
+// 1. Create a controller instance (typically injected via DI)
+var controller = new CircuitBreakerController();
+
+// 2. Get statuses for multiple services
+var serviceIds = new int[] { 1, 2, 3, 5 };
+var statusResult = controller.GetStatuses(serviceIds);
+
+if (statusResult.Result is OkObjectResult okResult)
+{
+  var statuses = (IReadOnlyDictionary<int, object>)okResult.Value;
+  Console.WriteLine($"Retrieved statuses for {statuses.Count} services:");
+  
+  foreach (var kvp in statuses)
+  {
+    var status = (dynamic)kvp.Value;
+    Console.WriteLine($"  Service {status.ServiceId}: {status.State}");
+    Console.WriteLine($"    Failures: {status.ConsecutiveFailures}");
+    Console.WriteLine($"    Opened at: {status.OpenedAt}");
+  }
+}
+
+// 3. Get all circuit breakers with enhanced metrics
+var metricsResult = controller.GetAllWithMetrics();
+
+if (metricsResult.Result is OkObjectResult metricsOkResult)
+{
+  var metrics = (IReadOnlyDictionary<int, object>)metricsOkResult.Value;
+  Console.WriteLine($"\nRetrieved metrics for {metrics.Count} circuit breakers:");
+  
+  foreach (var kvp in metrics)
+  {
+    var metric = (dynamic)kvp.Value;
+    Console.WriteLine($"  Service {metric.ServiceId}: {metric.State}");
+    Console.WriteLine($"    Failures: {metric.ConsecutiveFailures}");
+    Console.WriteLine($"    Half-open: {metric.IsHalfOpen}");
+    Console.WriteLine($"    Opened at: {metric.OpenedAt}");
+  }
+}
+
+// 4. Reset multiple circuit breakers
+var resetResult = controller.ResetMultiple(new int[] { 2, 4 });
+
+if (resetResult.Result is OkObjectResult resetOkResult)
+{
+  var resetResults = (IReadOnlyDictionary<int, object>)resetOkResult.Value;
+  Console.WriteLine("\nReset results:");
+  
+  foreach (var kvp in resetResults)
+  {
+    var result = (dynamic)kvp.Value;
+    Console.WriteLine($"  Service {result.ServiceId}: {result.State}");
+  }
+}
+
+// 5. Get only faulted circuit breakers
+var faultedResult = controller.GetFaulted();
+
+if (faultedResult.Result is OkObjectResult faultedOkResult)
+{
+  var faulted = (IReadOnlyDictionary<int, object>)faultedOkResult.Value;
+  Console.WriteLine($"\nFound {faulted.Count} faulted circuit breakers:");
+  
+  foreach (var kvp in faulted)
+  {
+    var status = (dynamic)kvp.Value;
+    Console.WriteLine($"  Service {status.ServiceId}: {status.State} (opened at {status.OpenedAt})");
+  }
+}
+```
+
 ## RequestLogServiceTests
 
 `RequestLogServiceTests` is a comprehensive test class that validates the behavior of request logging functionality in the gRPC gateway. It tests various scenarios including successful requests, failed requests, slow requests, large payloads, cache hits/misses, and retry behavior. The tests ensure that log entries are created with appropriate log levels (INFO, WARN, ERROR) and contain the expected message patterns and metadata for different request outcomes.
