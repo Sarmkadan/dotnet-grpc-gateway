@@ -783,6 +783,111 @@ catch (ArgumentException ex)
 }
 ```
 
+## LoadBalancerControllerValidation
+
+`LoadBalancerControllerValidation` provides validation helpers for load balancer configuration parameters in the gRPC gateway. It includes methods for validating service endpoints, service IDs, endpoint IDs, and load balancing strategy names, returning lists of validation problems, boolean check methods for quick validation, and ensure methods that throw exceptions on invalid parameters.
+
+The validation methods ensure that endpoints have valid hostnames, ports within the valid range (1-65535), weights between 1-100, and proper timestamp ordering. Service and endpoint IDs are validated to be positive integers, and strategy names are validated against the `LoadBalancingStrategy` enum values.
+
+### Example Usage
+
+```csharp
+using DotNetGrpcGateway.Controllers;
+using DotNetGrpcGateway.Domain;
+
+// 1. Validate a service endpoint
+var endpoint = new ServiceEndpoint
+{
+    Host = "backend.example.com",
+    Port = 8080,
+    Weight = 50,
+    RegisteredAt = DateTime.UtcNow.AddMinutes(-5),
+    LastUsedAt = DateTime.UtcNow.AddMinutes(-2)
+};
+
+var endpointProblems = LoadBalancerControllerValidation.Validate(endpoint);
+if (endpointProblems.Count == 0)
+{
+    Console.WriteLine("Endpoint is valid!");
+}
+else
+{
+    Console.WriteLine("Endpoint validation problems:");
+    foreach (var problem in endpointProblems)
+    {
+        Console.WriteLine($"- {problem}");
+    }
+}
+
+// 2. Quick validation check
+if (LoadBalancerControllerValidation.IsValid(endpoint))
+{
+    Console.WriteLine("Endpoint validation passed!");
+}
+
+// 3. Validate service ID
+var serviceProblems = LoadBalancerControllerValidation.ValidateServiceId(1);
+if (serviceProblems.Count == 0)
+{
+    Console.WriteLine("Service ID 1 is valid!");
+}
+
+// 4. Validate endpoint ID
+var endpointIdProblems = LoadBalancerControllerValidation.ValidateEndpointId(5);
+if (endpointIdProblems.Count == 0)
+{
+    Console.WriteLine("Endpoint ID 5 is valid!");
+}
+
+// 5. Validate load balancing strategy
+var strategyProblems = LoadBalancerControllerValidation.Validate("RoundRobin");
+if (strategyProblems.Count == 0)
+{
+    Console.WriteLine("RoundRobin strategy is valid!");
+}
+
+// 6. Use Ensure methods to throw exceptions on invalid parameters
+try
+{
+    LoadBalancerControllerValidation.EnsureValid(endpoint);
+    Console.WriteLine("All validations passed!");
+}
+catch (ArgumentException ex)
+{
+    Console.WriteLine($"Validation failed: {ex.Message}");
+}
+
+try
+{
+    LoadBalancerControllerValidation.EnsureValidServiceId(0);
+    Console.WriteLine("Service ID validation passed!");
+}
+catch (ArgumentException ex)
+{
+    Console.WriteLine($"Service ID validation failed: {ex.Message}");
+}
+
+try
+{
+    LoadBalancerControllerValidation.EnsureValidEndpointId(-1);
+    Console.WriteLine("Endpoint ID validation passed!");
+}
+catch (ArgumentException ex)
+{
+    Console.WriteLine($"Endpoint ID validation failed: {ex.Message}");
+}
+
+try
+{
+    LoadBalancerControllerValidation.EnsureValid("InvalidStrategy");
+    Console.WriteLine("Strategy validation passed!");
+}
+catch (ArgumentException ex)
+{
+    Console.WriteLine($"Strategy validation failed: {ex.Message}");
+}
+```
+
 ## HttpUtilityValidation
 
 `HttpUtilityValidation` provides validation helpers for HTTP utility operations to ensure input parameters are valid. It includes methods for validating HTTP headers, tokens, status codes, and content types, returning lists of validation problems, boolean check methods for quick validation, and ensure methods that throw exceptions on invalid parameters.
