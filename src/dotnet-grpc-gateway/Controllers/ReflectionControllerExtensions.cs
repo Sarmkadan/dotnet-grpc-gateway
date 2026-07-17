@@ -39,7 +39,7 @@ public static class ReflectionControllerExtensions
         {
             OkObjectResult ok => (ReflectionHealthSummary)ok.Value!,
             ObjectResult { StatusCode: StatusCodes.Status503ServiceUnavailable } obj => (ReflectionHealthSummary)obj.Value!,
-            _ => throw new InvalidOperationException("Unexpected result from GetReflectionHealth")
+            _ => throw new InvalidOperationException("Unexpected result type from GetReflectionHealth endpoint")
         };
     }
 
@@ -55,8 +55,7 @@ public static class ReflectionControllerExtensions
         CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(controller);
-        var summary = await controller.GetHealthSummaryAsync(cancellationToken);
-        return summary.AvailableServiceCount;
+        return (await controller.GetHealthSummaryAsync(cancellationToken)).AvailableServiceCount;
     }
 
     /// <summary>
@@ -71,7 +70,6 @@ public static class ReflectionControllerExtensions
         CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(controller);
-        var summary = await controller.GetHealthSummaryAsync(cancellationToken);
-        return summary.IsAvailable;
+        return (await controller.GetHealthSummaryAsync(cancellationToken)).IsAvailable;
     }
 }
