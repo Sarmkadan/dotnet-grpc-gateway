@@ -9,7 +9,7 @@ using System;
 namespace DotNetGrpcGateway.Events;
 
 /// <summary>
-/// Extension methods for <see cref="GatewayEvent"/> to enhance event processing and analysis.
+/// Provides extension methods for <see cref="GatewayEvent"/> to enhance event processing and analysis.
 /// </summary>
 public static class GatewayEventExtensions
 {
@@ -17,7 +17,7 @@ public static class GatewayEventExtensions
     /// Determines whether the event is related to a service registration or unregistration.
     /// </summary>
     /// <param name="event">The event to check.</param>
-    /// <returns><see langword="true"/> if the event is service-related; otherwise, <see langword="false"/>.</returns>
+    /// <returns><see langword="true"/> if the event is a <see cref="ServiceRegisteredEvent"/> or <see cref="ServiceUnregisteredEvent"/>; otherwise, <see langword="false"/>.</returns>
     /// <exception cref="ArgumentNullException"><paramref name="event"/> is <see langword="null"/>.</exception>
     public static bool MaybeServiceRelated(this GatewayEvent @event)
     {
@@ -29,7 +29,7 @@ public static class GatewayEventExtensions
     /// Gets the service name if the event is service-related.
     /// </summary>
     /// <param name="event">The event to check.</param>
-    /// <returns>The service name if available; otherwise, <see langword="null"/>.</returns>
+    /// <returns>The service name from <see cref="ServiceRegisteredEvent"/> or <see cref="ServiceUnregisteredEvent"/>; otherwise, <see langword="null"/>.</returns>
     /// <exception cref="ArgumentNullException"><paramref name="event"/> is <see langword="null"/>.</exception>
     public static string? GetServiceNameIfAvailable(this GatewayEvent @event)
     {
@@ -46,7 +46,7 @@ public static class GatewayEventExtensions
     /// Converts the event to a summary string for logging or auditing.
     /// </summary>
     /// <param name="event">The event to summarize.</param>
-    /// <returns>A summary string containing event type, ID, timestamp, and correlation ID.</returns>
+    /// <returns>A summary string containing the event type name, unique identifier, timestamp in ISO 8601 format, and correlation identifier or "none" if not set.</returns>
     /// <exception cref="ArgumentNullException"><paramref name="event"/> is <see langword="null"/>.</exception>
     public static string ToEventSummary(this GatewayEvent @event)
     {
