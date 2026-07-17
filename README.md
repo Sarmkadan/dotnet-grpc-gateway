@@ -679,6 +679,110 @@ catch (ArgumentException ex)
 }
 ```
 
+## DateTimeUtilityValidation
+
+`DateTimeUtilityValidation` provides utility methods for validating and working with DateTime values in the gRPC gateway. It includes validation methods that return lists of validation problems, boolean check methods for quick validation, and ensure methods that throw exceptions on invalid DateTime parameters. The class is particularly useful for validating request timestamps, business hours constraints, and date range boundaries.
+
+### Example Usage
+
+```csharp
+using DotNetGrpcGateway.Utilities;
+using System;
+
+// 1. Validate a DateTime value
+var validationProblems = DateTimeUtilityValidation.Validate(
+    dateTime: DateTime.UtcNow,
+    propertyName: "RequestTimestamp",
+    minValue: DateTime.UtcNow.AddMinutes(-5),
+    maxValue: DateTime.UtcNow.AddMinutes(5)
+);
+
+if (validationProblems.Count == 0)
+{
+    Console.WriteLine("DateTime is valid!");
+}
+else
+{
+    Console.WriteLine("Validation problems found:");
+    foreach (var problem in validationProblems)
+    {
+        Console.WriteLine($"- {problem}");
+    }
+}
+
+// 2. Quick validation check
+if (DateTimeUtilityValidation.IsValid(
+    dateTime: DateTime.UtcNow,
+    minValue: DateTime.UtcNow.AddDays(-1),
+    maxValue: DateTime.UtcNow.AddDays(1)))
+{
+    Console.WriteLine("DateTime is within acceptable range!");
+}
+
+// 3. Validate for business hours (9 AM to 6 PM)
+var businessHoursProblems = DateTimeUtilityValidation.ValidateForBusinessHours(
+    dateTime: DateTime.UtcNow,
+    propertyName: "AppointmentTime"
+);
+
+if (businessHoursProblems.Count == 0)
+{
+    Console.WriteLine("DateTime is within business hours!");
+}
+else
+{
+    Console.WriteLine("Not within business hours:");
+    foreach (var problem in businessHoursProblems)
+    {
+        Console.WriteLine($"- {problem}");
+    }
+}
+
+// 4. Validate a nullable DateTime
+var nullableValidationProblems = DateTimeUtilityValidation.Validate(
+    dateTime: null,
+    propertyName: "OptionalTimestamp",
+    allowNull: true,
+    minValue: DateTime.UtcNow.AddDays(-7),
+    maxValue: DateTime.UtcNow.AddDays(7)
+);
+
+if (nullableValidationProblems.Count == 0)
+{
+    Console.WriteLine("Nullable DateTime is valid!");
+}
+
+// 5. Use Ensure methods to throw exceptions on invalid parameters
+try
+{
+    DateTimeUtilityValidation.EnsureValid(
+        dateTime: DateTime.UtcNow.AddDays(-10),
+        propertyName: "StartDate",
+        minValue: DateTime.UtcNow.AddDays(-5),
+        maxValue: DateTime.UtcNow.AddDays(5)
+    );
+    Console.WriteLine("All parameters validated successfully!");
+}
+catch (ArgumentException ex)
+{
+    Console.WriteLine($"Validation failed: {ex.Message}");
+}
+
+// 6. Validate for business hours with Ensure
+try
+{
+    DateTimeUtilityValidation.EnsureValidForBusinessHours(
+        dateTime: new DateTime(2024, 3, 15, 14, 30, 0), // 2:30 PM
+        propertyName: "MeetingTime"
+    );
+    Console.WriteLine("Meeting time is within business hours!");
+}
+catch (ArgumentException ex)
+{
+    Console.WriteLine($"Meeting time validation failed: {ex.Message}");
+}
+```
+
 ## RequestLogServiceTests
 
 `RequestLogServiceTests` is a comprehensive test class that validates the behavior of request logging functionality in the gRPC gateway. It tests various scenarios including successful requests, failed requests, slow requests, large payloads, cache hits/misses, and retry behavior. The tests ensure that log entries are created with appropriate log levels (INFO, WARN, ERROR) and contain the expected message patterns and metadata for different request outcomes.
