@@ -12,13 +12,18 @@ namespace DotNetGrpcGateway.Infrastructure;
 /// Validates input parameters before they are passed to logging methods to ensure
 /// they meet expected criteria and prevent invalid log entries.
 /// </summary>
-public static class StructuredLoggerValidation
+public sealed class StructuredLoggerValidation
 {
     /// <summary>
-    /// Validates all parameters for LogRequestStart method.
+    /// Validates all parameters for the <see cref="ILogger"/> LogRequestStart method.
     /// </summary>
-    /// <returns>List of validation problems; empty if valid.</returns>
-    /// <exception cref="ArgumentNullException">Thrown if logger is null.</exception>
+    /// <param name="logger">The logger instance. Cannot be null.</param>
+    /// <param name="requestId">The request identifier. Must not be null or whitespace and must not exceed 100 characters.</param>
+    /// <param name="path">The request path. Must not be null or whitespace and must not exceed 500 characters.</param>
+    /// <param name="method">The HTTP method. Must not be null or whitespace and must not exceed 20 characters.</param>
+    /// <param name="clientIp">The client IP address. Must not be null or whitespace and must not exceed 45 characters.</param>
+    /// <returns>List of validation problems; empty if all parameters are valid.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="logger"/> is null.</exception>
     public static IReadOnlyList<string> ValidateLogRequestStart(
         ILogger logger,
         string requestId,
@@ -35,25 +40,38 @@ public static class StructuredLoggerValidation
         var problems = new List<string>();
 
         if (requestId.Length > 100)
+        {
             problems.Add("RequestId exceeds maximum length of 100 characters");
+        }
 
         if (path.Length > 500)
+        {
             problems.Add("Path exceeds maximum length of 500 characters");
+        }
 
         if (method.Length > 20)
+        {
             problems.Add("Method exceeds maximum length of 20 characters");
+        }
 
         if (clientIp.Length > 45)
+        {
             problems.Add("ClientIp exceeds maximum length of 45 characters");
+        }
 
         return problems.AsReadOnly();
     }
 
     /// <summary>
-    /// Validates all parameters for LogRequestComplete method.
+    /// Validates all parameters for the <see cref="ILogger"/> LogRequestComplete method.
     /// </summary>
-    /// <returns>List of validation problems; empty if valid.</returns>
-    /// <exception cref="ArgumentNullException">Thrown if logger is null.</exception>
+    /// <param name="logger">The logger instance. Cannot be null.</param>
+    /// <param name="requestId">The request identifier. Must not be null or whitespace and must not exceed 100 characters.</param>
+    /// <param name="path">The request path. Must not be null or whitespace and must not exceed 500 characters.</param>
+    /// <param name="statusCode">The HTTP status code. Must be between 100 and 999 inclusive.</param>
+    /// <param name="durationMs">The request duration in milliseconds. Must not be negative.</param>
+    /// <returns>List of validation problems; empty if all parameters are valid.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="logger"/> is null.</exception>
     public static IReadOnlyList<string> ValidateLogRequestComplete(
         ILogger logger,
         string requestId,
@@ -68,25 +86,37 @@ public static class StructuredLoggerValidation
         var problems = new List<string>();
 
         if (requestId.Length > 100)
+        {
             problems.Add("RequestId exceeds maximum length of 100 characters");
+        }
 
         if (path.Length > 500)
+        {
             problems.Add("Path exceeds maximum length of 500 characters");
+        }
 
         if (statusCode < 100 || statusCode > 999)
+        {
             problems.Add("StatusCode must be between 100 and 999");
+        }
 
         if (durationMs < 0)
+        {
             problems.Add("DurationMs cannot be negative");
+        }
 
         return problems.AsReadOnly();
     }
 
     /// <summary>
-    /// Validates all parameters for LogServiceDiscovery method.
+    /// Validates all parameters for the <see cref="ILogger"/> LogServiceDiscovery method.
     /// </summary>
-    /// <returns>List of validation problems; empty if valid.</returns>
-    /// <exception cref="ArgumentNullException">Thrown if logger is null.</exception>
+    /// <param name="logger">The logger instance. Cannot be null.</param>
+    /// <param name="serviceId">The service identifier. Must be a positive integer.</param>
+    /// <param name="serviceName">The service name. Must not be null or whitespace and must not exceed 100 characters.</param>
+    /// <param name="healthy">Whether the service is healthy.</param>
+    /// <returns>List of validation problems; empty if all parameters are valid.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="logger"/> is null.</exception>
     public static IReadOnlyList<string> ValidateLogServiceDiscovery(
         ILogger logger,
         int serviceId,
@@ -99,19 +129,27 @@ public static class StructuredLoggerValidation
         var problems = new List<string>();
 
         if (serviceName.Length > 100)
+        {
             problems.Add("ServiceName exceeds maximum length of 100 characters");
+        }
 
         if (serviceId <= 0)
+        {
             problems.Add("ServiceId must be a positive integer");
+        }
 
         return problems.AsReadOnly();
     }
 
     /// <summary>
-    /// Validates all parameters for LogCacheOperation method.
+    /// Validates all parameters for the <see cref="ILogger"/> LogCacheOperation method.
     /// </summary>
-    /// <returns>List of validation problems; empty if valid.</returns>
-    /// <exception cref="ArgumentNullException">Thrown if logger is null.</exception>
+    /// <param name="logger">The logger instance. Cannot be null.</param>
+    /// <param name="operation">The cache operation type. Must not be null or whitespace and must not exceed 50 characters.</param>
+    /// <param name="key">The cache key. Must not be null or whitespace and must not exceed 200 characters.</param>
+    /// <param name="hit">Whether the operation was a cache hit.</param>
+    /// <returns>List of validation problems; empty if all parameters are valid.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="logger"/> is null.</exception>
     public static IReadOnlyList<string> ValidateLogCacheOperation(
         ILogger logger,
         string operation,
@@ -125,19 +163,27 @@ public static class StructuredLoggerValidation
         var problems = new List<string>();
 
         if (operation.Length > 50)
+        {
             problems.Add("Operation exceeds maximum length of 50 characters");
+        }
 
         if (key.Length > 200)
+        {
             problems.Add("Key exceeds maximum length of 200 characters");
+        }
 
         return problems.AsReadOnly();
     }
 
     /// <summary>
-    /// Validates all parameters for LogRouteResolution method.
+    /// Validates all parameters for the <see cref="ILogger"/> LogRouteResolution method.
     /// </summary>
-    /// <returns>List of validation problems; empty if valid.</returns>
-    /// <exception cref="ArgumentNullException">Thrown if logger is null.</exception>
+    /// <param name="logger">The logger instance. Cannot be null.</param>
+    /// <param name="path">The request path. Must not be null or whitespace and must not exceed 500 characters.</param>
+    /// <param name="routePattern">The route pattern. Must not be null or whitespace and must not exceed 200 characters.</param>
+    /// <param name="targetServiceId">The target service identifier. Must be a positive integer.</param>
+    /// <returns>List of validation problems; empty if all parameters are valid.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="logger"/> is null.</exception>
     public static IReadOnlyList<string> ValidateLogRouteResolution(
         ILogger logger,
         string path,
@@ -151,22 +197,32 @@ public static class StructuredLoggerValidation
         var problems = new List<string>();
 
         if (path.Length > 500)
+        {
             problems.Add("Path exceeds maximum length of 500 characters");
+        }
 
         if (routePattern.Length > 200)
+        {
             problems.Add("RoutePattern exceeds maximum length of 200 characters");
+        }
 
         if (targetServiceId <= 0)
+        {
             problems.Add("TargetServiceId must be a positive integer");
+        }
 
         return problems.AsReadOnly();
     }
 
     /// <summary>
-    /// Validates all parameters for LogRateLimit method.
+    /// Validates all parameters for the <see cref="ILogger"/> LogRateLimit method.
     /// </summary>
-    /// <returns>List of validation problems; empty if valid.</returns>
-    /// <exception cref="ArgumentNullException">Thrown if logger is null.</exception>
+    /// <param name="logger">The logger instance. Cannot be null.</param>
+    /// <param name="clientIp">The client IP address. Must not be null or whitespace and must not exceed 45 characters.</param>
+    /// <param name="path">The request path. Must not be null or whitespace and must not exceed 500 characters.</param>
+    /// <param name="limit">The rate limit value. Must be a positive integer.</param>
+    /// <returns>List of validation problems; empty if all parameters are valid.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="logger"/> is null.</exception>
     public static IReadOnlyList<string> ValidateLogRateLimit(
         ILogger logger,
         string clientIp,
@@ -180,22 +236,32 @@ public static class StructuredLoggerValidation
         var problems = new List<string>();
 
         if (clientIp.Length > 45)
+        {
             problems.Add("ClientIp exceeds maximum length of 45 characters");
+        }
 
         if (path.Length > 500)
+        {
             problems.Add("Path exceeds maximum length of 500 characters");
+        }
 
         if (limit <= 0)
+        {
             problems.Add("Limit must be a positive integer");
+        }
 
         return problems.AsReadOnly();
     }
 
     /// <summary>
-    /// Validates all parameters for LogAuthentication method.
+    /// Validates all parameters for the <see cref="ILogger"/> LogAuthentication method.
     /// </summary>
-    /// <returns>List of validation problems; empty if valid.</returns>
-    /// <exception cref="ArgumentNullException">Thrown if logger is null.</exception>
+    /// <param name="logger">The logger instance. Cannot be null.</param>
+    /// <param name="userId">The user identifier. Optional; if provided, must not exceed 50 characters.</param>
+    /// <param name="success">Whether authentication succeeded.</param>
+    /// <param name="reason">Optional failure reason. If provided, must not exceed 200 characters.</param>
+    /// <returns>List of validation problems; empty if all parameters are valid.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="logger"/> is null.</exception>
     public static IReadOnlyList<string> ValidateLogAuthentication(
         ILogger logger,
         string? userId,
@@ -207,22 +273,30 @@ public static class StructuredLoggerValidation
         var problems = new List<string>();
 
         if (userId is not null && userId.Length > 50)
+        {
             problems.Add("UserId exceeds maximum length of 50 characters");
+        }
 
         if (reason is not null && reason.Length > 200)
+        {
             problems.Add("Reason exceeds maximum length of 200 characters");
+        }
 
         return problems.AsReadOnly();
     }
 
     /// <summary>
-    /// Validates all parameters for LogCriticalError method.
+    /// Validates all parameters for the <see cref="ILogger"/> LogCriticalError method.
     /// </summary>
-    /// <returns>List of validation problems; empty if valid.</returns>
+    /// <param name="logger">The logger instance. Cannot be null.</param>
+    /// <param name="ex">The exception to log. Cannot be null.</param>
+    /// <param name="context">The error context. Must not be null or whitespace and must not exceed 200 characters.</param>
+    /// <param name="additionalData">Optional additional data dictionary. If provided, must not exceed 20 entries, keys must not exceed 100 characters, and string values must not exceed 500 characters.</param>
+    /// <returns>List of validation problems; empty if all parameters are valid.</returns>
     /// <exception cref="ArgumentNullException">
-    /// Thrown if logger is null.
-    /// Thrown if ex is null.
-    /// Thrown if context is null.
+    /// Thrown if <paramref name="logger"/> is null.
+    /// Thrown if <paramref name="ex"/> is null.
+    /// Thrown if <paramref name="context"/> is null.
     /// </exception>
     public static IReadOnlyList<string> ValidateLogCriticalError(
         ILogger logger,
@@ -237,12 +311,16 @@ public static class StructuredLoggerValidation
         var problems = new List<string>();
 
         if (context.Length > 200)
+        {
             problems.Add("Context exceeds maximum length of 200 characters");
+        }
 
         if (additionalData is not null)
         {
             if (additionalData.Count > 20)
+            {
                 problems.Add("AdditionalData contains more than 20 entries");
+            }
 
             foreach (var kvp in additionalData)
             {
@@ -264,10 +342,14 @@ public static class StructuredLoggerValidation
     }
 
     /// <summary>
-    /// Validates all parameters for LogPerformanceMetrics method.
+    /// Validates all parameters for the <see cref="ILogger"/> LogPerformanceMetrics method.
     /// </summary>
-    /// <returns>List of validation problems; empty if valid.</returns>
-    /// <exception cref="ArgumentNullException">Thrown if logger is null.</exception>
+    /// <param name="logger">The logger instance. Cannot be null.</param>
+    /// <param name="operation">The operation name. Must not be null or whitespace and must not exceed 100 characters.</param>
+    /// <param name="durationMs">The operation duration in milliseconds. Must not be negative.</param>
+    /// <param name="itemCount">Optional item count. If provided, must be a positive integer between 1 and 1,000,000 inclusive.</param>
+    /// <returns>List of validation problems; empty if all parameters are valid.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="logger"/> is null.</exception>
     public static IReadOnlyList<string> ValidateLogPerformanceMetrics(
         ILogger logger,
         string operation,
@@ -280,13 +362,19 @@ public static class StructuredLoggerValidation
         var problems = new List<string>();
 
         if (operation.Length > 100)
+        {
             problems.Add("Operation exceeds maximum length of 100 characters");
+        }
 
         if (durationMs < 0)
+        {
             problems.Add("DurationMs cannot be negative");
+        }
 
-        if (itemCount.HasValue && (itemCount <= 0 || itemCount > 1000000))
+        if (itemCount.HasValue && (itemCount <= 0 || itemCount > 1_000_000))
+        {
             problems.Add("ItemCount must be a positive integer between 1 and 1,000,000");
+        }
 
         return problems.AsReadOnly();
     }
@@ -294,6 +382,12 @@ public static class StructuredLoggerValidation
     /// <summary>
     /// Checks if all parameters for LogRequestStart are valid.
     /// </summary>
+    /// <param name="logger">The logger instance.</param>
+    /// <param name="requestId">The request identifier.</param>
+    /// <param name="path">The request path.</param>
+    /// <param name="method">The HTTP method.</param>
+    /// <param name="clientIp">The client IP address.</param>
+    /// <returns>True if all parameters are valid; otherwise, false.</returns>
     public static bool IsValidLogRequestStart(
         ILogger logger,
         string requestId,
@@ -305,6 +399,12 @@ public static class StructuredLoggerValidation
     /// <summary>
     /// Checks if all parameters for LogRequestComplete are valid.
     /// </summary>
+    /// <param name="logger">The logger instance.</param>
+    /// <param name="requestId">The request identifier.</param>
+    /// <param name="path">The request path.</param>
+    /// <param name="statusCode">The HTTP status code.</param>
+    /// <param name="durationMs">The request duration in milliseconds.</param>
+    /// <returns>True if all parameters are valid; otherwise, false.</returns>
     public static bool IsValidLogRequestComplete(
         ILogger logger,
         string requestId,
@@ -316,6 +416,11 @@ public static class StructuredLoggerValidation
     /// <summary>
     /// Checks if all parameters for LogServiceDiscovery are valid.
     /// </summary>
+    /// <param name="logger">The logger instance.</param>
+    /// <param name="serviceId">The service identifier.</param>
+    /// <param name="serviceName">The service name.</param>
+    /// <param name="healthy">Whether the service is healthy.</param>
+    /// <returns>True if all parameters are valid; otherwise, false.</returns>
     public static bool IsValidLogServiceDiscovery(
         ILogger logger,
         int serviceId,
@@ -326,6 +431,11 @@ public static class StructuredLoggerValidation
     /// <summary>
     /// Checks if all parameters for LogCacheOperation are valid.
     /// </summary>
+    /// <param name="logger">The logger instance.</param>
+    /// <param name="operation">The cache operation type.</param>
+    /// <param name="key">The cache key.</param>
+    /// <param name="hit">Whether the operation was a cache hit.</param>
+    /// <returns>True if all parameters are valid; otherwise, false.</returns>
     public static bool IsValidLogCacheOperation(
         ILogger logger,
         string operation,
@@ -336,6 +446,11 @@ public static class StructuredLoggerValidation
     /// <summary>
     /// Checks if all parameters for LogRouteResolution are valid.
     /// </summary>
+    /// <param name="logger">The logger instance.</param>
+    /// <param name="path">The request path.</param>
+    /// <param name="routePattern">The route pattern.</param>
+    /// <param name="targetServiceId">The target service identifier.</param>
+    /// <returns>True if all parameters are valid; otherwise, false.</returns>
     public static bool IsValidLogRouteResolution(
         ILogger logger,
         string path,
@@ -346,6 +461,11 @@ public static class StructuredLoggerValidation
     /// <summary>
     /// Checks if all parameters for LogRateLimit are valid.
     /// </summary>
+    /// <param name="logger">The logger instance.</param>
+    /// <param name="clientIp">The client IP address.</param>
+    /// <param name="path">The request path.</param>
+    /// <param name="limit">The rate limit value.</param>
+    /// <returns>True if all parameters are valid; otherwise, false.</returns>
     public static bool IsValidLogRateLimit(
         ILogger logger,
         string clientIp,
@@ -356,6 +476,11 @@ public static class StructuredLoggerValidation
     /// <summary>
     /// Checks if all parameters for LogAuthentication are valid.
     /// </summary>
+    /// <param name="logger">The logger instance.</param>
+    /// <param name="userId">The user identifier.</param>
+    /// <param name="success">Whether authentication succeeded.</param>
+    /// <param name="reason">Optional failure reason.</param>
+    /// <returns>True if all parameters are valid; otherwise, false.</returns>
     public static bool IsValidLogAuthentication(
         ILogger logger,
         string? userId,
@@ -366,11 +491,11 @@ public static class StructuredLoggerValidation
     /// <summary>
     /// Checks if all parameters for LogCriticalError are valid.
     /// </summary>
-    /// <exception cref="ArgumentNullException">
-    /// Thrown if logger is null.
-    /// Thrown if ex is null.
-    /// Thrown if context is null.
-    /// </exception>
+    /// <param name="logger">The logger instance.</param>
+    /// <param name="ex">The exception to log.</param>
+    /// <param name="context">The error context.</param>
+    /// <param name="additionalData">Optional additional data dictionary.</param>
+    /// <returns>True if all parameters are valid; otherwise, false.</returns>
     public static bool IsValidLogCriticalError(
         ILogger logger,
         Exception ex,
@@ -381,6 +506,11 @@ public static class StructuredLoggerValidation
     /// <summary>
     /// Checks if all parameters for LogPerformanceMetrics are valid.
     /// </summary>
+    /// <param name="logger">The logger instance.</param>
+    /// <param name="operation">The operation name.</param>
+    /// <param name="durationMs">The operation duration in milliseconds.</param>
+    /// <param name="itemCount">Optional item count.</param>
+    /// <returns>True if all parameters are valid; otherwise, false.</returns>
     public static bool IsValidLogPerformanceMetrics(
         ILogger logger,
         string operation,
@@ -391,6 +521,11 @@ public static class StructuredLoggerValidation
     /// <summary>
     /// Ensures all parameters for LogRequestStart are valid, throwing ArgumentException if not.
     /// </summary>
+    /// <param name="logger">The logger instance.</param>
+    /// <param name="requestId">The request identifier.</param>
+    /// <param name="path">The request path.</param>
+    /// <param name="method">The HTTP method.</param>
+    /// <param name="clientIp">The client IP address.</param>
     /// <exception cref="ArgumentException">Thrown if any parameter is invalid.</exception>
     public static void EnsureValidLogRequestStart(
         ILogger logger,
@@ -409,6 +544,11 @@ public static class StructuredLoggerValidation
     /// <summary>
     /// Ensures all parameters for LogRequestComplete are valid, throwing ArgumentException if not.
     /// </summary>
+    /// <param name="logger">The logger instance.</param>
+    /// <param name="requestId">The request identifier.</param>
+    /// <param name="path">The request path.</param>
+    /// <param name="statusCode">The HTTP status code.</param>
+    /// <param name="durationMs">The request duration in milliseconds.</param>
     /// <exception cref="ArgumentException">Thrown if any parameter is invalid.</exception>
     public static void EnsureValidLogRequestComplete(
         ILogger logger,
@@ -427,6 +567,10 @@ public static class StructuredLoggerValidation
     /// <summary>
     /// Ensures all parameters for LogServiceDiscovery are valid, throwing ArgumentException if not.
     /// </summary>
+    /// <param name="logger">The logger instance.</param>
+    /// <param name="serviceId">The service identifier.</param>
+    /// <param name="serviceName">The service name.</param>
+    /// <param name="healthy">Whether the service is healthy.</param>
     /// <exception cref="ArgumentException">Thrown if any parameter is invalid.</exception>
     public static void EnsureValidLogServiceDiscovery(
         ILogger logger,
@@ -444,6 +588,10 @@ public static class StructuredLoggerValidation
     /// <summary>
     /// Ensures all parameters for LogCacheOperation are valid, throwing ArgumentException if not.
     /// </summary>
+    /// <param name="logger">The logger instance.</param>
+    /// <param name="operation">The cache operation type.</param>
+    /// <param name="key">The cache key.</param>
+    /// <param name="hit">Whether the operation was a cache hit.</param>
     /// <exception cref="ArgumentException">Thrown if any parameter is invalid.</exception>
     public static void EnsureValidLogCacheOperation(
         ILogger logger,
@@ -461,6 +609,10 @@ public static class StructuredLoggerValidation
     /// <summary>
     /// Ensures all parameters for LogRouteResolution are valid, throwing ArgumentException if not.
     /// </summary>
+    /// <param name="logger">The logger instance.</param>
+    /// <param name="path">The request path.</param>
+    /// <param name="routePattern">The route pattern.</param>
+    /// <param name="targetServiceId">The target service identifier.</param>
     /// <exception cref="ArgumentException">Thrown if any parameter is invalid.</exception>
     public static void EnsureValidLogRouteResolution(
         ILogger logger,
@@ -478,6 +630,10 @@ public static class StructuredLoggerValidation
     /// <summary>
     /// Ensures all parameters for LogRateLimit are valid, throwing ArgumentException if not.
     /// </summary>
+    /// <param name="logger">The logger instance.</param>
+    /// <param name="clientIp">The client IP address.</param>
+    /// <param name="path">The request path.</param>
+    /// <param name="limit">The rate limit value.</param>
     /// <exception cref="ArgumentException">Thrown if any parameter is invalid.</exception>
     public static void EnsureValidLogRateLimit(
         ILogger logger,
@@ -495,6 +651,10 @@ public static class StructuredLoggerValidation
     /// <summary>
     /// Ensures all parameters for LogAuthentication are valid, throwing ArgumentException if not.
     /// </summary>
+    /// <param name="logger">The logger instance.</param>
+    /// <param name="userId">The user identifier.</param>
+    /// <param name="success">Whether authentication succeeded.</param>
+    /// <param name="reason">Optional failure reason.</param>
     /// <exception cref="ArgumentException">Thrown if any parameter is invalid.</exception>
     public static void EnsureValidLogAuthentication(
         ILogger logger,
@@ -512,10 +672,14 @@ public static class StructuredLoggerValidation
     /// <summary>
     /// Ensures all parameters for LogCriticalError are valid, throwing ArgumentException if not.
     /// </summary>
+    /// <param name="logger">The logger instance.</param>
+    /// <param name="ex">The exception to log.</param>
+    /// <param name="context">The error context.</param>
+    /// <param name="additionalData">Optional additional data dictionary.</param>
     /// <exception cref="ArgumentNullException">
-    /// Thrown if logger is null.
-    /// Thrown if ex is null.
-    /// Thrown if context is null.
+    /// Thrown if <paramref name="logger"/> is null.
+    /// Thrown if <paramref name="ex"/> is null.
+    /// Thrown if <paramref name="context"/> is null.
     /// </exception>
     /// <exception cref="ArgumentException">Thrown if any parameter is invalid.</exception>
     public static void EnsureValidLogCriticalError(
@@ -534,6 +698,10 @@ public static class StructuredLoggerValidation
     /// <summary>
     /// Ensures all parameters for LogPerformanceMetrics are valid, throwing ArgumentException if not.
     /// </summary>
+    /// <param name="logger">The logger instance.</param>
+    /// <param name="operation">The operation name.</param>
+    /// <param name="durationMs">The operation duration in milliseconds.</param>
+    /// <param name="itemCount">Optional item count.</param>
     /// <exception cref="ArgumentException">Thrown if any parameter is invalid.</exception>
     public static void EnsureValidLogPerformanceMetrics(
         ILogger logger,
