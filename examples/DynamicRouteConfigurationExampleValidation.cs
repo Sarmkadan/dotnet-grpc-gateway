@@ -3,7 +3,7 @@
 // =============================================================================
 // Author: Vladyslav Zaiets | https://sarmkadan.com
 // CTO & Software Architect
-// =============================================================================
+// =====================================================================
 
 using System;
 using System.Collections.Generic;
@@ -15,15 +15,15 @@ namespace DotNetGrpcGateway.Examples;
 /// Provides validation helpers for route configuration objects used in
 /// DynamicRouteConfigurationExample.
 /// </summary>
-public static class DynamicRouteConfigurationExampleValidation
+public sealed class DynamicRouteConfigurationExampleValidation
 {
     /// <summary>
     /// Validates a route configuration object.
     /// </summary>
     /// <param name="value">The route configuration to validate</param>
     /// <returns>List of validation problems; empty if valid</returns>
-    /// <exception cref="ArgumentNullException">Thrown if value is null</exception>
-    public static IReadOnlyList<string> Validate(this object? value)
+    /// <exception cref="ArgumentNullException">Thrown if <paramref name="value"/> is null</exception>
+    public IReadOnlyList<string> Validate(object? value)
     {
         ArgumentNullException.ThrowIfNull(value);
 
@@ -39,79 +39,40 @@ public static class DynamicRouteConfigurationExampleValidation
 
             switch (propName)
             {
-                case "pattern":
-                    if (string.IsNullOrWhiteSpace((string?)propValue))
-                    {
-                        problems.Add("Pattern cannot be null or whitespace.");
-                    }
+                case "pattern" when string.IsNullOrWhiteSpace((string?)propValue):
+                    problems.Add("Pattern cannot be null or whitespace.");
                     break;
 
-                case "targetServiceId":
-                    if (propValue is int serviceId && serviceId <= 0)
-                    {
-                        problems.Add("TargetServiceId must be a positive integer.");
-                    }
+                case "targetServiceId" when propValue is int serviceId && serviceId <= 0:
+                    problems.Add("TargetServiceId must be a positive integer.");
                     break;
 
-                case "matchType":
-                    if (propValue is int matchType && (matchType < 0 || matchType > 2))
-                    {
-                        problems.Add("MatchType must be 0 (exact), 1 (prefix), or 2 (regex).");
-                    }
+                case "matchType" when propValue is int matchType && (matchType < 0 || matchType > 2):
+                    problems.Add("MatchType must be 0 (exact), 1 (prefix), or 2 (regex).");
                     break;
 
-                case "priority":
-                    if (propValue is int priority && (priority < 0 || priority > 1000))
-                    {
-                        problems.Add("Priority must be between 0 and 1000.");
-                    }
+                case "priority" when propValue is int priority && (priority < 0 || priority > 1000):
+                    problems.Add("Priority must be between 0 and 1000.");
                     break;
 
-                case "rateLimitPerMinute":
-                    if (propValue is int rateLimit && (rateLimit <= 0 || rateLimit > 100000))
-                    {
-                        problems.Add("RateLimitPerMinute must be between 1 and 100,000.");
-                    }
+                case "rateLimitPerMinute" when propValue is int rateLimit && (rateLimit <= 0 || rateLimit > 100000):
+                    problems.Add("RateLimitPerMinute must be between 1 and 100,000.");
                     break;
 
-                case "enableCaching":
-                    if (propValue is bool enableCaching && !enableCaching)
-                    {
-                        // Caching disabled is valid
-                    }
+                case "cacheDurationSeconds" when propValue is int cacheDuration && cacheDuration < 0:
+                    problems.Add("CacheDurationSeconds cannot be negative.");
                     break;
 
-                case "cacheDurationSeconds":
-                    if (propValue is int cacheDuration && cacheDuration < 0)
-                    {
-                        problems.Add("CacheDurationSeconds cannot be negative.");
-                    }
+                case "description" when string.IsNullOrWhiteSpace((string?)propValue):
+                    problems.Add("Description cannot be null or whitespace.");
                     break;
 
-                case "description":
-                    if (string.IsNullOrWhiteSpace((string?)propValue))
-                    {
-                        problems.Add("Description cannot be null or whitespace.");
-                    }
+                case "tags" when propValue is string[] tags && tags.Length > 50:
+                    problems.Add("Tags array cannot exceed 50 elements.");
                     break;
 
-                case "tags":
-                    if (propValue is string[] tags && tags.Length > 50)
-                    {
-                        problems.Add("Tags array cannot exceed 50 elements.");
-                    }
-                    break;
-
-                case "isActive":
-                    if (propValue is bool isActive && !isActive)
-                    {
-                        // Inactive routes are valid
-                    }
-                    break;
-
-                case "createdAt":
-                    if (propValue is string createdAtStr &&
-                        !DateTime.TryParse(createdAtStr, CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind, out _))
+                case "createdAt" when propValue is string createdAtStr:
+                    if (!DateTime.TryParse(createdAtStr, CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind, out _))
                     {
                         problems.Add("CreatedAt must be a valid ISO 8601 date/time string.");
                     }
@@ -127,8 +88,10 @@ public static class DynamicRouteConfigurationExampleValidation
     /// </summary>
     /// <param name="value">The route configuration to check</param>
     /// <returns>True if valid; false otherwise</returns>
-    public static bool IsValid(this object? value)
+    /// <exception cref="ArgumentNullException">Thrown if <paramref name="value"/> is null</exception>
+    public bool IsValid(object? value)
     {
+        ArgumentNullException.ThrowIfNull(value);
         return Validate(value).Count == 0;
     }
 
@@ -137,17 +100,17 @@ public static class DynamicRouteConfigurationExampleValidation
     /// with detailed validation messages if it is not.
     /// </summary>
     /// <param name="value">The route configuration to validate</param>
-    /// <exception cref="ArgumentException">Thrown if value is invalid</exception>
-    /// <exception cref="ArgumentNullException">Thrown if value is null</exception>
-    public static void EnsureValid(this object? value)
+    /// <exception cref="ArgumentException">Thrown if <paramref name="value"/> is invalid</exception>
+    /// <exception cref="ArgumentNullException">Thrown if <paramref name="value"/> is null</exception>
+    public void EnsureValid(object? value)
     {
         var problems = Validate(value);
 
         if (problems.Count > 0)
         {
             throw new ArgumentException(
-                $"Route configuration is invalid:{Environment.NewLine}  - {
-                    string.Join(Environment.NewLine + "  - ", problems)
+                $"Route configuration is invalid:{Environment.NewLine} - {
+                    string.Join(Environment.NewLine + " - ", problems)
                 }");
         }
     }
