@@ -5,13 +5,14 @@
 // CTO & Software Architect
 // =============================================================================
 
-using System.Globalization;
+using System.Diagnostics.CodeAnalysis;
 
 namespace DotNetGrpcGateway.Domain;
 
 /// <summary>
 /// Provides validation helpers for <see cref="GatewayRoute"/> instances.
 /// </summary>
+[SuppressMessage("Naming", "CA1711:Identifiers should not have incorrect suffixes", Justification = "Static class naming convention")]
 public static class GatewayRouteValidation
 {
     /// <summary>
@@ -24,7 +25,7 @@ public static class GatewayRouteValidation
     {
         ArgumentNullException.ThrowIfNull(value);
 
-        var errors = new List<string>();
+        var errors = new List<string>(capacity: 20);
 
         // Validate Id
         if (value.Id <= 0)
@@ -68,7 +69,7 @@ public static class GatewayRouteValidation
         {
             errors.Add("Headers dictionary cannot be null.");
         }
-        else
+        else if (value.Headers.Count > 0)
         {
             foreach (var header in value.Headers)
             {
@@ -97,7 +98,7 @@ public static class GatewayRouteValidation
         {
             errors.Add("Metadata dictionary cannot be null.");
         }
-        else
+        else if (value.Metadata.Count > 0)
         {
             foreach (var metadata in value.Metadata)
             {
@@ -203,7 +204,7 @@ public static class GatewayRouteValidation
             {
                 errors.Add("ChannelOptions.AdditionalHeaders dictionary cannot be null.");
             }
-            else
+            else if (value.ChannelOptions.AdditionalHeaders.Count > 0)
             {
                 foreach (var header in value.ChannelOptions.AdditionalHeaders)
                 {
