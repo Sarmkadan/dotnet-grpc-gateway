@@ -4,7 +4,6 @@
 // CTO & Software Architect
 // =============================================================================
 
-using System.Globalization;
 using DotNetGrpcGateway.Domain;
 using DotNetGrpcGateway.Services;
 
@@ -47,17 +46,15 @@ public static class LoadBalancerControllerValidation
 
         if (value.RegisteredAt == default)
             errors.Add("RegisteredAt must be a valid date.");
+        else if (value.RegisteredAt > DateTime.UtcNow.AddMinutes(1))
+            errors.Add("RegisteredAt cannot be in the future.");
 
         if (value.LastUsedAt == default)
             errors.Add("LastUsedAt must be a valid date.");
-
-        if (value.RegisteredAt > DateTime.UtcNow.AddMinutes(1))
-            errors.Add("RegisteredAt cannot be in the future.");
-
-        if (value.LastUsedAt > DateTime.UtcNow.AddMinutes(1))
+        else if (value.LastUsedAt > DateTime.UtcNow.AddMinutes(1))
             errors.Add("LastUsedAt cannot be in the future.");
 
-        if (value.RegisteredAt > value.LastUsedAt)
+        if (value.RegisteredAt != default && value.LastUsedAt != default && value.RegisteredAt > value.LastUsedAt)
             errors.Add("LastUsedAt cannot be earlier than RegisteredAt.");
 
         return errors;
@@ -98,6 +95,7 @@ public static class LoadBalancerControllerValidation
     /// </summary>
     /// <param name="strategyName">The strategy name to validate.</param>
     /// <returns>An empty list if valid; otherwise, a list of human-readable validation errors.</returns>
+    /// <exception cref="ArgumentException">Thrown if <paramref name="strategyName"/> is null or empty.</exception>
     public static IReadOnlyList<string> Validate(string strategyName)
     {
         ArgumentException.ThrowIfNullOrEmpty(strategyName);
