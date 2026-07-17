@@ -4,8 +4,6 @@
 // CTO & Software Architect
 // =============================================================================
 
-using System.Globalization;
-
 namespace DotNetGrpcGateway.Domain;
 
 /// <summary>
@@ -55,10 +53,9 @@ public static class AuthenticationTokenValidation
             if (token.Scopes.Any(string.IsNullOrWhiteSpace))
                 errors.Add("Scopes collection cannot contain null or whitespace values");
         }
-        else
+        else if (token.Scopes.Any(string.IsNullOrWhiteSpace))
         {
-            if (token.Scopes.Any(string.IsNullOrWhiteSpace))
-                errors.Add("Scopes collection cannot contain null or whitespace values");
+            errors.Add("Scopes collection cannot contain null or whitespace values");
         }
 
         // Validate allowed service IDs collection
@@ -69,13 +66,9 @@ public static class AuthenticationTokenValidation
             if (!token.AllowAllServices)
                 errors.Add("Token must allow all services or specify at least one allowed service ID");
         }
-        else
+        else if (token.AllowedServiceIds.Any(id => id <= 0))
         {
-            if (token.AllowedServiceIds.Any(id => id <= 0))
-                errors.Add("AllowedServiceIds collection cannot contain non-positive integers");
-
-            if (!token.AllowAllServices && token.AllowedServiceIds.Count == 0)
-                errors.Add("Token must allow all services or specify at least one allowed service ID");
+            errors.Add("AllowedServiceIds collection cannot contain non-positive integers");
         }
 
         // Validate service access configuration
@@ -132,17 +125,22 @@ public static class AuthenticationTokenValidation
         }
 
         // Validate revocation state consistency
-        if (token.IsRevoked && !token.RevokedAt.HasValue)
-            errors.Add("Revoked tokens must have RevokedAt set");
+        if (token.IsRevoked)
+        {
+            if (!token.RevokedAt.HasValue)
+                errors.Add("Revoked tokens must have RevokedAt set");
 
-        if (token.IsRevoked && string.IsNullOrWhiteSpace(token.RevokedReason))
-            errors.Add("Revoked tokens must have a RevokedReason");
+            if (string.IsNullOrWhiteSpace(token.RevokedReason))
+                errors.Add("Revoked tokens must have a RevokedReason");
+        }
+        else
+        {
+            if (token.RevokedAt.HasValue)
+                errors.Add("Only revoked tokens can have RevokedAt set");
 
-        if (!token.IsRevoked && token.RevokedAt.HasValue)
-            errors.Add("Only revoked tokens can have RevokedAt set");
-
-        if (!token.IsRevoked && !string.IsNullOrWhiteSpace(token.RevokedReason))
-            errors.Add("RevokedReason can only be set for revoked tokens");
+            if (!string.IsNullOrWhiteSpace(token.RevokedReason))
+                errors.Add("RevokedReason can only be set for revoked tokens");
+        }
 
         // Validate active state consistency
         if (!token.IsActive && !token.IsRevoked)
@@ -184,8 +182,8 @@ public static class AuthenticationTokenValidation
         {
             throw new ArgumentException(
                 $"Authentication token is invalid:{Environment.NewLine}- {
-                    string.Join(Environment.NewLine + "- ", errors)
-                }");
+                string.Join(Environment.NewLine + "- ", errors)
+            }");
         }
     }
 }
