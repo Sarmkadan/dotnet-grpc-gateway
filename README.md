@@ -489,6 +489,196 @@ Console.WriteLine("\nStep 6: Resetting metrics...");
 await example.ResetMetricsAsync();
 ```
 
+## StructuredLoggerValidation
+
+`StructuredLoggerValidation` provides validation helpers for structured logging method parameters in the gRPC gateway. It validates input parameters before they are passed to logging methods to ensure they meet expected criteria and prevent invalid log entries. The class offers validation methods that return lists of validation problems, boolean check methods for quick validation, and ensure methods that throw exceptions on invalid parameters.
+
+### Example Usage
+
+```csharp
+using DotNetGrpcGateway.Infrastructure;
+using Microsoft.Extensions.Logging;
+using Moq;
+
+// 1. Create a mock logger
+var loggerMock = new Mock<ILogger>();
+
+// 2. Validate request start parameters
+var requestStartProblems = StructuredLoggerValidation.ValidateLogRequestStart(
+    loggerMock.Object,
+    requestId: "req-12345",
+    path: "/api/users/get",
+    method: "GET",
+    clientIp: "192.168.1.100"
+);
+
+if (requestStartProblems.Count == 0)
+{
+    Console.WriteLine("Request start parameters are valid!");
+}
+else
+{
+    Console.WriteLine("Validation problems found:");
+    foreach (var problem in requestStartProblems)
+    {
+        Console.WriteLine($"- {problem}");
+    }
+}
+
+// 3. Validate request complete parameters
+var requestCompleteProblems = StructuredLoggerValidation.ValidateLogRequestComplete(
+    loggerMock.Object,
+    requestId: "req-12345",
+    path: "/api/users/get",
+    statusCode: 200,
+    durationMs: 150
+);
+
+if (StructuredLoggerValidation.IsValidLogRequestComplete(
+    loggerMock.Object,
+    "req-12345",
+    "/api/users/get",
+    200,
+    150))
+{
+    Console.WriteLine("Request complete parameters are valid!");
+}
+
+// 4. Validate service discovery parameters
+var serviceDiscoveryProblems = StructuredLoggerValidation.ValidateLogServiceDiscovery(
+    loggerMock.Object,
+    serviceId: 1,
+    serviceName: "UserService",
+    healthy: true
+);
+
+if (serviceDiscoveryProblems.Count == 0)
+{
+    Console.WriteLine("Service discovery parameters are valid!");
+}
+
+// 5. Validate cache operation parameters
+var cacheProblems = StructuredLoggerValidation.ValidateLogCacheOperation(
+    loggerMock.Object,
+    operation: "Get",
+    key: "user:123",
+    hit: true
+);
+
+if (StructuredLoggerValidation.IsValidLogCacheOperation(
+    loggerMock.Object,
+    "Get",
+    "user:123",
+    true))
+{
+    Console.WriteLine("Cache operation parameters are valid!");
+}
+
+// 6. Validate route resolution parameters
+var routeProblems = StructuredLoggerValidation.ValidateLogRouteResolution(
+    loggerMock.Object,
+    path: "/api/users/get",
+    routePattern: "api/users/{id}",
+    targetServiceId: 1
+);
+
+if (StructuredLoggerValidation.IsValidLogRouteResolution(
+    loggerMock.Object,
+    "/api/users/get",
+    "api/users/{id}",
+    1))
+{
+    Console.WriteLine("Route resolution parameters are valid!");
+}
+
+// 7. Validate rate limit parameters
+var rateLimitProblems = StructuredLoggerValidation.ValidateLogRateLimit(
+    loggerMock.Object,
+    clientIp: "192.168.1.100",
+    path: "/api/users/get",
+    limit: 100
+);
+
+if (StructuredLoggerValidation.IsValidLogRateLimit(
+    loggerMock.Object,
+    "192.168.1.100",
+    "/api/users/get",
+    100))
+{
+    Console.WriteLine("Rate limit parameters are valid!");
+}
+
+// 8. Validate authentication parameters
+var authProblems = StructuredLoggerValidation.ValidateLogAuthentication(
+    loggerMock.Object,
+    userId: "user-456",
+    success: true,
+    reason: null
+);
+
+if (StructuredLoggerValidation.IsValidLogAuthentication(
+    loggerMock.Object,
+    "user-456",
+    true))
+{
+    Console.WriteLine("Authentication parameters are valid!");
+}
+
+// 9. Validate critical error parameters
+var errorProblems = StructuredLoggerValidation.ValidateLogCriticalError(
+    loggerMock.Object,
+    ex: new InvalidOperationException("Database connection failed"),
+    context: "DatabaseService.Connect",
+    additionalData: new Dictionary<string, object>
+    {
+        ["database"] = "users_db",
+        ["attempt"] = 3
+    }
+);
+
+if (StructuredLoggerValidation.IsValidLogCriticalError(
+    loggerMock.Object,
+    new InvalidOperationException("Database connection failed"),
+    "DatabaseService.Connect"))
+{
+    Console.WriteLine("Critical error parameters are valid!");
+}
+
+// 10. Validate performance metrics parameters
+var perfProblems = StructuredLoggerValidation.ValidateLogPerformanceMetrics(
+    loggerMock.Object,
+    operation: "GetUserById",
+    durationMs: 45,
+    itemCount: 1
+);
+
+if (StructuredLoggerValidation.IsValidLogPerformanceMetrics(
+    loggerMock.Object,
+    "GetUserById",
+    45,
+    1))
+{
+    Console.WriteLine("Performance metrics parameters are valid!");
+}
+
+// 11. Use Ensure methods to throw exceptions on invalid parameters
+try
+{
+    StructuredLoggerValidation.EnsureValidLogRequestStart(
+        loggerMock.Object,
+        requestId: "req-12345",
+        path: "/api/users/get",
+        method: "GET",
+        clientIp: "192.168.1.100"
+    );
+    Console.WriteLine("All parameters validated successfully!");
+}
+catch (ArgumentException ex)
+{
+    Console.WriteLine($"Validation failed: {ex.Message}");
+}
+```
+
 ## RequestLogServiceTests
 
 `RequestLogServiceTests` is a comprehensive test class that validates the behavior of request logging functionality in the gRPC gateway. It tests various scenarios including successful requests, failed requests, slow requests, large payloads, cache hits/misses, and retry behavior. The tests ensure that log entries are created with appropriate log levels (INFO, WARN, ERROR) and contain the expected message patterns and metadata for different request outcomes.
