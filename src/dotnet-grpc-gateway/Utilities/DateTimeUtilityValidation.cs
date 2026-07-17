@@ -3,7 +3,7 @@
 // =============================================================================
 // Author: Vladyslav Zaiets | https://sarmkadan.com
 // CTO & Software Architect
-// =============================================================================
+// =====================================================================
 
 using System.Globalization;
 
@@ -22,8 +22,11 @@ public static class DateTimeUtilityValidation
     /// <param name="dateTime">The DateTime value to validate.</param>
     /// <param name="paramName">The name of the parameter being validated (for error messages).</param>
     /// <returns>An empty list if valid, or a list of validation error messages if invalid.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="paramName"/> is null.</exception>
     public static IReadOnlyList<string> Validate(this DateTime dateTime, string paramName = "dateTime")
     {
+        ArgumentNullException.ThrowIfNull(paramName);
+
         var errors = new List<string>();
 
         if (dateTime.Kind == DateTimeKind.Unspecified)
@@ -36,11 +39,6 @@ public static class DateTimeUtilityValidation
             errors.Add($"{paramName}: DateTime cannot be the default value (0001-01-01).");
         }
 
-        if (dateTime < DateTime.MinValue || dateTime > DateTime.MaxValue)
-        {
-            errors.Add($"{paramName}: DateTime value is out of valid range.");
-        }
-
         return errors.AsReadOnly();
     }
 
@@ -50,8 +48,11 @@ public static class DateTimeUtilityValidation
     /// <param name="dateTime">The nullable DateTime value to validate.</param>
     /// <param name="paramName">The name of the parameter being validated (for error messages).</param>
     /// <returns>An empty list if valid or null, or a list of validation error messages if invalid.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="paramName"/> is null.</exception>
     public static IReadOnlyList<string> Validate(this DateTime? dateTime, string paramName = "dateTime")
     {
+        ArgumentNullException.ThrowIfNull(paramName);
+
         if (dateTime == null)
         {
             return Array.Empty<string>();
@@ -66,8 +67,11 @@ public static class DateTimeUtilityValidation
     /// <param name="milliseconds">The milliseconds value to validate.</param>
     /// <param name="paramName">The name of the parameter being validated (for error messages).</param>
     /// <returns>An empty list if valid, or a list of validation error messages if invalid.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="paramName"/> is null.</exception>
     public static IReadOnlyList<string> Validate(this long milliseconds, string paramName = "milliseconds")
     {
+        ArgumentNullException.ThrowIfNull(paramName);
+
         var errors = new List<string>();
 
         if (milliseconds < 0)
@@ -84,8 +88,11 @@ public static class DateTimeUtilityValidation
     /// <param name="milliseconds">The nullable milliseconds value to validate.</param>
     /// <param name="paramName">The name of the parameter being validated (for error messages).</param>
     /// <returns>An empty list if valid or null, or a list of validation error messages if invalid.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="paramName"/> is null.</exception>
     public static IReadOnlyList<string> Validate(this long? milliseconds, string paramName = "milliseconds")
     {
+        ArgumentNullException.ThrowIfNull(paramName);
+
         if (milliseconds == null)
         {
             return Array.Empty<string>();
@@ -102,12 +109,16 @@ public static class DateTimeUtilityValidation
     /// <param name="fromParamName">The name of the 'from' parameter.</param>
     /// <param name="toParamName">The name of the 'to' parameter.</param>
     /// <returns>An empty list if valid, or a list of validation error messages if invalid.</returns>
+    /// <exception cref="ArgumentNullException">Either <paramref name="fromParamName"/> or <paramref name="toParamName"/> is null.</exception>
     public static IReadOnlyList<string> Validate(
         this DateTime from,
         DateTime to,
         string fromParamName = "from",
         string toParamName = "to")
     {
+        ArgumentNullException.ThrowIfNull(fromParamName);
+        ArgumentNullException.ThrowIfNull(toParamName);
+
         var errors = new List<string>();
 
         var fromErrors = from.Validate(fromParamName);
@@ -135,12 +146,16 @@ public static class DateTimeUtilityValidation
     /// <param name="fromParamName">The name of the 'from' parameter.</param>
     /// <param name="toParamName">The name of the 'to' parameter.</param>
     /// <returns>An empty list if valid or both null, or a list of validation error messages if invalid.</returns>
+    /// <exception cref="ArgumentNullException">Either <paramref name="fromParamName"/> or <paramref name="toParamName"/> is null.</exception>
     public static IReadOnlyList<string> Validate(
         this DateTime? from,
         DateTime? to,
         string fromParamName = "from",
         string toParamName = "to")
     {
+        ArgumentNullException.ThrowIfNull(fromParamName);
+        ArgumentNullException.ThrowIfNull(toParamName);
+
         if (from == null && to == null)
         {
             return Array.Empty<string>();
@@ -165,8 +180,10 @@ public static class DateTimeUtilityValidation
     /// <param name="dateTime">The DateTime value to validate.</param>
     /// <param name="paramName">The name of the parameter being validated.</param>
     /// <returns>An empty list if valid, or a list of validation error messages if invalid.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="paramName"/> is null.</exception>
     public static IReadOnlyList<string> ValidateForBusinessHours(this DateTime dateTime, string paramName = "dateTime")
     {
+        ArgumentNullException.ThrowIfNull(paramName);
         return dateTime.Validate(paramName);
     }
 
@@ -175,62 +192,44 @@ public static class DateTimeUtilityValidation
     /// </summary>
     /// <param name="dateTime">The DateTime value to check.</param>
     /// <returns>True if valid; otherwise, false.</returns>
-    public static bool IsValid(this DateTime dateTime)
-    {
-        return dateTime.Validate().Count == 0;
-    }
+    public static bool IsValid(this DateTime dateTime) => dateTime.Validate().Count == 0;
 
     /// <summary>
     /// Checks if a nullable DateTime value is valid (UTC, not default, not null).
     /// </summary>
     /// <param name="dateTime">The nullable DateTime value to check.</param>
     /// <returns>True if valid or null; otherwise, false.</returns>
-    public static bool IsValid(this DateTime? dateTime)
-    {
-        return dateTime.Validate().Count == 0;
-    }
+    public static bool IsValid(this DateTime? dateTime) => dateTime.Validate().Count == 0;
 
     /// <summary>
     /// Checks if a long milliseconds value is valid (non-negative).
     /// </summary>
     /// <param name="milliseconds">The milliseconds value to check.</param>
     /// <returns>True if valid; otherwise, false.</returns>
-    public static bool IsValid(this long milliseconds)
-    {
-        return milliseconds.Validate().Count == 0;
-    }
+    public static bool IsValid(this long milliseconds) => milliseconds.Validate().Count == 0;
 
     /// <summary>
     /// Checks if a nullable long milliseconds value is valid (non-negative or null).
     /// </summary>
     /// <param name="milliseconds">The nullable milliseconds value to check.</param>
     /// <returns>True if valid or null; otherwise, false.</returns>
-    public static bool IsValid(this long? milliseconds)
-    {
-        return milliseconds.Validate().Count == 0;
-    }
+    public static bool IsValid(this long? milliseconds) => milliseconds.Validate().Count == 0;
 
     /// <summary>
     /// Checks if two DateTime values are valid for comparison operations.
     /// </summary>
     /// <param name="from">The starting DateTime.</param>
     /// <param name="to">The ending DateTime.</param>
-    /// <returns>True if both are valid and from <= to; otherwise, false.</returns>
-    public static bool IsValid(this DateTime from, DateTime to)
-    {
-        return from.Validate(to).Count == 0;
-    }
+    /// <returns>True if both are valid and from &lt;= to; otherwise, false.</returns>
+    public static bool IsValid(this DateTime from, DateTime to) => from.Validate(to).Count == 0;
 
     /// <summary>
     /// Checks if two nullable DateTime values are valid for comparison operations.
     /// </summary>
     /// <param name="from">The nullable starting DateTime.</param>
     /// <param name="to">The nullable ending DateTime.</param>
-    /// <returns>True if both are valid/consistent and from <= to; otherwise, false.</returns>
-    public static bool IsValid(this DateTime? from, DateTime? to)
-    {
-        return from.Validate(to).Count == 0;
-    }
+    /// <returns>True if both are valid/consistent and from &lt;= to; otherwise, false.</returns>
+    public static bool IsValid(this DateTime? from, DateTime? to) => from.Validate(to).Count == 0;
 
     /// <summary>
     /// Ensures that a DateTime value is valid (UTC, not default), throwing an ArgumentException if not.
@@ -238,8 +237,11 @@ public static class DateTimeUtilityValidation
     /// <param name="dateTime">The DateTime value to validate.</param>
     /// <param name="paramName">The name of the parameter being validated (defaults to "dateTime").</param>
     /// <exception cref="ArgumentException">Thrown when value is invalid.</exception>
+    /// <exception cref="ArgumentNullException"><paramref name="paramName"/> is null.</exception>
     public static void EnsureValid(this DateTime dateTime, string paramName = "dateTime")
     {
+        ArgumentNullException.ThrowIfNull(paramName);
+
         var errors = dateTime.Validate(paramName);
         if (errors.Count > 0)
         {
@@ -253,10 +255,12 @@ public static class DateTimeUtilityValidation
     /// </summary>
     /// <param name="dateTime">The nullable DateTime value to validate.</param>
     /// <param name="paramName">The name of the parameter being validated (defaults to "dateTime").</param>
-    /// <exception cref="ArgumentNullException">Thrown when value is null and null is not allowed.</exception>
     /// <exception cref="ArgumentException">Thrown when value contains validation errors.</exception>
+    /// <exception cref="ArgumentNullException"><paramref name="paramName"/> is null.</exception>
     public static void EnsureValid(this DateTime? dateTime, string paramName = "dateTime")
     {
+        ArgumentNullException.ThrowIfNull(paramName);
+
         if (dateTime == null)
         {
             return;
@@ -276,8 +280,11 @@ public static class DateTimeUtilityValidation
     /// <param name="milliseconds">The milliseconds value to validate.</param>
     /// <param name="paramName">The name of the parameter being validated.</param>
     /// <exception cref="ArgumentException">Thrown when value is invalid.</exception>
+    /// <exception cref="ArgumentNullException"><paramref name="paramName"/> is null.</exception>
     public static void EnsureValid(this long milliseconds, string paramName = "milliseconds")
     {
+        ArgumentNullException.ThrowIfNull(paramName);
+
         var errors = milliseconds.Validate(paramName);
         if (errors.Count > 0)
         {
@@ -292,8 +299,11 @@ public static class DateTimeUtilityValidation
     /// <param name="milliseconds">The nullable milliseconds value to validate.</param>
     /// <param name="paramName">The name of the parameter being validated.</param>
     /// <exception cref="ArgumentException">Thrown when value contains validation errors.</exception>
+    /// <exception cref="ArgumentNullException"><paramref name="paramName"/> is null.</exception>
     public static void EnsureValid(this long? milliseconds, string paramName = "milliseconds")
     {
+        ArgumentNullException.ThrowIfNull(paramName);
+
         if (milliseconds == null)
         {
             return;
@@ -308,19 +318,23 @@ public static class DateTimeUtilityValidation
     }
 
     /// <summary>
-    /// Ensures that two DateTime values are valid for comparison (from <= to), throwing an ArgumentException if not.
+    /// Ensures that two DateTime values are valid for comparison (from &lt;= to), throwing an ArgumentException if not.
     /// </summary>
     /// <param name="from">The starting DateTime.</param>
     /// <param name="to">The ending DateTime.</param>
     /// <param name="fromParamName">The name of the 'from' parameter.</param>
     /// <param name="toParamName">The name of the 'to' parameter.</param>
-    /// <exception cref="ArgumentException">Thrown when values are invalid or from > to.</exception>
+    /// <exception cref="ArgumentException">Thrown when values are invalid or from &gt; to.</exception>
+    /// <exception cref="ArgumentNullException">Either <paramref name="fromParamName"/> or <paramref name="toParamName"/> is null.</exception>
     public static void EnsureValid(
         this DateTime from,
         DateTime to,
         string fromParamName = "from",
         string toParamName = "to")
     {
+        ArgumentNullException.ThrowIfNull(fromParamName);
+        ArgumentNullException.ThrowIfNull(toParamName);
+
         var errors = from.Validate(to, fromParamName, toParamName);
         if (errors.Count > 0)
         {
@@ -330,19 +344,23 @@ public static class DateTimeUtilityValidation
     }
 
     /// <summary>
-    /// Ensures that two nullable DateTime values are valid for comparison (from <= to), throwing an ArgumentException if not.
+    /// Ensures that two nullable DateTime values are valid for comparison (from &lt;= to), throwing an ArgumentException if not.
     /// </summary>
     /// <param name="from">The nullable starting DateTime.</param>
     /// <param name="to">The nullable ending DateTime.</param>
     /// <param name="fromParamName">The name of the 'from' parameter.</param>
     /// <param name="toParamName">The name of the 'to' parameter.</param>
-    /// <exception cref="ArgumentException">Thrown when values are invalid or from > to.</exception>
+    /// <exception cref="ArgumentException">Thrown when values are invalid or from &gt; to.</exception>
+    /// <exception cref="ArgumentNullException">Either <paramref name="fromParamName"/> or <paramref name="toParamName"/> is null.</exception>
     public static void EnsureValid(
         this DateTime? from,
         DateTime? to,
         string fromParamName = "from",
         string toParamName = "to")
     {
+        ArgumentNullException.ThrowIfNull(fromParamName);
+        ArgumentNullException.ThrowIfNull(toParamName);
+
         var errors = from.Validate(to, fromParamName, toParamName);
         if (errors.Count > 0)
         {
@@ -357,8 +375,11 @@ public static class DateTimeUtilityValidation
     /// <param name="dateTime">The DateTime value to validate.</param>
     /// <param name="paramName">The name of the parameter being validated.</param>
     /// <exception cref="ArgumentException">Thrown when value is invalid.</exception>
+    /// <exception cref="ArgumentNullException"><paramref name="paramName"/> is null.</exception>
     public static void EnsureValidForBusinessHours(this DateTime dateTime, string paramName = "dateTime")
     {
+        ArgumentNullException.ThrowIfNull(paramName);
+
         var errors = dateTime.ValidateForBusinessHours(paramName);
         if (errors.Count > 0)
         {
