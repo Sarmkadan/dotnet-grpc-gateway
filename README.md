@@ -783,6 +783,155 @@ catch (ArgumentException ex)
 }
 ```
 
+## HttpUtilityValidation
+
+`HttpUtilityValidation` provides validation helpers for HTTP utility operations to ensure input parameters are valid. It includes methods for validating HTTP headers, tokens, status codes, and content types, returning lists of validation problems, boolean check methods for quick validation, and ensure methods that throw exceptions on invalid parameters.
+
+### Example Usage
+
+```csharp
+using DotNetGrpcGateway.Utilities;
+using System;
+
+// 1. Validate a bearer token for authorization header construction
+var tokenValidationProblems = HttpUtilityValidation.Validate(
+    token: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+);
+
+if (HttpUtilityValidation.IsValid(
+    token: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+))
+{
+    Console.WriteLine("Token is valid for authorization header construction!");
+}
+else
+{
+    Console.WriteLine("Token validation problems:");
+    foreach (var problem in tokenValidationProblems)
+    {
+        Console.WriteLine($"- {problem}");
+    }
+}
+
+// 2. Validate an authorization header for token extraction
+var authHeaderValidationProblems = HttpUtilityValidation.ValidateAuthorizationHeader(
+    authorizationHeader: "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+);
+
+if (HttpUtilityValidation.IsValidAuthorizationHeader(
+    authorizationHeader: "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+))
+{
+    Console.WriteLine("Authorization header is valid for token extraction!");
+}
+else
+{
+    Console.WriteLine("Authorization header validation problems:");
+    foreach (var problem in authHeaderValidationProblems)
+    {
+        Console.WriteLine($"- {problem}");
+    }
+}
+
+// 3. Validate an Accept header
+var acceptHeaderValidationProblems = HttpUtilityValidation.ValidateAcceptHeader(
+    acceptHeader: "application/json, text/plain"
+);
+
+if (HttpUtilityValidation.IsValidAcceptHeader(
+    acceptHeader: "application/json, text/plain"
+))
+{
+    Console.WriteLine("Accept header is valid!");
+}
+else
+{
+    Console.WriteLine("Accept header validation problems:");
+    foreach (var problem in acceptHeaderValidationProblems)
+    {
+        Console.WriteLine($"- {problem}");
+    }
+}
+
+// 4. Validate an HTTP status code
+var statusCodeValidationProblems = HttpUtilityValidation.ValidateStatusCode(
+    statusCode: 200
+);
+
+if (HttpUtilityValidation.IsValidStatusCode(statusCode: 200))
+{
+    Console.WriteLine("Status code 200 is valid!");
+}
+else
+{
+    Console.WriteLine("Status code validation problems:");
+    foreach (var problem in statusCodeValidationProblems)
+    {
+        Console.WriteLine($"- {problem}");
+    }
+}
+
+// 5. Validate a content type
+var contentTypeValidationProblems = HttpUtilityValidation.ValidateContentType(
+    contentType: "application/json"
+);
+
+if (HttpUtilityValidation.IsValidContentType(
+    contentType: "application/json"
+))
+{
+    Console.WriteLine("Content type is valid!");
+}
+else
+{
+    Console.WriteLine("Content type validation problems:");
+    foreach (var problem in contentTypeValidationProblems)
+    {
+        Console.WriteLine($"- {problem}");
+    }
+}
+
+// 6. Use Ensure methods to throw exceptions on invalid parameters
+try
+{
+    HttpUtilityValidation.EnsureValid(
+        token: "",
+        paramName: "authToken"
+    );
+    Console.WriteLine("Token validation passed!");
+}
+catch (ArgumentException ex)
+{
+    Console.WriteLine($"Token validation failed: {ex.Message}");
+}
+
+try
+{
+    HttpUtilityValidation.EnsureValidAuthorizationHeader(
+        authorizationHeader: "Basic dXNlcjpwYXNz",
+        paramName: "authHeader"
+    );
+    Console.WriteLine("Authorization header validation passed!");
+}
+catch (ArgumentException ex)
+{
+    Console.WriteLine($"Authorization header validation failed: {ex.Message}");
+}
+
+try
+{
+    HttpUtilityValidation.EnsureValidStatusCode(
+        statusCode: 999,
+        paramName: "httpStatus"
+    );
+    Console.WriteLine("Status code validation passed!");
+}
+catch (ArgumentException ex)
+{
+    Console.WriteLine($"Status code validation failed: {ex.Message}");
+}
+```
+
 ## RequestLogServiceTests
 
 `RequestLogServiceTests` is a comprehensive test class that validates the behavior of request logging functionality in the gRPC gateway. It tests various scenarios including successful requests, failed requests, slow requests, large payloads, cache hits/misses, and retry behavior. The tests ensure that log entries are created with appropriate log levels (INFO, WARN, ERROR) and contain the expected message patterns and metadata for different request outcomes.
