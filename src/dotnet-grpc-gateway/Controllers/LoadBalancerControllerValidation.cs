@@ -112,6 +112,16 @@ public static class LoadBalancerControllerValidation
     }
 
     /// <summary>
+    /// Validates a draining state parameter.
+    /// </summary>
+    /// <param name="draining">The draining state to validate.</param>
+    /// <returns>An empty list if valid; otherwise, a list of human-readable validation errors.</returns>
+    public static IReadOnlyList<string> Validate(bool draining)
+    {
+        return new List<string>(); // bool is always valid
+    }
+
+    /// <summary>
     /// Determines whether the specified <see cref="ServiceEndpoint"/> is valid.
     /// </summary>
     /// <param name="value">The endpoint to check.</param>
@@ -138,6 +148,13 @@ public static class LoadBalancerControllerValidation
     /// <param name="strategyName">The strategy name to check.</param>
     /// <returns><see langword="true"/> if the strategy name is valid; otherwise, <see langword="false"/>.</returns>
     public static bool IsValid(string strategyName) => Validate(strategyName).Count == 0;
+
+    /// <summary>
+    /// Determines whether the specified draining state is valid.
+    /// </summary>
+    /// <param name="draining">The draining state to check.</param>
+    /// <returns><see langword="true"/> if the draining state is valid; otherwise, <see langword="false"/>.</returns>
+    public static bool IsValid(bool draining) => Validate(draining).Count == 0;
 
     /// <summary>
     /// Ensures that the specified <see cref="ServiceEndpoint"/> is valid, throwing an <see cref="ArgumentException"/>
@@ -201,5 +218,21 @@ public static class LoadBalancerControllerValidation
 
         throw new ArgumentException(
             $"Strategy name '{strategyName}' is invalid. Details: {string.Join(" ", errors)}");
+    }
+
+    /// <summary>
+    /// Ensures that the specified draining state is valid, throwing an <see cref="ArgumentException"/>
+    /// if it is not.
+    /// </summary>
+    /// <param name="draining">The draining state to validate.</param>
+    /// <exception cref="ArgumentException">Thrown if <paramref name="draining"/> is not valid.</exception>
+    public static void EnsureValid(bool draining)
+    {
+        var errors = Validate(draining);
+        if (errors.Count == 0)
+            return;
+
+        throw new ArgumentException(
+            $"Draining state '{draining}' is invalid. Details: {string.Join(" ", errors)}");
     }
 }

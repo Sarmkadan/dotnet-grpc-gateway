@@ -41,6 +41,9 @@ public interface ILoadBalancerService
     /// <summary>Updates endpoint health state.</summary>
     void UpdateEndpointHealth(int serviceId, int endpointId, bool isHealthy);
 
+    /// <summary>Sets the draining state of an endpoint.</summary>
+    void SetDraining(int serviceId, int endpointId, bool draining);
+
     /// <summary>Records that a request to an endpoint completed.</summary>
     void RecordRequestCompleted(int serviceId, int endpointId, double responseTimeMs, bool success);
 
@@ -129,11 +132,15 @@ public class LoadBalancerService : ILoadBalancerService
             return null;
         }
 
+        // Filter out draining endpoints unless ALL are draining
+        var nonDraining = healthy.Where(e => !e.Draining).ToList();
+        var endpointsToConsider = nonDraining.Count > 0 ? nonDraining : healthy;
+
         return Strategy switch
         {
-            LoadBalancingStrategy.Random => healthy[Random.Shared.Next(healthy.Count)],
-            LoadBalancingStrategy.LeastConnections => healthy.MinBy(e => e.ActiveConnections),
-            _ => RoundRobinSelect(serviceId, healthy)
+            LoadBalancingStrategy.Random => endpointsToConsider[Random.Shared.Next(endpointsToConsider.Count)],
+            LoadBalancingStrategy.LeastConnections => endpointsToConsider.MinBy(e => e.ActiveConnections),
+            _ => RoundRobinSelect(serviceId, endpointsToConsider)
         };
     }
 
@@ -170,6 +177,27 @@ public class LoadBalancerService : ILoadBalancerService
     }
 
     /// <inheritdoc/>
+    public void SetDraining(int serviceId, int endpointId, bool draining)
+    {
+        if (!_endpoints.TryGetValue(serviceId, out var list))
+            return;
+
+        lock (list)
+        {
+            var endpoint = list.FirstOrDefault(e => e.Id == endpointId);
+            if (endpoint is not null)
+            {
+                endpoint.Draining = draining;
+                _logger.LogInformation(
+                    "Endpoint {EndpointId} for service {ServiceId} draining set to {Draining}",
+                    endpointId,
+                    serviceId,
+                    draining);
+            }
+        }
+    }
+
+    /// <inheritdoc/>
     public void RecordRequestCompleted(int serviceId, int endpointId, double responseTimeMs, bool success)
     {
         if (!_endpoints.TryGetValue(serviceId, out var list))
@@ -189,9 +217,9 @@ public class LoadBalancerService : ILoadBalancerService
         }
     }
 
-    private ServiceEndpoint RoundRobinSelect(int serviceId, List<ServiceEndpoint> healthy)
+    private ServiceEndpoint RoundRobinSelect(int serviceId, List<ServiceEndpoint> endpoints)
     {
-        var counter = _roundRobinCounters.AddOrUpdate(serviceId, 0, (_, current) => (current + 1) % healthy.Count);
-        return healthy[counter % healthy.Count];
+        var counter = _roundRobinCounters.AddOrUpdate(serviceId, 0, (_, current) => (current + 1) % endpoints.Count);
+        return endpoints[counter % endpoints.Count];
     }
 }

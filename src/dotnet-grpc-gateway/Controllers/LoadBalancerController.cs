@@ -67,6 +67,17 @@ public class LoadBalancerController : ControllerBase
         return Ok(new { serviceId, endpointId, isHealthy });
     }
 
+    /// <summary>Sets the draining state of a specific endpoint.</summary>
+    [HttpPatch("services/{serviceId}/endpoints/{endpointId}/draining")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public ActionResult SetEndpointDraining(int serviceId, int endpointId, [FromBody] bool draining)
+    {
+        _loadBalancer.SetDraining(serviceId, endpointId, draining);
+        _logger.LogInformation("Set endpoint {EndpointId} draining state to {Draining} for service {ServiceId}", endpointId, draining, serviceId);
+        return Ok(new { serviceId, endpointId, draining });
+    }
+
     /// <summary>Gets the current load balancing strategy.</summary>
     [HttpGet("strategy")]
     [ProducesResponseType(typeof(object), StatusCodes.Status200OK)]

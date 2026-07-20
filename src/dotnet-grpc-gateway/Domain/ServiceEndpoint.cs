@@ -18,6 +18,7 @@ public class ServiceEndpoint
     public int Port { get; set; } = 5000;
     public bool UseTls { get; set; }
     public bool IsHealthy { get; set; } = true;
+    public bool Draining { get; set; }
     public int Weight { get; set; } = 1;
     public int ActiveConnections;
     public long TotalRequestsHandled { get; set; }
