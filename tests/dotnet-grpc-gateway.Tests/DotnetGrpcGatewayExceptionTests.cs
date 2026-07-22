@@ -34,13 +34,14 @@ public class DotnetGrpcGatewayExceptionTests
     }
 
     [Fact]
-    public void MessageConstructor_NullMessage_ShouldResultInNullMessage()
+    public void MessageConstructor_NullMessage_ShouldUseDefaultMessage()
     {
         // Act
         var ex = new DotnetGrpcGatewayException((string?)null);
 
         // Assert
-        Assert.Null(ex.Message);
+        Assert.NotNull(ex.Message);
+        Assert.Contains(nameof(DotnetGrpcGatewayException), ex.Message);
         Assert.Null(ex.InnerException);
     }
 
