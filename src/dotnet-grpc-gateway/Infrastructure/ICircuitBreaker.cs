@@ -1,8 +1,12 @@
 #nullable enable
+
 // =============================================================================
 // Author: Vladyslav Zaiets | https://sarmkadan.com
 // CTO & Software Architect
 // =============================================================================
+
+using DotNetGrpcGateway.Events;
+using Microsoft.Extensions.Logging;
 
 namespace DotNetGrpcGateway.Infrastructure;
 
@@ -59,6 +63,7 @@ public class CircuitBreaker : ICircuitBreaker
 {
     private readonly CircuitBreakerOptions _options;
     private readonly ILogger<CircuitBreaker> _logger;
+    private readonly IEventPublisher? _eventPublisher;
     private readonly object _lock = new();
 
     private CircuitBreakerState _state = CircuitBreakerState.Closed;
@@ -95,11 +100,46 @@ public class CircuitBreaker : ICircuitBreaker
         }
     }
 
-    public CircuitBreaker(int serviceId, CircuitBreakerOptions options, ILogger<CircuitBreaker> logger)
+    public CircuitBreaker(
+        int serviceId,
+        CircuitBreakerOptions options,
+        ILogger<CircuitBreaker> logger,
+        IEventPublisher? eventPublisher = null)
     {
         ServiceId = serviceId;
         _options = options ?? throw new ArgumentNullException(nameof(options));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+        _eventPublisher = eventPublisher;
+    }
+
+    private void EmitStateChangedEvent(
+        CircuitBreakerState previousState,
+        CircuitBreakerState newState,
+        string? causedBy = null)
+    {
+        if (_eventPublisher is null)
+        {
+            return;
+        }
+
+        try
+        {
+            var @event = new CircuitBreakerStateChangedEvent(
+                ServiceId,
+                "Service " + ServiceId,
+                previousState,
+                newState,
+                _consecutiveFailures,
+                _openedAt,
+                correlationId: null,
+                causedBy: causedBy);
+
+            _ = _eventPublisher.PublishAsync(@event);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to emit circuit breaker state change event for service {ServiceId}", ServiceId);
+        }
     }
 
     /// <inheritdoc/>
@@ -115,8 +155,10 @@ public class CircuitBreaker : ICircuitBreaker
                 case CircuitBreakerState.Open:
                     if (_openedAt.HasValue && DateTime.UtcNow - _openedAt.Value >= _options.OpenDuration)
                     {
+                        var previousState = _state;
                         _state = CircuitBreakerState.HalfOpen;
                         _halfOpenSuccesses = 0;
+                        EmitStateChangedEvent(previousState, CircuitBreakerState.HalfOpen, "Timeout elapsed");
                         _logger.LogInformation(
                             "Circuit for service {ServiceId} transitioned to HalfOpen",
                             ServiceId);
@@ -146,8 +188,10 @@ public class CircuitBreaker : ICircuitBreaker
                 _halfOpenSuccesses++;
                 if (_halfOpenSuccesses >= _options.HalfOpenSuccessThreshold)
                 {
+                    var previousState = _state;
                     _state = CircuitBreakerState.Closed;
                     _openedAt = null;
+                    EmitStateChangedEvent(previousState, CircuitBreakerState.Closed, "Success threshold reached");
                     _logger.LogInformation(
                         "Circuit for service {ServiceId} closed after recovery",
                         ServiceId);
@@ -165,8 +209,10 @@ public class CircuitBreaker : ICircuitBreaker
 
             if (_state == CircuitBreakerState.HalfOpen)
             {
+                var previousState = _state;
                 _state = CircuitBreakerState.Open;
                 _openedAt = DateTime.UtcNow;
+                EmitStateChangedEvent(previousState, CircuitBreakerState.Open, "Half-open failure");
                 _logger.LogWarning(
                     "Circuit for service {ServiceId} re-opened after half-open failure",
                     ServiceId);
@@ -175,8 +221,10 @@ public class CircuitBreaker : ICircuitBreaker
 
             if (_state == CircuitBreakerState.Closed && _consecutiveFailures >= _options.FailureThreshold)
             {
+                var previousState = _state;
                 _state = CircuitBreakerState.Open;
                 _openedAt = DateTime.UtcNow;
+                EmitStateChangedEvent(previousState, CircuitBreakerState.Open, "Failure threshold exceeded");
                 _logger.LogWarning(
                     "Circuit for service {ServiceId} opened after {Failures} consecutive failures",
                     ServiceId,
@@ -190,10 +238,12 @@ public class CircuitBreaker : ICircuitBreaker
     {
         lock (_lock)
         {
+            var previousState = _state;
             _state = CircuitBreakerState.Closed;
             _consecutiveFailures = 0;
             _halfOpenSuccesses = 0;
             _openedAt = null;
+            EmitStateChangedEvent(previousState, CircuitBreakerState.Closed, "Manual reset");
             _logger.LogInformation("Circuit for service {ServiceId} manually reset", ServiceId);
         }
     }

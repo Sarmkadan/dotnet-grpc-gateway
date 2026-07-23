@@ -1,10 +1,12 @@
 #nullable enable
+
 // =============================================================================
 // Author: Vladyslav Zaiets | https://sarmkadan.com
 // CTO & Software Architect
 // =============================================================================
 
 using System.Collections.Concurrent;
+using DotNetGrpcGateway.Events;
 using DotNetGrpcGateway.Infrastructure;
 
 namespace DotNetGrpcGateway.Services;
@@ -36,11 +38,16 @@ public class CircuitBreakerRegistry : ICircuitBreakerRegistry
     private readonly ConcurrentDictionary<int, ICircuitBreaker> _breakers = new();
     private readonly CircuitBreakerOptions _defaultOptions;
     private readonly ILoggerFactory _loggerFactory;
+    private readonly IEventPublisher? _eventPublisher;
 
-    public CircuitBreakerRegistry(ILoggerFactory loggerFactory, CircuitBreakerOptions? defaultOptions = null)
+    public CircuitBreakerRegistry(
+        ILoggerFactory loggerFactory,
+        CircuitBreakerOptions? defaultOptions = null,
+        IEventPublisher? eventPublisher = null)
     {
         _loggerFactory = loggerFactory ?? throw new ArgumentNullException(nameof(loggerFactory));
         _defaultOptions = defaultOptions ?? new CircuitBreakerOptions();
+        _eventPublisher = eventPublisher;
     }
 
     /// <inheritdoc/>
@@ -48,7 +55,7 @@ public class CircuitBreakerRegistry : ICircuitBreakerRegistry
     {
         return _breakers.GetOrAdd(
             serviceId,
-            id => new CircuitBreaker(id, _defaultOptions, _loggerFactory.CreateLogger<CircuitBreaker>()));
+            id => new CircuitBreaker(id, _defaultOptions, _loggerFactory.CreateLogger<CircuitBreaker>(), _eventPublisher));
     }
 
     /// <inheritdoc/>
