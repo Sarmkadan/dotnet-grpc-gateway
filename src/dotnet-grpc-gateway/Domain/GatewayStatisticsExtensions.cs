@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 
-namespace DotnetGrpcGateway.Domain
+namespace DotNetGrpcGateway.Domain
 {
     /// <summary>
     /// Provides extension methods for <see cref="GatewayStatistics"/> to calculate and format statistics.
