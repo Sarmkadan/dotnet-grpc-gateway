@@ -99,13 +99,69 @@ public class RequestContext
 }
 
 /// <summary>
-/// Accessor for the current request context in async context.
+/// Provides ambient access to the current <see cref="RequestContext"/> within an async context.
 /// </summary>
-public class RequestContextAccessor
+/// <remarks>
+/// This accessor uses <see cref="AsyncLocal{T}"/> to ensure that the request context
+/// flows correctly through async/await boundaries, preventing context leakage between
+/// concurrent requests in a high-throughput gateway scenario.
+///
+/// <para>
+/// Usage pattern:
+/// <code>
+/// // Set the context (typically in middleware)
+/// RequestContextAccessor.Current = new RequestContext { ... };
+///
+/// // Get the context (anywhere in the async call chain)
+/// var context = RequestContextAccessor.Current;
+/// </code>
+/// </para>
+///
+/// <para>
+/// The accessor is registered as scoped in the DI container, ensuring one instance
+/// per HTTP request. The <see cref="AsyncLocal{T}"/> ensures the value flows through
+/// async operations within that request's scope.
+/// </para>
+/// </remarks>
+/// <example>
+/// Example middleware usage:
+/// <code>
+/// public class MyMiddleware
+/// {
+///     private readonly RequestDelegate _next;
+///
+///     public MyMiddleware(RequestDelegate next)
+///     {
+///         _next = next;
+///     }
+///
+///     public async Task InvokeAsync(HttpContext context)
+///     {
+///         var requestContext = new RequestContext
+///         {
+///             Path = context.Request.Path,
+///             Method = context.Request.Method
+///         };
+///         RequestContextAccessor.Current = requestContext;
+///         await _next(context);
+///     }
+/// }
+/// </code>
+/// </example>
+public static class RequestContextAccessor
 {
     private static readonly AsyncLocal<RequestContext?> _context = new();
 
-    public RequestContext? Current
+    /// <summary>
+    /// Gets or sets the current <see cref="RequestContext"/> for the current async context.
+    /// </summary>
+    /// <value>The current request context, or null if not set.</value>
+    /// <remarks>
+    /// Setting this value establishes the context for the current async flow.
+    /// Getting this value retrieves the context that was set in the current or
+    /// parent async context.
+    /// </remarks>
+    public static RequestContext? Current
     {
         get => _context.Value;
         set => _context.Value = value;

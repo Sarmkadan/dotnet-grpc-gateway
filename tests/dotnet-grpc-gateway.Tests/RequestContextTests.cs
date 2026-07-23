@@ -356,4 +356,81 @@ public class RequestContextTests
         act.Should().NotThrow();
         context.Properties.Should().NotContainKey("nonExistentKey");
     }
+
+    [Fact]
+    public async Task RequestContextAccessor_AsyncLocal_Correctness_WithConcurrentRequests()
+    {
+        // Arrange - Create contexts properly (RequestId is read-only and auto-generated)
+        var task1Tcs = new TaskCompletionSource<RequestContext>();
+        var task2Tcs = new TaskCompletionSource<RequestContext>();
+        var context1 = new RequestContext { Path = "/api/test1" };
+        context1.CorrelationId = "context-1";
+        var context2 = new RequestContext { Path = "/api/test2" };
+        context2.CorrelationId = "context-2";
+
+        // Act - Run two overlapping async operations that set different contexts
+        var task1 = Task.Run(async () =>
+        {
+            RequestContextAccessor.Current = context1;
+            await Task.Delay(100); // Ensure both tasks are running concurrently
+            var result = RequestContextAccessor.Current;
+            task1Tcs.SetResult(result);
+            return result;
+        });
+
+        var task2 = Task.Run(async () =>
+        {
+            await Task.Delay(50); // Start slightly later to ensure interleaving
+            RequestContextAccessor.Current = context2;
+            await Task.Delay(100);
+            var result = RequestContextAccessor.Current;
+            task2Tcs.SetResult(result);
+            return result;
+        });
+
+        await Task.WhenAll(task1, task2);
+
+        // Assert
+        var result1 = await task1Tcs.Task;
+        var result2 = await task2Tcs.Task;
+
+        // Each task should see its own context, not the other's
+        result1.Should().BeSameAs(context1, "Task 1 should see its own context");
+        result2.Should().BeSameAs(context2, "Task 2 should see its own context");
+
+        // Verify the contexts are different
+        result1.Should().NotBeSameAs(result2);
+        result1.CorrelationId.Should().Be("context-1");
+        result2.CorrelationId.Should().Be("context-2");
+    }
+
+    [Fact]
+    public void RequestContextAccessor_Current_GetSet_Roundtrip()
+    {
+        // Arrange
+        var context = new RequestContext { Path = "/test" };
+        context.CorrelationId = "test-correlation-id";
+
+        // Act
+        RequestContextAccessor.Current = context;
+        var retrieved = RequestContextAccessor.Current;
+
+        // Assert
+        retrieved.Should().BeSameAs(context);
+        retrieved.CorrelationId.Should().Be("test-correlation-id");
+    }
+
+    [Fact]
+    public void RequestContextAccessor_Current_SetNull_ClearsContext()
+    {
+        // Arrange
+        var context = new RequestContext();
+        RequestContextAccessor.Current = context;
+
+        // Act
+        RequestContextAccessor.Current = null;
+
+        // Assert
+        RequestContextAccessor.Current.Should().BeNull();
+    }
 }

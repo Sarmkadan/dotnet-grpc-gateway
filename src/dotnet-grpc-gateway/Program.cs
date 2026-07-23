@@ -85,7 +85,6 @@ try
     services.AddSingleton<IRequestLogService>(new RequestLogService(10_000));
 
     // Request context
-    services.AddScoped<RequestContextAccessor>();
 
     // Authentication
     services.AddAuthentication("ApiKey").AddApiKeyAuthentication();
@@ -137,6 +136,9 @@ try
     app.UseMiddleware<ErrorHandlingMiddleware>();
 
     app.UseRouting();
+
+// Initialize request context early in the pipeline so it's available to all middleware
+app.UseMiddleware<RequestContextMiddleware>();
 
     app.UseMiddleware<RequestLoggingMiddleware>();
     app.UseMiddleware<RateLimitingMiddleware>();
