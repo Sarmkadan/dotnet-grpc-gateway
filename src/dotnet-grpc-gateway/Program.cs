@@ -81,6 +81,9 @@ try
     // Circuit breaker registry
     services.AddSingleton<ICircuitBreakerRegistry, CircuitBreakerRegistry>();
 
+// Circuit breaker service for protected gRPC invocations
+services.AddSingleton<ICircuitBreakerService, CircuitBreakerService>();
+
     // Request/response log store (10 000 entry ring buffer)
     services.AddSingleton<IRequestLogService>(new RequestLogService(10_000));
 
