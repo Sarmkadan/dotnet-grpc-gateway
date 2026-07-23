@@ -24,6 +24,7 @@ your current working directory is the repository root before invoking the script
 
 import subprocess
 import sys
+import os
 from pathlib import Path
 
 def run_command(command: list[str], cwd: Path | None = None) -> None:
@@ -47,19 +48,21 @@ def main() -> int:
     # Resolve the directory that contains this script – this is the repository root.
     repo_root = Path(__file__).parent.resolve()
 
+    # Change to the repository root directory
+    os.chdir(repo_root)
+
     # 1. Restore packages
     print("Restoring NuGet packages...")
-    run_command(["dotnet", "restore"], cwd=repo_root)
+    run_command(["dotnet", "restore"])
 
     # 2. Build the solution
     print("Building the solution...")
-    run_command(["dotnet", "build", "--configuration", "Release", "--no-restore"], cwd=repo_root)
+    run_command(["dotnet", "build", "--configuration", "Release", "--no-restore"])
 
     # 3. Run tests
     print("Running unit tests...")
     run_command(
         ["dotnet", "test", "--configuration", "Release", "--no-build", "--logger:trx"],
-        cwd=repo_root,
     )
 
     print("Build and test steps completed successfully.")
