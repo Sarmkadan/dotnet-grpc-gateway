@@ -12,8 +12,14 @@ It is intentionally lightweight and has no external dependencies beyond the
 standard library and the .NET SDK (dotnet CLI). If any step fails, the script
 will exit with a non‑zero status code and print the relevant error output.
 
-Usage:
-    python3 aider_buildcmd.py
+**Usage**
+Run this script from the repository root (the directory that contains this file):
+
+    python3 ./aider_buildcmd.py
+
+If you attempt to run it from another location (e.g. `/home/redrocket/task-factory/`),
+the script will not be found because it resides in the repository root. Ensure
+your current working directory is the repository root before invoking the script.
 """
 
 import subprocess
@@ -38,6 +44,7 @@ def run_command(command: list[str], cwd: Path | None = None) -> None:
         sys.exit(exc.returncode)
 
 def main() -> int:
+    # Resolve the directory that contains this script – this is the repository root.
     repo_root = Path(__file__).parent.resolve()
 
     # 1. Restore packages
@@ -50,7 +57,10 @@ def main() -> int:
 
     # 3. Run tests
     print("Running unit tests...")
-    run_command(["dotnet", "test", "--configuration", "Release", "--no-build", "--logger:trx"], cwd=repo_root)
+    run_command(
+        ["dotnet", "test", "--configuration", "Release", "--no-build", "--logger:trx"],
+        cwd=repo_root,
+    )
 
     print("Build and test steps completed successfully.")
     return 0
