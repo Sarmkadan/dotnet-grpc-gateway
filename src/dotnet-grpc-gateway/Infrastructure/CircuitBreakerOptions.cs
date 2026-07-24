@@ -12,7 +12,7 @@ namespace DotNetGrpcGateway.Infrastructure;
 public class CircuitBreakerOptions
 {
     /// <summary>Number of consecutive failures required to open the circuit.</summary>
-    public int FailureThreshold { get; set; } = 5;
+    public int FailureThreshold { get; set; } = 3; // validated
 
     /// <summary>Duration the circuit stays open before entering the half-open state.</summary>
     public TimeSpan OpenDuration { get; set; } = TimeSpan.FromSeconds(30);
