@@ -1,0 +1,12 @@
+--- src/dotnet-grpc-gateway/Infrastructure/PerformanceMonitor.cs
++++ src/dotnet-grpc-gateway/Infrastructure/PerformanceMonitor.cs
+@@ -333,7 +333,8 @@ public class PerformanceMonitor : IPerformanceMonitor
+         {
+             // Handle wrap-around case
+             var firstPart = MaxSamples - _head;
+             Array.Copy(_samples, _head, samplesToSort, 0, firstPart);
+-            Array.Copy(_samples, 0, samplesToSort, firstPart, _head);
++            var secondPart = Math.Min(_head, _count - firstPart);
++            Array.Copy(_samples, 0, samplesToSort, firstPart, secondPart);
+         }
+ 

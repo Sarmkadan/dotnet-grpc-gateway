@@ -2,7 +2,7 @@
 // =============================================================================
 // Author: Vladyslav Zaiets | https://sarmkadan.com
 // CTO & Software Architect
-// =============================================================================
+// =====================================================================
 
 using System.Collections.Concurrent;
 using System.Diagnostics;
@@ -331,10 +331,14 @@ public class PerformanceMonitor : IPerformanceMonitor
             }
             else
             {
-                // Handle wrap-around case
-                var firstPart = MaxSamples - _head;
+                // Handle wrap-around case - FIXED: cap firstPart to _count
+                var firstPart = Math.Min(MaxSamples - _head, _count);
                 Array.Copy(_samples, _head, samplesToSort, 0, firstPart);
-                Array.Copy(_samples, 0, samplesToSort, firstPart, _head);
+                var secondPart = _count - firstPart;
+                if (secondPart > 0)
+                {
+                    Array.Copy(_samples, 0, samplesToSort, firstPart, secondPart);
+                }
             }
 
             Array.Sort(samplesToSort);
