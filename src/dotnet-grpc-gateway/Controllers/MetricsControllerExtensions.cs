@@ -77,7 +77,7 @@ public static class MetricsControllerExtensions
         // Database metrics
         try
         {
-            var dbCount = await gatewayRepository.CountAsync();
+            var dbCount = await gatewayRepository.CountAsync(CancellationToken.None);
             metrics.AppendLine("# HELP dotnet_grpc_gateway_database_records Total records in database");
             metrics.AppendLine("# TYPE dotnet_grpc_gateway_database_records gauge");
             metrics.AppendLine($"dotnet_grpc_gateway_database_records {dbCount} {timestamp}");

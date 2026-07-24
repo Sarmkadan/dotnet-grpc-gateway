@@ -13,13 +13,62 @@ namespace DotNetGrpcGateway.Infrastructure;
 /// </summary>
 public interface IGatewayRepository
 {
-    Task<GatewayConfiguration> GetByIdAsync(int id);
-    Task<List<GatewayConfiguration>> GetAllAsync();
-    Task<List<GatewayConfiguration>> GetActiveAsync();
-    Task<GatewayConfiguration> CreateAsync(GatewayConfiguration config);
-    Task UpdateAsync(GatewayConfiguration config);
-    Task DeleteAsync(int id);
-    Task<int> CountAsync();
+    /// <summary>
+    /// Gets a gateway configuration by its identifier.
+    /// </summary>
+    /// <param name="id">The configuration identifier.</param>
+    /// <param name="cancellationToken">A cancellation token.</param>
+    /// <returns>A task that represents the asynchronous operation. The task result contains the gateway configuration.</returns>
+    /// <exception cref="ArgumentOutOfRangeException">Thrown when <paramref name="id"/> is less than or equal to zero.</exception>
+    Task<GatewayConfiguration> GetByIdAsync(int id, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Gets all gateway configurations.
+    /// </summary>
+    /// <param name="cancellationToken">A cancellation token.</param>
+    /// <returns>A task that represents the asynchronous operation. The task result contains a list of gateway configurations.</returns>
+    Task<List<GatewayConfiguration>> GetAllAsync(CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Gets all active gateway configurations.
+    /// </summary>
+    /// <param name="cancellationToken">A cancellation token.</param>
+    /// <returns>A task that represents the asynchronous operation. The task result contains a list of active gateway configurations.</returns>
+    Task<List<GatewayConfiguration>> GetActiveAsync(CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Creates a new gateway configuration.
+    /// </summary>
+    /// <param name="config">The gateway configuration to create.</param>
+    /// <param name="cancellationToken">A cancellation token.</param>
+    /// <returns>A task that represents the asynchronous operation. The task result contains the created gateway configuration.</returns>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="config"/> is null.</exception>
+    Task<GatewayConfiguration> CreateAsync(GatewayConfiguration config, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Updates an existing gateway configuration.
+    /// </summary>
+    /// <param name="config">The gateway configuration to update.</param>
+    /// <param name="cancellationToken">A cancellation token.</param>
+    /// <returns>A task that represents the asynchronous operation.</returns>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="config"/> is null.</exception>
+    Task UpdateAsync(GatewayConfiguration config, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Deletes a gateway configuration by its identifier.
+    /// </summary>
+    /// <param name="id">The configuration identifier.</param>
+    /// <param name="cancellationToken">A cancellation token.</param>
+    /// <returns>A task that represents the asynchronous operation.</returns>
+    /// <exception cref="ArgumentOutOfRangeException">Thrown when <paramref name="id"/> is less than or equal to zero.</exception>
+    Task DeleteAsync(int id, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Gets the total count of gateway configurations.
+    /// </summary>
+    /// <param name="cancellationToken">A cancellation token.</param>
+    /// <returns>A task that represents the asynchronous operation. The task result contains the count of gateway configurations.</returns>
+    Task<int> CountAsync(CancellationToken cancellationToken = default);
 }
 
 public class GatewayRepository : IGatewayRepository
@@ -34,27 +83,38 @@ public class GatewayRepository : IGatewayRepository
         _retryPolicy = retryPolicy ?? throw new ArgumentNullException(nameof(retryPolicy));
     }
 
-    public Task<GatewayConfiguration> GetByIdAsync(int id) =>
-        _retryPolicy.ExecuteAsync(_ =>
+    public Task<GatewayConfiguration> GetByIdAsync(int id, CancellationToken cancellationToken = default)
+    {
+        ArgumentOutOfRangeException.ThrowIfLessThanOrEqual(id, 0);
+        cancellationToken.ThrowIfCancellationRequested();
+
+        return _retryPolicy.ExecuteAsync(_ =>
         {
             if (_memoryStore.TryGetValue(id, out var config))
                 return Task.FromResult(config);
 
             throw new KeyNotFoundException($"Gateway configuration with ID {id} not found");
         }, nameof(GetByIdAsync));
+    }
 
-    public Task<List<GatewayConfiguration>> GetAllAsync() =>
-        _retryPolicy.ExecuteAsync(_ => Task.FromResult(_memoryStore.Values.ToList()), nameof(GetAllAsync));
+    public Task<List<GatewayConfiguration>> GetAllAsync(CancellationToken cancellationToken = default)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        return _retryPolicy.ExecuteAsync(_ => Task.FromResult(_memoryStore.Values.ToList()), nameof(GetAllAsync));
+    }
 
-    public Task<List<GatewayConfiguration>> GetActiveAsync() =>
-        _retryPolicy.ExecuteAsync(
+    public Task<List<GatewayConfiguration>> GetActiveAsync(CancellationToken cancellationToken = default)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        return _retryPolicy.ExecuteAsync(
             _ => Task.FromResult(_memoryStore.Values.Where(configuration => configuration.IsActive).ToList()),
             nameof(GetActiveAsync));
+    }
 
-    public Task<GatewayConfiguration> CreateAsync(GatewayConfiguration config)
+    public Task<GatewayConfiguration> CreateAsync(GatewayConfiguration config, CancellationToken cancellationToken = default)
     {
-        if (config is null)
-            throw new ArgumentNullException(nameof(config));
+        ArgumentNullException.ThrowIfNull(config);
+        cancellationToken.ThrowIfCancellationRequested();
 
         config.Validate();
 
@@ -70,10 +130,10 @@ public class GatewayRepository : IGatewayRepository
         }, nameof(CreateAsync));
     }
 
-    public Task UpdateAsync(GatewayConfiguration config)
+    public Task UpdateAsync(GatewayConfiguration config, CancellationToken cancellationToken = default)
     {
-        if (config is null)
-            throw new ArgumentNullException(nameof(config));
+        ArgumentNullException.ThrowIfNull(config);
+        cancellationToken.ThrowIfCancellationRequested();
 
         config.Validate();
 
@@ -88,15 +148,23 @@ public class GatewayRepository : IGatewayRepository
         }, nameof(UpdateAsync));
     }
 
-    public Task DeleteAsync(int id) =>
-        _retryPolicy.ExecuteAsync(_ =>
+    public Task DeleteAsync(int id, CancellationToken cancellationToken = default)
+    {
+        ArgumentOutOfRangeException.ThrowIfLessThanOrEqual(id, 0);
+        cancellationToken.ThrowIfCancellationRequested();
+
+        return _retryPolicy.ExecuteAsync(_ =>
         {
             if (!_memoryStore.Remove(id))
                 throw new KeyNotFoundException($"Gateway configuration with ID {id} not found");
 
             return Task.CompletedTask;
         }, nameof(DeleteAsync));
+    }
 
-    public Task<int> CountAsync() =>
-        _retryPolicy.ExecuteAsync(_ => Task.FromResult(_memoryStore.Count), nameof(CountAsync));
+    public Task<int> CountAsync(CancellationToken cancellationToken = default)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        return _retryPolicy.ExecuteAsync(_ => Task.FromResult(_memoryStore.Count), nameof(CountAsync));
+    }
 }

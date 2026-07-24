@@ -45,7 +45,7 @@ public class RouteManagementService : IRouteManagementService
     {
         try
         {
-            var routes = await _routeRepository.GetAllAsync();
+            var routes = await _routeRepository.GetAllAsync(CancellationToken.None);
             return routes.Where(r => r.TargetServiceId == serviceId).OrderByDescending(r => r.Priority).ToList();
         }
         catch (Exception ex)
@@ -62,7 +62,7 @@ public class RouteManagementService : IRouteManagementService
 
         try
         {
-            var allRoutes = await _routeRepository.GetAllAsync();
+            var allRoutes = await _routeRepository.GetAllAsync(CancellationToken.None);
 
             // Find routes that match the path, ordered by priority
             var matchingRoute = allRoutes
@@ -91,7 +91,7 @@ public class RouteManagementService : IRouteManagementService
 
         try
         {
-            var allRoutes = await _routeRepository.GetAllAsync();
+            var allRoutes = await _routeRepository.GetAllAsync(CancellationToken.None);
 
             // Find routes with overlapping patterns
             var conflicting = allRoutes.Where(r =>
@@ -146,7 +146,7 @@ public class RouteManagementService : IRouteManagementService
             }
 
             // Check for duplicate patterns
-            var allRoutes = await _routeRepository.GetAllAsync();
+            var allRoutes = await _routeRepository.GetAllAsync(CancellationToken.None);
             var duplicate = allRoutes.FirstOrDefault(r => r.Id != route.Id && r.Pattern == route.Pattern);
 
             if (duplicate is not null)

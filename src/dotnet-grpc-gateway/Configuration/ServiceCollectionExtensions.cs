@@ -316,7 +316,7 @@ public sealed class DatabaseHealthCheck : IHealthCheck
 		try
 		{
 			// Test database connectivity by attempting a simple query
-			var count = await _gatewayRepository.CountAsync();
+			var count = await _gatewayRepository.CountAsync(cancellationToken);
 			return HealthCheckResult.Healthy($"Database is accessible (records: {count})");
 		}
 		catch (Exception ex)

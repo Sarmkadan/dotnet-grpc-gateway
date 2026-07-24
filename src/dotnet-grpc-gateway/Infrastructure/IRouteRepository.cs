@@ -13,14 +13,73 @@ namespace DotNetGrpcGateway.Infrastructure;
 /// </summary>
 public interface IRouteRepository
 {
-    Task<GatewayRoute> GetByIdAsync(int id);
-    Task<List<GatewayRoute>> GetAllAsync();
-    Task<List<GatewayRoute>> GetActiveAsync();
-    Task<List<GatewayRoute>> GetByServiceIdAsync(int serviceId);
-    Task<GatewayRoute> CreateAsync(GatewayRoute route);
-    Task UpdateAsync(GatewayRoute route);
-    Task DeleteAsync(int id);
-    Task<List<GatewayRoute>> GetByPatternAsync(string pattern);
+    /// <summary>
+    /// Gets a gateway route by its identifier.
+    /// </summary>
+    /// <param name="id">The route identifier.</param>
+    /// <param name="cancellationToken">A cancellation token.</param>
+    /// <returns>A task that represents the asynchronous operation. The task result contains the gateway route.</returns>
+    /// <exception cref="ArgumentOutOfRangeException">Thrown when <paramref name="id"/> is less than or equal to zero.</exception>
+    Task<GatewayRoute> GetByIdAsync(int id, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Gets all gateway routes.
+    /// </summary>
+    /// <param name="cancellationToken">A cancellation token.</param>
+    /// <returns>A task that represents the asynchronous operation. The task result contains a list of gateway routes.</returns>
+    Task<List<GatewayRoute>> GetAllAsync(CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Gets all active gateway routes.
+    /// </summary>
+    /// <param name="cancellationToken">A cancellation token.</param>
+    /// <returns>A task that represents the asynchronous operation. The task result contains a list of active gateway routes.</returns>
+    Task<List<GatewayRoute>> GetActiveAsync(CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Gets gateway routes by service identifier.
+    /// </summary>
+    /// <param name="serviceId">The service identifier.</param>
+    /// <param name="cancellationToken">A cancellation token.</param>
+    /// <returns>A task that represents the asynchronous operation. The task result contains a list of gateway routes.</returns>
+    /// <exception cref="ArgumentOutOfRangeException">Thrown when <paramref name="serviceId"/> is less than or equal to zero.</exception>
+    Task<List<GatewayRoute>> GetByServiceIdAsync(int serviceId, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Creates a new gateway route.
+    /// </summary>
+    /// <param name="route">The gateway route to create.</param>
+    /// <param name="cancellationToken">A cancellation token.</param>
+    /// <returns>A task that represents the asynchronous operation. The task result contains the created gateway route.</returns>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="route"/> is null.</exception>
+    Task<GatewayRoute> CreateAsync(GatewayRoute route, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Updates an existing gateway route.
+    /// </summary>
+    /// <param name="route">The gateway route to update.</param>
+    /// <param name="cancellationToken">A cancellation token.</param>
+    /// <returns>A task that represents the asynchronous operation.</returns>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="route"/> is null.</exception>
+    Task UpdateAsync(GatewayRoute route, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Deletes a gateway route by its identifier.
+    /// </summary>
+    /// <param name="id">The route identifier.</param>
+    /// <param name="cancellationToken">A cancellation token.</param>
+    /// <returns>A task that represents the asynchronous operation.</returns>
+    /// <exception cref="ArgumentOutOfRangeException">Thrown when <paramref name="id"/> is less than or equal to zero.</exception>
+    Task DeleteAsync(int id, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Gets gateway routes matching a specific pattern.
+    /// </summary>
+    /// <param name="pattern">The pattern to search for.</param>
+    /// <param name="cancellationToken">A cancellation token.</param>
+    /// <returns>A task that represents the asynchronous operation. The task result contains a list of gateway routes.</returns>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="pattern"/> is null.</exception>
+    Task<List<GatewayRoute>> GetByPatternAsync(string pattern, CancellationToken cancellationToken = default);
 }
 
 public class RouteRepository : IRouteRepository
@@ -34,39 +93,47 @@ public class RouteRepository : IRouteRepository
         _connectionProvider = connectionProvider ?? throw new ArgumentNullException(nameof(connectionProvider));
     }
 
-    public async Task<GatewayRoute> GetByIdAsync(int id)
+    public Task<GatewayRoute> GetByIdAsync(int id, CancellationToken cancellationToken = default)
     {
+        ArgumentOutOfRangeException.ThrowIfLessThanOrEqual(id, 0);
+        cancellationToken.ThrowIfCancellationRequested();
+
         if (_routesById.TryGetValue(id, out var route))
-            return route;
+            return Task.FromResult(route);
 
         throw new KeyNotFoundException($"Route with ID {id} not found");
     }
 
-    public async Task<List<GatewayRoute>> GetAllAsync()
+    public Task<List<GatewayRoute>> GetAllAsync(CancellationToken cancellationToken = default)
     {
-        return _routesById.Values.ToList();
+        cancellationToken.ThrowIfCancellationRequested();
+        return Task.FromResult(_routesById.Values.ToList());
     }
 
-    public async Task<List<GatewayRoute>> GetActiveAsync()
+    public Task<List<GatewayRoute>> GetActiveAsync(CancellationToken cancellationToken = default)
     {
-        return _routesById.Values
+        cancellationToken.ThrowIfCancellationRequested();
+        return Task.FromResult(_routesById.Values
             .Where(x => x.IsActive)
             .OrderByDescending(x => x.Priority)
-            .ToList();
+            .ToList());
     }
 
-    public async Task<List<GatewayRoute>> GetByServiceIdAsync(int serviceId)
+    public Task<List<GatewayRoute>> GetByServiceIdAsync(int serviceId, CancellationToken cancellationToken = default)
     {
+        ArgumentOutOfRangeException.ThrowIfLessThanOrEqual(serviceId, 0);
+        cancellationToken.ThrowIfCancellationRequested();
+
         if (_routesByServiceId.TryGetValue(serviceId, out var routes))
-            return routes;
+            return Task.FromResult(routes);
 
-        return new List<GatewayRoute>();
+        return Task.FromResult(new List<GatewayRoute>());
     }
 
-    public async Task<GatewayRoute> CreateAsync(GatewayRoute route)
+    public Task<GatewayRoute> CreateAsync(GatewayRoute route, CancellationToken cancellationToken = default)
     {
-        if (route is null)
-            throw new ArgumentNullException(nameof(route));
+        ArgumentNullException.ThrowIfNull(route);
+        cancellationToken.ThrowIfCancellationRequested();
 
         route.Validate();
 
@@ -82,13 +149,13 @@ public class RouteRepository : IRouteRepository
 
         _routesByServiceId[route.TargetServiceId].Add(route);
 
-        return route;
+        return Task.FromResult(route);
     }
 
-    public async Task UpdateAsync(GatewayRoute route)
+    public Task UpdateAsync(GatewayRoute route, CancellationToken cancellationToken = default)
     {
-        if (route is null)
-            throw new ArgumentNullException(nameof(route));
+        ArgumentNullException.ThrowIfNull(route);
+        cancellationToken.ThrowIfCancellationRequested();
 
         if (!_routesById.ContainsKey(route.Id))
             throw new KeyNotFoundException($"Route with ID {route.Id} not found");
@@ -111,10 +178,15 @@ public class RouteRepository : IRouteRepository
 
             _routesByServiceId[route.TargetServiceId].Add(route);
         }
+
+        return Task.CompletedTask;
     }
 
-    public async Task DeleteAsync(int id)
+    public Task DeleteAsync(int id, CancellationToken cancellationToken = default)
     {
+        ArgumentOutOfRangeException.ThrowIfLessThanOrEqual(id, 0);
+        cancellationToken.ThrowIfCancellationRequested();
+
         if (!_routesById.TryGetValue(id, out var route))
             throw new KeyNotFoundException($"Route with ID {id} not found");
 
@@ -122,12 +194,17 @@ public class RouteRepository : IRouteRepository
 
         if (_routesByServiceId.TryGetValue(route.TargetServiceId, out var list))
             list.Remove(route);
+
+        return Task.CompletedTask;
     }
 
-    public async Task<List<GatewayRoute>> GetByPatternAsync(string pattern)
+    public Task<List<GatewayRoute>> GetByPatternAsync(string pattern, CancellationToken cancellationToken = default)
     {
-        return _routesById.Values
+        ArgumentNullException.ThrowIfNull(pattern);
+        cancellationToken.ThrowIfCancellationRequested();
+
+        return Task.FromResult(_routesById.Values
             .Where(x => x.Pattern.Contains(pattern, StringComparison.OrdinalIgnoreCase))
-            .ToList();
+            .ToList());
     }
 }
