@@ -4,6 +4,7 @@
 // CTO & Software Architect
 // =============================================================================
 
+using System.Net;
 using DotNetGrpcGateway.Caching;
 using DotNetGrpcGateway.Configuration;
 using DotNetGrpcGateway.Events;
@@ -13,6 +14,7 @@ using DotNetGrpcGateway.Infrastructure;
 using DotNetGrpcGateway.Integration;
 using DotNetGrpcGateway.Middleware;
 using DotNetGrpcGateway.Services;
+using Microsoft.AspNetCore.HttpOverrides;
 using Serilog;
 using DotNetGrpcGateway.Controllers;
 
@@ -141,8 +143,30 @@ services.AddSingleton<ICircuitBreakerService, CircuitBreakerService>();
 
     app.UseRouting();
 
+// Configure ForwardedHeadersMiddleware with explicit KnownProxies/KnownNetworks for security
+// This middleware processes X-Forwarded-For, X-Forwarded-Proto, X-Forwarded-Host headers
+// and sets Connection.RemoteIpAddress to the correct client IP when headers come from trusted sources
+// SECURITY: It is CRITICAL to configure KnownProxies/KnownNetworks with your actual proxy IPs or CIDR ranges
+// in production environments. Without proper configuration, client IP spoofing is possible.
+// Example for common reverse proxy setups:
+// KnownProxies = { IPAddress.Parse("10.0.0.1"), IPAddress.Parse("192.168.1.100") }
+// OR for cloud providers:
+// KnownNetworks = { IPNetwork.Parse("10.0.0.0/8"), IPNetwork.Parse("172.16.0.0/12"), IPNetwork.Parse("192.168.0.0/16") }
+app.UseForwardedHeaders(new ForwardedHeadersOptions
+{
+    ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto | ForwardedHeaders.XForwardedHost,
+    // SECURITY: Configure these with your actual proxy IPs or CIDR ranges
+    // For development/testing, only localhost is trusted
+    // For production, add your reverse proxy IPs here
+    KnownProxies = { IPAddress.Parse("127.0.0.1"), IPAddress.Parse("::1") },
+    KnownNetworks = { }
+});
+
 // Initialize request context early in the pipeline so it's available to all middleware
 app.UseMiddleware<RequestContextMiddleware>();
+
+// Sanitize forwarded headers and strip hop-by-hop headers before processing
+app.UseMiddleware<ForwardedHeadersSanitizationMiddleware>();
 
     app.UseMiddleware<RequestLoggingMiddleware>();
     app.UseMiddleware<RateLimitingMiddleware>();
