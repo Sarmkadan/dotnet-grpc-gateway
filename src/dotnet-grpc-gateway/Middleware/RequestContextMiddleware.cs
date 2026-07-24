@@ -1,9 +1,10 @@
 #nullable enable
-// =============================================================================
+// ====================================================================
 // Author: Vladyslav Zaiets | https://sarmkadan.com
 // CTO & Software Architect
-// =====================================================================
+// ====================================================================
 
+using DotNetGrpcGateway.Extensions;
 using DotNetGrpcGateway.Infrastructure;
 
 namespace DotNetGrpcGateway.Middleware
@@ -59,16 +60,14 @@ namespace DotNetGrpcGateway.Middleware
             {
                 Path = context.Request.Path.ToString(),
                 Method = context.Request.Method,
-                ClientIp = context.Connection.RemoteIpAddress?.ToString() ?? string.Empty
+                ClientIp = context.GetClientIpAddress()
             };
 
-            // Set the correlation ID from the request headers if available
-            if (context.Request.Headers.TryGetValue("X-Correlation-ID", out var correlationId))
-            {
-                requestContext.CorrelationId = correlationId.ToString();
-            }
+            // Set the correlation ID from the request headers if available, with validation and sanitization
+            requestContext.CorrelationId = context.GetCorrelationId();
 
-            _logger.LogDebug("Initializing RequestContext for path: {Path}, method: {Method}", requestContext.Path, requestContext.Method);
+            _logger.LogDebug("Initializing RequestContext for path: {Path}, method: {Method}, clientIp: {ClientIp}",
+                requestContext.Path, requestContext.Method, requestContext.ClientIp);
 
             // Store the context in the accessor - this will flow through async calls via AsyncLocal
             RequestContextAccessor.Current = requestContext;
