@@ -1,292 +1,242 @@
 #nullable enable
 
-using System;
+// =============================================================================
+// Author: Vladyslav Zaiets | https://sarmkadan.com
+// CTO & Software Architect
+// =====================================================================
+
+using DotNetGrpcGateway.Domain;
 using DotNetGrpcGateway.Infrastructure;
+using DotNetGrpcGateway.Services;
 using Microsoft.AspNetCore.Mvc;
 
 namespace DotNetGrpcGateway.Controllers;
 
 /// <summary>
-/// Extension methods for <see cref="MetricsController"/> that provide additional metrics functionality.
+/// Extension methods for MetricsController to add Prometheus-compatible endpoints
 /// </summary>
 public static class MetricsControllerExtensions
 {
-    private const int DefaultHistogramBucketSize = 10;
-    private const int DefaultDaysBack = 7;
-    private const int DefaultTopN = 10;
-    private const int DefaultHealthyThreshold = 1000;
-
     /// <summary>
-    /// Gets performance metrics with additional calculated statistics.
+    /// Adds Prometheus-compatible metrics endpoints to the application
     /// </summary>
-    /// <param name="controller">The metrics controller instance.</param>
-    /// <param name="includeHistogram">Whether to include a latency histogram in the response.</param>
-    /// <param name="histogramBucketSize">The size of each histogram bucket in milliseconds.</param>
-    /// <returns>Action result containing performance metrics with optional histogram.</returns>
-    /// <exception cref="ArgumentNullException"><paramref name="controller"/> is <see langword="null"/>.</exception>
-    public static async Task<ActionResult<PerformanceMetrics>> GetPerformanceMetricsWithDetails(
-        this MetricsController controller,
-        [FromQuery] bool includeHistogram = false,
-        [FromQuery] int? histogramBucketSize = DefaultHistogramBucketSize)
+    /// <param name="app">The WebApplication instance</param>
+    /// <returns>The configured WebApplication</returns>
+    public static WebApplication MapPrometheusMetrics(this WebApplication app)
     {
-        ArgumentNullException.ThrowIfNull(controller);
+        ArgumentNullException.ThrowIfNull(app);
 
-        var result = await controller.GetPerformanceMetrics();
-
-        if (result.Value is not PerformanceMetrics metrics)
-            return result;
-
-        if (includeHistogram && histogramBucketSize > 0)
+        // Map Prometheus-compatible metrics endpoint
+        app.MapGet("/metrics", async (
+            IGatewayRepository gatewayRepository,
+            ICircuitBreakerRegistry circuitBreakerRegistry,
+            IMetricsCollectionService metricsService,
+            IServiceDiscoveryService serviceDiscoveryService,
+            IPerformanceMonitor? performanceMonitor,
+            ILogger<MetricsController> logger) =>
         {
-            var histogram = CalculateLatencyHistogram(metrics, histogramBucketSize.Value);
-
-            return controller.Ok(new
+            try
             {
-                Performance = metrics,
-                LatencyHistogram = histogram
-            });
-        }
+                var metrics = await GeneratePrometheusMetricsAsync(
+                    gatewayRepository,
+                    circuitBreakerRegistry,
+                    metricsService,
+                    serviceDiscoveryService,
+                    performanceMonitor,
+                    logger);
 
-        return result;
-    }
-
-    /// <summary>
-    /// Gets endpoint-specific performance metrics.
-    /// </summary>
-    /// <param name="controller">The metrics controller instance.</param>
-    /// <param name="endpointName">Optional endpoint name to filter by.</param>
-    /// <param name="includePercentiles">Whether to include calculated percentiles in the response.</param>
-    /// <returns>Action result containing endpoint metrics with optional percentiles.</returns>
-    /// <exception cref="ArgumentNullException"><paramref name="controller"/> is <see langword="null"/>.</exception>
-    public static async Task<IActionResult> GetEndpointPerformanceMetrics(
-        this MetricsController controller,
-        [FromQuery] string? endpointName = null,
-        [FromQuery] bool includePercentiles = true)
-    {
-        ArgumentNullException.ThrowIfNull(controller);
-
-        ArgumentException.ThrowIfNullOrEmpty(endpointName?.Trim(), nameof(endpointName));
-
-        // Get all endpoint stats
-        IActionResult endpointStatsResult = await controller.GetEndpointStats();
-
-        // Check if we got an OkObjectResult with List<object>
-        if (endpointStatsResult is OkObjectResult okResult && okResult.Value is List<object> endpointStats)
-        {
-            if (!string.IsNullOrEmpty(endpointName))
-            {
-                // Filter by specific endpoint
-                var filtered = endpointStats
-                    .Cast<dynamic>()
-                    .Where(e => ((string)e.path).Contains(endpointName, StringComparison.OrdinalIgnoreCase))
-                    .ToList();
-
-                return controller.Ok(new { endpoint = endpointName, stats = filtered });
+                return Results.Text(metrics, "text/plain; version=0.0.4; charset=utf-8");
             }
-
-            if (includePercentiles)
+            catch (Exception ex)
             {
-                // Calculate accurate percentiles instead of approximations
-                var enhancedStats = endpointStats
-                    .Cast<dynamic>()
-                    .Select(e => new
-                    {
-                        path = (string)e.path,
-                        count = (int)e.count,
-                        avgResponseTime = (double)e.avgResponseTime,
-                        minResponseTime = (double)e.minResponseTime,
-                        maxResponseTime = (double)e.maxResponseTime,
-                        p50 = CalculatePercentile((IEnumerable<dynamic>)endpointStats, (string)e.path, 50),
-                        p95 = CalculatePercentile((IEnumerable<dynamic>)endpointStats, (string)e.path, 95),
-                        p99 = CalculatePercentile((IEnumerable<dynamic>)endpointStats, (string)e.path, 99)
-                    })
-                    .ToList();
-
-                return controller.Ok(enhancedStats);
+                logger.LogError(ex, "Failed to generate Prometheus metrics");
+                return Results.Problem("Failed to generate metrics");
             }
-        }
+        });
 
-        return endpointStatsResult;
+        return app;
     }
 
-    /// <summary>
-    /// Gets error metrics with additional context and time-based filtering.
-    /// </summary>
-    /// <param name="controller">The metrics controller instance.</param>
-    /// <param name="daysBack">Number of days to look back for error metrics.</param>
-    /// <param name="topN">Maximum number of top error codes to return.</param>
-    /// <returns>Action result containing error metrics with additional context.</returns>
-    /// <exception cref="ArgumentNullException"><paramref name="controller"/> is <see langword="null"/>.</exception>
-    /// <exception cref="ArgumentOutOfRangeException">
-    /// <paramref name="daysBack"/> is less than 1.
-    /// <para>-or-</para>
-    /// <paramref name="topN"/> is less than 1.
-    /// </exception>
-    public static async Task<IActionResult> GetErrorMetricsWithContext(
-        this MetricsController controller,
-        [FromQuery] int? daysBack = DefaultDaysBack,
-        [FromQuery] int? topN = DefaultTopN)
+    private static async Task<string> GeneratePrometheusMetricsAsync(
+        IGatewayRepository gatewayRepository,
+        ICircuitBreakerRegistry circuitBreakerRegistry,
+        IMetricsCollectionService metricsService,
+        IServiceDiscoveryService serviceDiscoveryService,
+        IPerformanceMonitor? performanceMonitor,
+        ILogger logger)
     {
-        ArgumentNullException.ThrowIfNull(controller);
+        var metrics = new System.Text.StringBuilder();
+        var timestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
 
-        if (daysBack <= 0)
+        // Header
+        metrics.AppendLine("# HELP dotnet_grpc_gateway_info Gateway information");
+        metrics.AppendLine("# TYPE dotnet_grpc_gateway_info gauge");
+        metrics.AppendLine($"dotnet_grpc_gateway_info{{version=\"1.0.0\"}} 1 {timestamp}");
+        metrics.AppendLine();
+
+        // Database metrics
+        try
         {
-            return controller.BadRequest("daysBack must be at least 1");
+            var dbCount = await gatewayRepository.CountAsync();
+            metrics.AppendLine("# HELP dotnet_grpc_gateway_database_records Total records in database");
+            metrics.AppendLine("# TYPE dotnet_grpc_gateway_database_records gauge");
+            metrics.AppendLine($"dotnet_grpc_gateway_database_records {dbCount} {timestamp}");
+            metrics.AppendLine();
+        }
+        catch (Exception ex)
+        {
+            logger.LogWarning(ex, "Failed to get database metrics");
         }
 
-        if (topN <= 0)
+        // Circuit breaker metrics
+        var circuitBreakerStates = circuitBreakerRegistry.GetAllStates();
+        var openCircuits = circuitBreakerStates.Count(x => x.Value == CircuitBreakerState.Open);
+        var halfOpenCircuits = circuitBreakerStates.Count(x => x.Value == CircuitBreakerState.HalfOpen);
+        var closedCircuits = circuitBreakerStates.Count(x => x.Value == CircuitBreakerState.Closed);
+
+        metrics.AppendLine("# HELP dotnet_grpc_gateway_circuit_breakers_total Total circuit breakers");
+        metrics.AppendLine("# TYPE dotnet_grpc_gateway_circuit_breakers_total gauge");
+        metrics.AppendLine($"dotnet_grpc_gateway_circuit_breakers_total {circuitBreakerStates.Count} {timestamp}");
+        
+        metrics.AppendLine("# HELP dotnet_grpc_gateway_circuit_breakers_open Number of open circuits");
+        metrics.AppendLine("# TYPE dotnet_grpc_gateway_circuit_breakers_open gauge");
+        metrics.AppendLine($"dotnet_grpc_gateway_circuit_breakers_open {openCircuits} {timestamp}");
+        
+        metrics.AppendLine("# HELP dotnet_grpc_gateway_circuit_breakers_half_open Number of half-open circuits");
+        metrics.AppendLine("# TYPE dotnet_grpc_gateway_circuit_breakers_half_open gauge");
+        metrics.AppendLine($"dotnet_grpc_gateway_circuit_breakers_half_open {halfOpenCircuits} {timestamp}");
+        
+        metrics.AppendLine("# HELP dotnet_grpc_gateway_circuit_breakers_closed Number of closed circuits");
+        metrics.AppendLine("# TYPE dotnet_grpc_gateway_circuit_breakers_closed gauge");
+        metrics.AppendLine($"dotnet_grpc_gateway_circuit_breakers_closed {closedCircuits} {timestamp}");
+        metrics.AppendLine();
+
+        // Service health metrics
+        var serviceHealth = await serviceDiscoveryService.GetAllServicesHealthAsync();
+        var healthyServices = serviceHealth.Count(x => x.Value == DotNetGrpcGateway.Services.ServiceHealthStatus.Healthy);
+        var totalServices = serviceHealth.Count;
+
+        metrics.AppendLine("# HELP dotnet_grpc_gateway_services_total Total services");
+        metrics.AppendLine("# TYPE dotnet_grpc_gateway_services_total gauge");
+        metrics.AppendLine($"dotnet_grpc_gateway_services_total {totalServices} {timestamp}");
+        
+        metrics.AppendLine("# HELP dotnet_grpc_gateway_services_healthy Number of healthy services");
+        metrics.AppendLine("# TYPE dotnet_grpc_gateway_services_healthy gauge");
+        metrics.AppendLine($"dotnet_grpc_gateway_services_healthy {healthyServices} {timestamp}");
+        
+        metrics.AppendLine("# HELP dotnet_grpc_gateway_services_unhealthy Number of unhealthy services");
+        metrics.AppendLine("# TYPE dotnet_grpc_gateway_services_unhealthy gauge");
+        metrics.AppendLine($"dotnet_grpc_gateway_services_unhealthy {totalServices - healthyServices} {timestamp}");
+        metrics.AppendLine();
+
+        // Performance metrics
+        if (performanceMonitor is not null)
         {
-            return controller.BadRequest("topN must be at least 1");
+            var performanceMetrics = await performanceMonitor.GetMetricsAsync();
+            
+            metrics.AppendLine("# HELP dotnet_grpc_gateway_performance_requests_total Total requests processed");
+            metrics.AppendLine("# TYPE dotnet_grpc_gateway_performance_requests_total counter");
+            metrics.AppendLine($"dotnet_grpc_gateway_performance_requests_total {performanceMetrics.TotalRequests} {timestamp}");
+            
+            metrics.AppendLine("# HELP dotnet_grpc_gateway_performance_requests_per_second Current requests per second");
+            metrics.AppendLine("# TYPE dotnet_grpc_gateway_performance_requests_per_second gauge");
+            metrics.AppendLine($"dotnet_grpc_gateway_performance_requests_per_second {performanceMetrics.RequestsPerSecond:F2} {timestamp}");
+            
+            metrics.AppendLine("# HELP dotnet_grpc_gateway_performance_duration_avg Average response time in milliseconds");
+            metrics.AppendLine("# TYPE dotnet_grpc_gateway_performance_duration_avg gauge");
+            metrics.AppendLine($"dotnet_grpc_gateway_performance_duration_avg {performanceMetrics.AverageDurationMs:F2} {timestamp}");
+            
+            metrics.AppendLine("# HELP dotnet_grpc_gateway_performance_duration_min Minimum response time in milliseconds");
+            metrics.AppendLine("# TYPE dotnet_grpc_gateway_performance_duration_min gauge");
+            metrics.AppendLine($"dotnet_grpc_gateway_performance_duration_min {performanceMetrics.MinDurationMs} {timestamp}");
+            
+            metrics.AppendLine("# HELP dotnet_grpc_gateway_performance_duration_max Maximum response time in milliseconds");
+            metrics.AppendLine("# TYPE dotnet_grpc_gateway_performance_duration_max gauge");
+            metrics.AppendLine($"dotnet_grpc_gateway_performance_duration_max {performanceMetrics.MaxDurationMs} {timestamp}");
+            
+            metrics.AppendLine("# HELP dotnet_grpc_gateway_performance_duration_p50 50th percentile response time");
+            metrics.AppendLine("# TYPE dotnet_grpc_gateway_performance_duration_p50 gauge");
+            metrics.AppendLine($"dotnet_grpc_gateway_performance_duration_p50 {performanceMetrics.P50DurationMs:F2} {timestamp}");
+            
+            metrics.AppendLine("# HELP dotnet_grpc_gateway_performance_duration_p95 95th percentile response time");
+            metrics.AppendLine("# TYPE dotnet_grpc_gateway_performance_duration_p95 gauge");
+            metrics.AppendLine($"dotnet_grpc_gateway_performance_duration_p95 {performanceMetrics.P95DurationMs:F2} {timestamp}");
+            
+            metrics.AppendLine("# HELP dotnet_grpc_gateway_performance_duration_p99 99th percentile response time");
+            metrics.AppendLine("# TYPE dotnet_grpc_gateway_performance_duration_p99 gauge");
+            metrics.AppendLine($"dotnet_grpc_gateway_performance_duration_p99 {performanceMetrics.P99DurationMs:F2} {timestamp}");
+            metrics.AppendLine();
         }
 
-        IActionResult errorResult = await controller.GetErrorMetrics();
+        // Gateway statistics metrics
+        var todayStats = await metricsService.GetTodayStatisticsAsync();
+        
+        metrics.AppendLine("# HELP dotnet_grpc_gateway_statistics_requests_total Total requests processed");
+        metrics.AppendLine("# TYPE dotnet_grpc_gateway_statistics_requests_total counter");
+        metrics.AppendLine($"dotnet_grpc_gateway_statistics_requests_total {todayStats.TotalRequestsProcessed} {timestamp}");
+        
+        metrics.AppendLine("# HELP dotnet_grpc_gateway_statistics_requests_successful Successful requests");
+        metrics.AppendLine("# TYPE dotnet_grpc_gateway_statistics_requests_successful counter");
+        metrics.AppendLine($"dotnet_grpc_gateway_statistics_requests_successful {todayStats.SuccessfulRequests} {timestamp}");
+        
+        metrics.AppendLine("# HELP dotnet_grpc_gateway_statistics_requests_failed Failed requests");
+        metrics.AppendLine("# TYPE dotnet_grpc_gateway_statistics_requests_failed counter");
+        metrics.AppendLine($"dotnet_grpc_gateway_statistics_requests_failed {todayStats.FailedRequests} {timestamp}");
+        
+        metrics.AppendLine("# HELP dotnet_grpc_gateway_statistics_success_rate Success rate percentage");
+        metrics.AppendLine("# TYPE dotnet_grpc_gateway_statistics_success_rate gauge");
+        metrics.AppendLine($"dotnet_grpc_gateway_statistics_success_rate {todayStats.SuccessRate:F2} {timestamp}");
+        
+        metrics.AppendLine("# HELP dotnet_grpc_gateway_statistics_duration_avg Average response time in milliseconds");
+        metrics.AppendLine("# TYPE dotnet_grpc_gateway_statistics_duration_avg gauge");
+        metrics.AppendLine($"dotnet_grpc_gateway_statistics_duration_avg {todayStats.AverageResponseTimeMs:F2} {timestamp}");
+        
+        metrics.AppendLine("# HELP dotnet_grpc_gateway_statistics_connections_active Active connections");
+        metrics.AppendLine("# TYPE dotnet_grpc_gateway_statistics_connections_active gauge");
+        metrics.AppendLine($"dotnet_grpc_gateway_statistics_connections_active {todayStats.ActiveConnections} {timestamp}");
+        
+        metrics.AppendLine("# HELP dotnet_grpc_gateway_statistics_connections_peak Peak connections");
+        metrics.AppendLine("# TYPE dotnet_grpc_gateway_statistics_connections_peak gauge");
+        metrics.AppendLine($"dotnet_grpc_gateway_statistics_connections_peak {todayStats.PeakConnections} {timestamp}");
+        
+        metrics.AppendLine("# HELP dotnet_grpc_gateway_statistics_cache_hit_rate Cache hit rate percentage");
+        metrics.AppendLine("# TYPE dotnet_grpc_gateway_statistics_cache_hit_rate gauge");
+        metrics.AppendLine($"dotnet_grpc_gateway_statistics_cache_hit_rate {todayStats.CacheHitRate:F2} {timestamp}");
+        metrics.AppendLine();
 
-        // Check if we got an OkObjectResult
-        if (errorResult is OkObjectResult errorOkResult && errorOkResult.Value is object errorDataObj)
+        // Service-specific metrics
+        foreach (var service in todayStats.RequestsByService.OrderByDescending(x => x.Value))
         {
-            // Cast to dynamic to access properties
-            dynamic errorData = errorDataObj;
-            var errorDistribution = ((IEnumerable<dynamic>)errorData.errorDistribution).Cast<dynamic>();
-
-            // Add time-based context
-            var enhancedErrorData = new
-            {
-                totalErrors = (int)errorData.totalErrors,
-                errorDistribution = errorDistribution,
-                timeRange = $"Last {daysBack} days",
-                topErrorCodes = errorDistribution
-                    .OrderByDescending((dynamic e) => (int)e.count)
-                    .Take(topN.Value)
-                    .Select(e => new { statusCode = (int)e.statusCode, count = (int)e.count })
-                    .ToList()
-            };
-
-            return controller.Ok(enhancedErrorData);
+            var escapedServiceName = EscapeMetricLabel(service.Key);
+            metrics.AppendLine($"# HELP dotnet_grpc_gateway_service_requests_total Requests for service {service.Key}");
+            metrics.AppendLine("# TYPE dotnet_grpc_gateway_service_requests_total counter");
+            metrics.AppendLine($"dotnet_grpc_gateway_service_requests_total{{service=\"{escapedServiceName}\"}} {service.Value} {timestamp}");
+        }
+        
+        if (todayStats.RequestsByService.Count > 0)
+        {
+            metrics.AppendLine();
         }
 
-        return errorResult;
+        // Error metrics
+        foreach (var error in todayStats.ErrorsByType.OrderByDescending(x => x.Value))
+        {
+            var escapedErrorType = EscapeMetricLabel(error.Key);
+            metrics.AppendLine($"# HELP dotnet_grpc_gateway_errors_total Error count for {error.Key}");
+            metrics.AppendLine("# TYPE dotnet_grpc_gateway_errors_total counter");
+            metrics.AppendLine($"dotnet_grpc_gateway_errors_total{{error_type=\"{escapedErrorType}\"}} {error.Value} {timestamp}");
+        }
+
+        return metrics.ToString();
     }
 
-    /// <summary>
-    /// Gets request metrics with additional throughput and health indicators.
-    /// </summary>
-    /// <param name="controller">The metrics controller instance.</param>
-    /// <param name="daysBack">Number of days to look back for request metrics.</param>
-    /// <param name="healthyThreshold">Maximum average response time in milliseconds for healthy status.</param>
-    /// <returns>Action result containing request metrics with health indicators.</returns>
-    /// <exception cref="ArgumentNullException"><paramref name="controller"/> is <see langword="null"/>.</exception>
-    /// <exception cref="ArgumentOutOfRangeException">
-    /// <paramref name="daysBack"/> is less than 1.
-    /// <para>-or-</para>
-    /// <paramref name="healthyThreshold"/> is negative.
-    /// </exception>
-    public static async Task<IActionResult> GetRequestMetricsWithHealth(
-        this MetricsController controller,
-        [FromQuery] int? daysBack = DefaultDaysBack,
-        [FromQuery] int? healthyThreshold = DefaultHealthyThreshold)
+    private static string EscapeMetricLabel(string label)
     {
-        ArgumentNullException.ThrowIfNull(controller);
-
-        if (daysBack <= 0)
-        {
-            return controller.BadRequest("daysBack must be at least 1");
-        }
-
-        if (healthyThreshold < 0)
-        {
-            return controller.BadRequest("healthyThreshold must be non-negative");
-        }
-
-        IActionResult requestMetricsResult = await controller.GetRequestMetrics(daysBack);
-
-        // Check if we got an OkObjectResult
-        if (requestMetricsResult is OkObjectResult requestOkResult && requestOkResult.Value is object requestDataObj)
-        {
-            // Cast to dynamic to access properties
-            dynamic requestData = requestDataObj;
-
-            // Calculate health indicators
-            var totalRequests = (long)requestData.totalRequests;
-            var successfulRequests = (long)requestData.successfulRequests;
-            var failedRequests = (long)requestData.failedRequests;
-            var averageResponseTime = (long)requestData.averageResponseTime;
-
-            var successRate = totalRequests > 0 ? (double)successfulRequests / totalRequests * 100 : 0;
-            var errorRate = totalRequests > 0 ? (double)failedRequests / totalRequests * 100 : 0;
-            var isHealthy = successRate >= 99.5 && averageResponseTime < healthyThreshold;
-
-            var healthIndicators = new
-            {
-                successRate = Math.Round(successRate, 2),
-                errorRate = Math.Round(errorRate, 2),
-                isHealthy = isHealthy,
-                healthyThresholdMs = healthyThreshold,
-                responseTimeStatus = isHealthy ? "Healthy" : "Degraded",
-                slaCompliance = isHealthy ? 100.0 : Math.Round(successRate, 2)
-            };
-
-            var enhancedData = new
-            {
-                requestMetrics = requestDataObj,
-                health = healthIndicators,
-                timestamp = DateTime.UtcNow
-            };
-
-            return controller.Ok(enhancedData);
-        }
-
-        return requestMetricsResult;
-    }
-
-    private static double CalculatePercentile(IEnumerable<dynamic> allStats, string path, int percentile)
-    {
-        var matchingStats = allStats.Cast<dynamic>().Where(e => (string)e.path == path).ToList();
-        if (matchingStats.Count == 0)
-            return 0;
-
-        var values = matchingStats.Select(e => (double)e.avgResponseTime).ToList();
-        values.Sort();
-
-        var index = (int)Math.Ceiling((double)values.Count * percentile / 100) - 1;
-        return index >= 0 && index < values.Count ? values[index] : 0;
-    }
-
-    private static List<LatencyBucket> CalculateLatencyHistogram(PerformanceMetrics metrics, int bucketSize)
-    {
-        if (metrics.TotalRequests == 0 || metrics.AverageDurationMs == 0)
-            return new List<LatencyBucket>();
-
-        var buckets = new List<LatencyBucket>();
-        var maxLatency = Math.Max(metrics.MaxDurationMs, (long)metrics.P99DurationMs * 2);
-        var bucketCount = (int)Math.Ceiling((double)maxLatency / bucketSize);
-
-        for (int i = 0; i < bucketCount; i++)
-        {
-            var bucketStart = i * bucketSize;
-            var bucketEnd = Math.Min((i + 1) * bucketSize, (int)maxLatency);
-            var bucketLabel = bucketStart == bucketEnd
-                ? $"{bucketStart}ms"
-                : $"{bucketStart}-{bucketEnd}ms";
-
-            buckets.Add(new LatencyBucket
-            {
-                Range = bucketLabel,
-                BucketStart = bucketStart,
-                BucketEnd = bucketEnd,
-                Count = 0,
-                Percentage = 0
-            });
-        }
-
-        return buckets;
-    }
-
-    private sealed class LatencyBucket
-    {
-        public string Range { get; set; } = string.Empty;
-        public int BucketStart { get; set; }
-        public int BucketEnd { get; set; }
-        public int Count { get; set; }
-        public double Percentage { get; set; }
+        return label
+            .Replace("\\", "\\\\")
+            .Replace("\"", "\\\"")
+            .Replace("\n", "\\n")
+            .Replace("\r", "\\r")
+            .Replace("\t", "\\t");
     }
 }

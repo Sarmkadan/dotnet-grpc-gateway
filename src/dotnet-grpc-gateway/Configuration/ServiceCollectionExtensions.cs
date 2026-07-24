@@ -7,6 +7,7 @@
 using DotNetGrpcGateway.Infrastructure;
 using DotNetGrpcGateway.Services;
 using DotNetGrpcGateway.Options;
+using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Options;
 
 namespace DotNetGrpcGateway.Configuration;
@@ -94,6 +95,7 @@ public static class ServiceCollectionExtensions
 
         services.AddHealthChecks()
             .AddCheck<GatewayHealthCheck>("gateway")
+			.AddCheck<DatabaseHealthCheck>("database")
             .AddCheck<ServiceDiscoveryHealthCheck>("service-discovery");
 
         return services;
@@ -277,4 +279,50 @@ public sealed class ServiceDiscoveryHealthCheck : IHealthCheck
             return HealthCheckResult.Unhealthy("Service discovery health check failed", ex);
         }
     }
+}
+
+/// <summary>
+/// Health check for database connectivity via IGatewayRepository
+/// </summary>
+public sealed class DatabaseHealthCheck : IHealthCheck
+{
+	private readonly IGatewayRepository _gatewayRepository;
+	private readonly ILogger<DatabaseHealthCheck> _logger;
+
+	/// <summary>
+	/// Initializes a new instance of the <see cref="DatabaseHealthCheck"/> class
+	/// </summary>
+	/// <param name="gatewayRepository">The gateway repository to check database connectivity</param>
+	/// <param name="logger">The logger</param>
+	/// <exception cref="ArgumentNullException">Thrown when <paramref name="gatewayRepository"/> or <paramref name="logger"/> is null</exception>
+	public DatabaseHealthCheck(
+		IGatewayRepository gatewayRepository,
+		ILogger<DatabaseHealthCheck> logger)
+	{
+		_gatewayRepository = gatewayRepository ?? throw new ArgumentNullException(nameof(gatewayRepository));
+		_logger = logger ?? throw new ArgumentNullException(nameof(logger));
+	}
+
+	/// <summary>
+	/// Runs the health check
+	/// </summary>
+	/// <param name="context">The health check context</param>
+	/// <param name="cancellationToken">The cancellation token</param>
+	/// <returns>The health check result</returns>
+	public async Task<HealthCheckResult> CheckHealthAsync(
+		HealthCheckContext context,
+		CancellationToken cancellationToken = default)
+	{
+		try
+		{
+			// Test database connectivity by attempting a simple query
+			var count = await _gatewayRepository.CountAsync();
+			return HealthCheckResult.Healthy($"Database is accessible (records: {count})");
+		}
+		catch (Exception ex)
+		{
+			_logger.LogWarning(ex, "Database connectivity check failed");
+			return HealthCheckResult.Unhealthy("Database connectivity check failed", ex);
+		}
+	}
 }
