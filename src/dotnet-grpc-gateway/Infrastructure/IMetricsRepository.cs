@@ -13,7 +13,14 @@ namespace DotNetGrpcGateway.Infrastructure;
 /// </summary>
 public interface IMetricsRepository
 {
-    Task<RequestMetric> RecordRequestAsync(RequestMetric metric);
+    /// <summary>
+    /// Records a request metric.
+    /// </summary>
+    /// <param name="metric">The request metric to record.</param>
+    /// <param name="cancellationToken">A cancellation token.</param>
+    /// <returns>A task that represents the asynchronous operation. The task result contains the recorded request metric.</returns>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="metric"/> is null.</exception>
+    Task<RequestMetric> RecordRequestAsync(RequestMetric metric, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Persists a batch of request metrics in a single operation. Intended for use by the
@@ -21,14 +28,56 @@ public interface IMetricsRepository
     /// request's hot path.
     /// </summary>
     /// <param name="metrics">The batch of metrics to persist.</param>
-    /// <returns>The number of metrics successfully persisted.</returns>
-    Task<int> BulkInsertAsync(IReadOnlyCollection<RequestMetric> metrics);
+    /// <param name="cancellationToken">A cancellation token.</param>
+    /// <returns>A task that represents the asynchronous operation. The task result contains the number of metrics successfully persisted.</returns>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="metrics"/> is null.</exception>
+    Task<int> BulkInsertAsync(IReadOnlyCollection<RequestMetric> metrics, CancellationToken cancellationToken = default);
 
-    Task<List<RequestMetric>> GetMetricsAsync(DateTime from, DateTime to);
-    Task<List<RequestMetric>> GetServiceMetricsAsync(int serviceId, int take = 100);
-    Task<GatewayStatistics> GetStatisticsAsync(DateTime date);
-    Task UpdateStatisticsAsync(GatewayStatistics stats);
-    Task<List<RequestMetric>> GetSlowRequestsAsync(double thresholdMs);
+    /// <summary>
+    /// Gets request metrics within a specified time range.
+    /// </summary>
+    /// <param name="from">The start date (inclusive).</param>
+    /// <param name="to">The end date (inclusive).</param>
+    /// <param name="cancellationToken">A cancellation token.</param>
+    /// <returns>A task that represents the asynchronous operation. The task result contains a list of request metrics.</returns>
+    /// <exception cref="ArgumentOutOfRangeException">Thrown when <paramref name="from"/> is after <paramref name="to"/>.</exception>
+    Task<List<RequestMetric>> GetMetricsAsync(DateTime from, DateTime to, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Gets request metrics for a specific service.
+    /// </summary>
+    /// <param name="serviceId">The service identifier.</param>
+    /// <param name="take">The maximum number of metrics to return.</param>
+    /// <param name="cancellationToken">A cancellation token.</param>
+    /// <returns>A task that represents the asynchronous operation. The task result contains a list of request metrics.</returns>
+    /// <exception cref="ArgumentOutOfRangeException">Thrown when <paramref name="serviceId"/> is less than or equal to zero or <paramref name="take"/> is less than 1.</exception>
+    Task<List<RequestMetric>> GetServiceMetricsAsync(int serviceId, int take = 100, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Gets gateway statistics for a specific date.
+    /// </summary>
+    /// <param name="date">The date for which to retrieve statistics.</param>
+    /// <param name="cancellationToken">A cancellation token.</param>
+    /// <returns>A task that represents the asynchronous operation. The task result contains the gateway statistics.</returns>
+    Task<GatewayStatistics> GetStatisticsAsync(DateTime date, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Updates gateway statistics.
+    /// </summary>
+    /// <param name="stats">The gateway statistics to update.</param>
+    /// <param name="cancellationToken">A cancellation token.</param>
+    /// <returns>A task that represents the asynchronous operation.</returns>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="stats"/> is null.</exception>
+    Task UpdateStatisticsAsync(GatewayStatistics stats, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Gets slow requests that exceed a specified duration threshold.
+    /// </summary>
+    /// <param name="thresholdMs">The duration threshold in milliseconds.</param>
+    /// <param name="cancellationToken">A cancellation token.</param>
+    /// <returns>A task that represents the asynchronous operation. The task result contains a list of slow request metrics.</returns>
+    /// <exception cref="ArgumentOutOfRangeException">Thrown when <paramref name="thresholdMs"/> is less than or equal to zero.</exception>
+    Task<List<RequestMetric>> GetSlowRequestsAsync(double thresholdMs, CancellationToken cancellationToken = default);
 }
 
 public class MetricsRepository : IMetricsRepository
@@ -46,10 +95,10 @@ public class MetricsRepository : IMetricsRepository
         _retryPolicy = retryPolicy ?? throw new ArgumentNullException(nameof(retryPolicy));
     }
 
-    public Task<RequestMetric> RecordRequestAsync(RequestMetric metric)
+    public Task<RequestMetric> RecordRequestAsync(RequestMetric metric, CancellationToken cancellationToken = default)
     {
-        if (metric is null)
-            throw new ArgumentNullException(nameof(metric));
+        ArgumentNullException.ThrowIfNull(metric);
+        cancellationToken.ThrowIfCancellationRequested();
 
         metric.Validate();
 
@@ -73,11 +122,13 @@ public class MetricsRepository : IMetricsRepository
     /// Persists a batch of request metrics in a single operation.
     /// </summary>
     /// <param name="metrics">The batch of metrics to persist.</param>
+    /// <param name="cancellationToken">A cancellation token.</param>
     /// <returns>The number of metrics successfully persisted.</returns>
     /// <exception cref="ArgumentNullException">Thrown when <paramref name="metrics"/> is null.</exception>
-    public Task<int> BulkInsertAsync(IReadOnlyCollection<RequestMetric> metrics)
+    public Task<int> BulkInsertAsync(IReadOnlyCollection<RequestMetric> metrics, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(metrics);
+        cancellationToken.ThrowIfCancellationRequested();
 
         if (metrics.Count == 0)
             return Task.FromResult(0);
@@ -107,21 +158,32 @@ public class MetricsRepository : IMetricsRepository
         }, nameof(BulkInsertAsync));
     }
 
-    public Task<List<RequestMetric>> GetMetricsAsync(DateTime from, DateTime to) =>
-        _retryPolicy.ExecuteAsync(_ => Task.FromResult(_metricsById.Values
+    public Task<List<RequestMetric>> GetMetricsAsync(DateTime from, DateTime to, CancellationToken cancellationToken = default)
+    {
+        ArgumentOutOfRangeException.ThrowIfGreaterThan(from, to);
+        cancellationToken.ThrowIfCancellationRequested();
+        return _retryPolicy.ExecuteAsync(_ => Task.FromResult(_metricsById.Values
             .Where(x => x.RecordedAt >= from && x.RecordedAt <= to)
             .OrderByDescending(x => x.RecordedAt)
             .ToList()), nameof(GetMetricsAsync));
+    }
 
-    public Task<List<RequestMetric>> GetServiceMetricsAsync(int serviceId, int take = 100) =>
-        _retryPolicy.ExecuteAsync(_ => Task.FromResult(_metricsById.Values
+    public Task<List<RequestMetric>> GetServiceMetricsAsync(int serviceId, int take = 100, CancellationToken cancellationToken = default)
+    {
+        ArgumentOutOfRangeException.ThrowIfLessThanOrEqual(serviceId, 0);
+        ArgumentOutOfRangeException.ThrowIfLessThanOrEqual(take, 0);
+        cancellationToken.ThrowIfCancellationRequested();
+        return _retryPolicy.ExecuteAsync(_ => Task.FromResult(_metricsById.Values
             .Where(x => x.RouteId == serviceId)
             .OrderByDescending(x => x.RecordedAt)
             .Take(take)
             .ToList()), nameof(GetServiceMetricsAsync));
+    }
 
-    public Task<GatewayStatistics> GetStatisticsAsync(DateTime date) =>
-        _retryPolicy.ExecuteAsync(_ =>
+    public Task<GatewayStatistics> GetStatisticsAsync(DateTime date, CancellationToken cancellationToken = default)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        return _retryPolicy.ExecuteAsync(_ =>
         {
             var dateKey = date.Date;
 
@@ -132,11 +194,12 @@ public class MetricsRepository : IMetricsRepository
             _statisticsByDate[dateKey] = newStats;
             return Task.FromResult(newStats);
         }, nameof(GetStatisticsAsync));
+    }
 
-    public Task UpdateStatisticsAsync(GatewayStatistics stats)
+    public Task UpdateStatisticsAsync(GatewayStatistics stats, CancellationToken cancellationToken = default)
     {
-        if (stats is null)
-            throw new ArgumentNullException(nameof(stats));
+        ArgumentNullException.ThrowIfNull(stats);
+        cancellationToken.ThrowIfCancellationRequested();
 
         stats.Validate();
 
@@ -150,9 +213,13 @@ public class MetricsRepository : IMetricsRepository
         }, nameof(UpdateStatisticsAsync));
     }
 
-    public Task<List<RequestMetric>> GetSlowRequestsAsync(double thresholdMs) =>
-        _retryPolicy.ExecuteAsync(_ => Task.FromResult(_metricsById.Values
+    public Task<List<RequestMetric>> GetSlowRequestsAsync(double thresholdMs, CancellationToken cancellationToken = default)
+    {
+        ArgumentOutOfRangeException.ThrowIfLessThanOrEqual(thresholdMs, 0);
+        cancellationToken.ThrowIfCancellationRequested();
+        return _retryPolicy.ExecuteAsync(_ => Task.FromResult(_metricsById.Values
             .Where(x => x.IsSlowRequest(thresholdMs))
             .OrderByDescending(x => x.DurationMs)
             .ToList()), nameof(GetSlowRequestsAsync));
+    }
 }

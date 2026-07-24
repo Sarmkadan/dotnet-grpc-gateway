@@ -190,7 +190,7 @@ public sealed class MetricsPersistenceBackgroundService : BackgroundService
         {
             using var scope = _serviceProvider.CreateScope();
             var repository = scope.ServiceProvider.GetRequiredService<IMetricsRepository>();
-            var persisted = await repository.BulkInsertAsync(batch).ConfigureAwait(false);
+            var persisted = await repository.BulkInsertAsync(batch, cancellationToken).ConfigureAwait(false);
 
             _logger.LogDebug("Persisted {Persisted}/{Total} queued request metrics", persisted, batch.Count);
         }

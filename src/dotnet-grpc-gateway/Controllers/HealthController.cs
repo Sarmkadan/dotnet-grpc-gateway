@@ -247,7 +247,7 @@ public class HealthController : ControllerBase
         try
         {
             // Test database connectivity by attempting a simple query
-            var count = await _gatewayRepository.CountAsync();
+            var count = await _gatewayRepository.CountAsync(CancellationToken.None);
             return count >= 0;
         }
         catch (Exception ex)
