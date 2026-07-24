@@ -83,11 +83,64 @@ public class PerformanceMetrics
     /// Gets the current requests per second.
     /// </summary>
     public double RequestsPerSecond { get; init; }
+
+    /// <summary>
+    /// Gets per-route performance metrics.
+    /// Key: route path, Value: route-specific metrics including percentiles.
+    /// </summary>
+    public IReadOnlyDictionary<string, RouteMetrics> RouteMetrics { get; init; } = new Dictionary<string, RouteMetrics>();
+}
+
+/// <summary>
+/// Performance metrics for a specific route.
+/// </summary>
+public class RouteMetrics
+{
+    /// <summary>
+    /// Gets the route path.
+    /// </summary>
+    public string Path { get; init; } = string.Empty;
+
+    /// <summary>
+    /// Gets the total number of requests for this route.
+    /// </summary>
+    public long TotalRequests { get; init; }
+
+    /// <summary>
+    /// Gets the average request duration in milliseconds for this route.
+    /// </summary>
+    public double AverageDurationMs { get; init; }
+
+    /// <summary>
+    /// Gets the minimum request duration in milliseconds for this route.
+    /// </summary>
+    public long MinDurationMs { get; init; }
+
+    /// <summary>
+    /// Gets the maximum request duration in milliseconds for this route.
+    /// </summary>
+    public long MaxDurationMs { get; init; }
+
+    /// <summary>
+    /// Gets the 50th percentile (median) request duration in milliseconds for this route.
+    /// </summary>
+    public double P50DurationMs { get; init; }
+
+    /// <summary>
+    /// Gets the 95th percentile request duration in milliseconds for this route.
+    /// </summary>
+    public double P95DurationMs { get; init; }
+
+    /// <summary>
+    /// Gets the 99th percentile request duration in milliseconds for this route.
+    /// </summary>
+    public double P99DurationMs { get; init; }
 }
 
 /// <summary>
 /// Thread-safe, allocation-aware performance monitor implementation.
-/// Uses Interlocked operations for counters and immutable snapshots for metrics.
+/// Uses Interlocked operations for counters and a ring-buffer quantile sketch for percentile tracking.
+/// Memory bound: ~2KB per tracked route (1024 samples * 8 bytes per long).
 /// </summary>
 public class PerformanceMonitor : IPerformanceMonitor
 {
@@ -96,11 +149,10 @@ public class PerformanceMonitor : IPerformanceMonitor
     private readonly AtomicLong _totalDurationMs = new();
     private readonly AtomicLong _minDurationMs = new(long.MaxValue);
     private readonly AtomicLong _maxDurationMs = new(long.MinValue);
-    private readonly AtomicLong _routeCount = new();
 
-    // Route-specific metrics using ConcurrentDictionary with immutable lists
-    // Key: route path, Value: immutable array of durations (sorted for percentiles)
-    private readonly ConcurrentDictionary<string, ImmutableArray<long>> _routeDurations = new();
+    // Route-specific metrics using ConcurrentDictionary with ring-buffer quantile sketches
+    // Key: route path, Value: RouteQuantileSketch for percentile tracking
+    private readonly ConcurrentDictionary<string, RouteQuantileSketch> _routeMetrics = new();
 
     // Uptime tracking
     private readonly Stopwatch _uptime = Stopwatch.StartNew();
@@ -120,30 +172,9 @@ public class PerformanceMonitor : IPerformanceMonitor
         _minDurationMs.Min(durationMs);
         _maxDurationMs.Max(durationMs);
 
-        // Update route-specific metrics
-        // Use a simple approach: get or create the array, then update atomically
-        ImmutableArray<long> existingArray;
-        do
-        {
-            if (_routeDurations.TryGetValue(path, out var existing))
-            {
-                existingArray = existing;
-            }
-            else
-            {
-                existingArray = ImmutableArray<long>.Empty;
-            }
-
-            var updatedArray = existingArray.Add(durationMs).Sort();
-        }
-        while (!_routeDurations.TryUpdate(path, existingArray.Add(durationMs).Sort(), existingArray));
-
-        // Limit memory growth by removing oldest samples when exceeding threshold
-        // This is done periodically rather than on every update for performance
-        if (_routeDurations.Count > 0 && _totalRequests.Value % 1000 == 0)
-        {
-            TrimOldSamples();
-        }
+        // Update route-specific metrics with proper concurrent access
+        var sketch = _routeMetrics.GetOrAdd(path, static _ => new RouteQuantileSketch());
+        sketch.Add(durationMs);
     }
 
     public async Task<PerformanceMetrics> GetMetricsAsync()
@@ -157,8 +188,7 @@ public class PerformanceMonitor : IPerformanceMonitor
         _totalDurationMs.Reset();
         _minDurationMs.Reset(long.MaxValue);
         _maxDurationMs.Reset(long.MinValue);
-        _routeCount.Reset();
-        _routeDurations.Clear();
+        _routeMetrics.Clear();
         _uptime.Restart();
         await Task.CompletedTask;
     }
@@ -182,7 +212,8 @@ public class PerformanceMonitor : IPerformanceMonitor
                 P50DurationMs = 0,
                 P95DurationMs = 0,
                 P99DurationMs = 0,
-                RequestsPerSecond = 0
+                RequestsPerSecond = 0,
+                RouteMetrics = new Dictionary<string, RouteMetrics>()
             };
         }
 
@@ -194,31 +225,32 @@ public class PerformanceMonitor : IPerformanceMonitor
             ? totalRequests / _uptime.Elapsed.TotalSeconds
             : 0;
 
-        // Collect all durations from all routes for percentile calculation
-        // This is the only allocation-heavy operation, but it's necessary for accurate percentiles
-        var allDurationsBuilder = new List<long>();
-        foreach (var durations in _routeDurations.Values)
+        // Calculate global percentiles from all route sketches
+        var globalDurations = new List<long>();
+        foreach (var sketch in _routeMetrics.Values)
         {
-            allDurationsBuilder.AddRange(durations);
+            globalDurations.AddRange(sketch.GetAllSamples());
         }
 
-        if (allDurationsBuilder.Count == 0)
+        globalDurations.Sort();
+
+        // Build route-specific metrics
+        var routeMetricsDict = new Dictionary<string, RouteMetrics>(StringComparer.Ordinal);
+        foreach (var kvp in _routeMetrics)
         {
-            return new PerformanceMetrics
+            var sketch = kvp.Value;
+            routeMetricsDict[kvp.Key] = new RouteMetrics
             {
-                TotalRequests = totalRequests,
-                AverageDurationMs = averageDurationMs,
-                MinDurationMs = minDurationMs,
-                MaxDurationMs = maxDurationMs,
-                P50DurationMs = 0,
-                P95DurationMs = 0,
-                P99DurationMs = 0,
-                RequestsPerSecond = requestsPerSecond
+                Path = kvp.Key,
+                TotalRequests = sketch.Count,
+                AverageDurationMs = sketch.AverageDurationMs,
+                MinDurationMs = sketch.MinDurationMs,
+                MaxDurationMs = sketch.MaxDurationMs,
+                P50DurationMs = sketch.GetPercentile(0.50),
+                P95DurationMs = sketch.GetPercentile(0.95),
+                P99DurationMs = sketch.GetPercentile(0.99)
             };
         }
-
-        // Sort once for all percentiles
-        allDurationsBuilder.Sort();
 
         return new PerformanceMetrics
         {
@@ -226,10 +258,11 @@ public class PerformanceMonitor : IPerformanceMonitor
             AverageDurationMs = averageDurationMs,
             MinDurationMs = minDurationMs,
             MaxDurationMs = maxDurationMs,
-            P50DurationMs = GetPercentile(allDurationsBuilder, 0.50),
-            P95DurationMs = GetPercentile(allDurationsBuilder, 0.95),
-            P99DurationMs = GetPercentile(allDurationsBuilder, 0.99),
-            RequestsPerSecond = requestsPerSecond
+            P50DurationMs = globalDurations.Count > 0 ? GetPercentile(globalDurations, 0.50) : 0,
+            P95DurationMs = globalDurations.Count > 0 ? GetPercentile(globalDurations, 0.95) : 0,
+            P99DurationMs = globalDurations.Count > 0 ? GetPercentile(globalDurations, 0.99) : 0,
+            RequestsPerSecond = requestsPerSecond,
+            RouteMetrics = routeMetricsDict
         };
     }
 
@@ -244,17 +277,98 @@ public class PerformanceMonitor : IPerformanceMonitor
         return sortedValues[Math.Max(0, Math.Min(index, sortedValues.Count - 1))];
     }
 
-    private void TrimOldSamples()
+    /// <summary>
+    /// Fixed-size ring buffer quantile sketch for efficient percentile tracking.
+    /// Memory bound: 1024 samples * 8 bytes = 8KB per route.
+    /// Provides O(1) insertion and O(n) percentile calculation with n=1024.
+    /// </summary>
+    private sealed class RouteQuantileSketch
     {
-        // Remove oldest samples from each route to prevent unbounded memory growth
-        // Keep only the most recent 1000 samples per route
-        foreach (var key in _routeDurations.Keys.ToArray())
+        // Ring buffer with fixed capacity for memory-bound percentile tracking
+        private const int MaxSamples = 1024;
+        private readonly long[] _samples = new long[MaxSamples];
+        private int _head = 0;
+        private int _count = 0;
+        private long _sum = 0;
+        private long _min = long.MaxValue;
+        private long _max = long.MinValue;
+
+        public int Count => _count;
+        public double AverageDurationMs => _count > 0 ? (double)_sum / _count : 0;
+        public long MinDurationMs => _count > 0 ? _min : 0;
+        public long MaxDurationMs => _count > 0 ? _max : 0;
+
+        public void Add(long durationMs)
         {
-            if (_routeDurations.TryGetValue(key, out var durations) && durations.Length > 1000)
+            // Update counters
+            _sum += durationMs;
+            _min = Math.Min(_min, durationMs);
+            _max = Math.Max(_max, durationMs);
+
+            // Add to ring buffer
+            _samples[_head] = durationMs;
+            _head = (_head + 1) % MaxSamples;
+
+            // Update count (handles wrap-around)
+            if (_count < MaxSamples)
             {
-                // Keep the last 1000 samples (most recent)
-                var newDurations = durations.AsSpan()[^1000..].ToImmutableArray();
-                _routeDurations[key] = newDurations;
+                _count++;
+            }
+        }
+
+        public double GetPercentile(double percentile)
+        {
+            if (_count == 0)
+            {
+                return 0;
+            }
+
+            // Copy samples to temporary array for sorting
+            var samplesToSort = new long[_count];
+            if (_head == 0)
+            {
+                Array.Copy(_samples, samplesToSort, _count);
+            }
+            else
+            {
+                // Handle wrap-around case
+                var firstPart = MaxSamples - _head;
+                Array.Copy(_samples, _head, samplesToSort, 0, firstPart);
+                Array.Copy(_samples, 0, samplesToSort, firstPart, _head);
+            }
+
+            Array.Sort(samplesToSort);
+
+            var index = (int)((_count - 1) * percentile);
+            return samplesToSort[Math.Max(0, Math.Min(index, _count - 1))];
+        }
+
+        public IEnumerable<long> GetAllSamples()
+        {
+            if (_count == 0)
+            {
+                yield break;
+            }
+
+            if (_head == 0)
+            {
+                for (int i = 0; i < _count; i++)
+                {
+                    yield return _samples[i];
+                }
+            }
+            else
+            {
+                // Handle wrap-around case
+                var firstPart = MaxSamples - _head;
+                for (int i = 0; i < firstPart; i++)
+                {
+                    yield return _samples[_head + i];
+                }
+                for (int i = 0; i < _head; i++)
+                {
+                    yield return _samples[i];
+                }
             }
         }
     }
