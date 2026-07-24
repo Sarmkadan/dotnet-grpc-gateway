@@ -1,5 +1,4 @@
 #nullable enable
-
 // =============================================================================
 // Author: Vladyslav Zaiets | https://sarmkadan.com
 // CTO & Software Architect
@@ -14,21 +13,26 @@ namespace DotNetGrpcGateway.Events.EventHandlers;
 /// Event handler for circuit breaker state changes.
 /// Logs state transitions and can be extended for monitoring/alerting.
 /// </summary>
-public class CircuitBreakerStateChangedEventHandler : IEventHandler<CircuitBreakerStateChangedEvent>
+public class CircuitBreakerStateChangedEventHandler : EventHandlerBase<CircuitBreakerStateChangedEvent>, IEventHandler<CircuitBreakerStateChangedEvent>
 {
-    private readonly ILogger<CircuitBreakerStateChangedEventHandler> _logger;
-
+    /// <summary>
+    /// Initializes a new instance of the <see cref="CircuitBreakerStateChangedEventHandler"/> class.
+    /// </summary>
+    /// <param name="logger">The logger instance.</param>
+    /// <exception cref="ArgumentNullException">Thrown when logger is null.</exception>
     public CircuitBreakerStateChangedEventHandler(ILogger<CircuitBreakerStateChangedEventHandler> logger)
+        : base(logger)
     {
-        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
+    /// <summary>
+    /// Handles circuit breaker state change events by logging the state transition.
+    /// </summary>
+    /// <param name="@event">The circuit breaker state change event.</param>
+    /// <exception cref="ArgumentNullException">Thrown when the event is null.</exception>
     public async Task HandleAsync(CircuitBreakerStateChangedEvent @event)
     {
-        if (@event is null)
-        {
-            throw new ArgumentNullException(nameof(@event));
-        }
+        ValidateEvent(@event);
 
         var stateChangeMessage = @event.NewState switch
         {
@@ -38,26 +42,22 @@ public class CircuitBreakerStateChangedEventHandler : IEventHandler<CircuitBreak
             _ => @event.NewState.ToString()
         };
 
-        _logger.LogInformation(
+        SafeLog(
+            LogLevel.Information,
             "Circuit breaker state change - Service: {ServiceName} (ID: {ServiceId}), " +
             "State: {PreviousState} → {NewState}, Failures: {ConsecutiveFailures}, " +
             "{StateChangeMessage}",
-            @event.ServiceName,
-            @event.ServiceId,
-            @event.PreviousState,
-            @event.NewState,
-            @event.ConsecutiveFailures,
-            stateChangeMessage);
+            @event.ServiceName, @event.ServiceId, @event.PreviousState, @event.NewState,
+            @event.ConsecutiveFailures, stateChangeMessage);
 
         // Additional logging for open state
         if (@event.NewState == CircuitBreakerState.Open)
         {
-            _logger.LogWarning(
+            SafeLog(
+                LogLevel.Warning,
                 "Service {ServiceName} (ID: {ServiceId}) is now protected by circuit breaker. " +
                 "Consecutive failures: {ConsecutiveFailures}. Circuit will remain open for: {OpenDuration}",
-                @event.ServiceName,
-                @event.ServiceId,
-                @event.ConsecutiveFailures,
+                @event.ServiceName, @event.ServiceId, @event.ConsecutiveFailures,
                 @event.OpenedAt.HasValue
                     ? (DateTime.UtcNow - @event.OpenedAt.Value).TotalSeconds.ToString("F1") + " seconds"
                     : "unknown");
