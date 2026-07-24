@@ -53,4 +53,38 @@ public static class GatewayEventExtensions
         ArgumentNullException.ThrowIfNull(@event);
         return $"{@event.GetType().Name} (ID: {@event.EventId}, Time: {@event.OccurredAt:O}, Correlation: {@event.CorrelationId ?? "none"})";
     }
+
+    /// <summary>
+    /// Gets the event handler failure policy for the publisher.
+    /// </summary>
+    /// <param name="publisher">The event publisher.</param>
+    /// <returns>The failure policy, or ContinueOnFailure if not configured.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="publisher"/> is <see langword="null"/>.</exception>
+    public static EventHandlerFailurePolicy GetFailurePolicy(this IEventPublisher publisher)
+    {
+        ArgumentNullException.ThrowIfNull(publisher);
+
+        return publisher is EventPublisher eventPublisher
+            ? eventPublisher.GetFailurePolicy()
+            : EventHandlerFailurePolicy.ContinueOnFailure;
+    }
+
+    /// <summary>
+    /// Sets the event handler failure policy for the publisher.
+    /// </summary>
+    /// <param name="publisher">The event publisher.</param>
+    /// <param name="policy">The failure policy to set.</param>
+    /// <returns>The publisher instance for method chaining.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="publisher"/> is <see langword="null"/>.</exception>
+    public static IEventPublisher WithFailurePolicy(this IEventPublisher publisher, EventHandlerFailurePolicy policy)
+    {
+        ArgumentNullException.ThrowIfNull(publisher);
+
+        if (publisher is EventPublisher eventPublisher)
+        {
+            eventPublisher.SetFailurePolicy(policy);
+        }
+
+        return publisher;
+    }
 }
