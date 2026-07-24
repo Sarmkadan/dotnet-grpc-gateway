@@ -12,24 +12,31 @@ namespace DotNetGrpcGateway.Events.EventHandlers;
 /// </summary>
 public class ServiceUnregisteredEventHandler : IEventHandler<ServiceUnregisteredEvent>
 {
-    private readonly ILogger<ServiceUnregisteredEventHandler> _logger;
+	private readonly ILogger<ServiceUnregisteredEventHandler> _logger;
 
-    public ServiceUnregisteredEventHandler(ILogger<ServiceUnregisteredEventHandler> logger)
-    {
-        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-    }
+	public ServiceUnregisteredEventHandler(ILogger<ServiceUnregisteredEventHandler> logger)
+	{
+		_logger = logger ?? throw new ArgumentNullException(nameof(logger));
+	}
 
-    public async Task HandleAsync(ServiceUnregisteredEvent @event)
-    {
-        _logger.LogWarning(
-            "Service unregistered - ServiceId: {ServiceId}, ServiceName: {ServiceName}, EventId: {@EventId}",
-            @event.ServiceId, @event.ServiceName, @event.EventId);
+	/// <summary>
+	/// Handles service unregistration events by logging the removal.
+	/// </summary>
+	/// <param name="@event">The service unregistration event.</param>
+	/// <exception cref="ArgumentNullException">Thrown when the event is null.</exception>
+	public async Task HandleAsync(ServiceUnregisteredEvent @event)
+	{
+		ArgumentNullException.ThrowIfNull(@event);
 
-        // In a real scenario, this would:
-        // 1. Remove all routes pointing to this service
-        // 2. Clear any cached data related to the service
-        // 3. Notify monitoring systems
+		_logger.LogWarning(
+			"Service unregistered - ServiceId: {ServiceId}, ServiceName: {ServiceName}, EventId: {@EventId}",
+		@event.ServiceId, @event.ServiceName, @event.EventId);
 
-        await Task.CompletedTask;
-    }
+		// In a real scenario, this would:
+		// 1. Remove all routes pointing to this service
+		// 2. Clear any cached data related to the service
+		// 3. Notify monitoring systems
+
+		await Task.CompletedTask;
+	}
 }
