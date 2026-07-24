@@ -14,6 +14,7 @@ using DotNetGrpcGateway.Integration;
 using DotNetGrpcGateway.Middleware;
 using DotNetGrpcGateway.Services;
 using Serilog;
+using DotNetGrpcGateway.Controllers;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -155,7 +156,10 @@ app.UseMiddleware<RequestContextMiddleware>();
     app.UseMiddleware<RequestResponseCapturingMiddleware>();
 
     app.MapControllers();
-    app.MapHealthChecks("/health");
+
+// Map health endpoints
+app.MapHealthChecks("/health");
+app.MapPrometheusMetrics();
 
     Log.Information("Gateway starting on {ListenAddress}:{Port}", "0.0.0.0", 5000);
     app.Run();
