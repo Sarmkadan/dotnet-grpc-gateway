@@ -26,6 +26,12 @@ public static class ServiceCollectionExtensions
     {
         ArgumentNullException.ThrowIfNull(services);
 
+        // Resilience: transient failure retry with exponential backoff + jitter,
+        // applied around repository operations alongside circuit breaker protection.
+        services.AddSingleton(new RetryPolicyOptions());
+        services.AddSingleton<ITransientExceptionClassifier, TransientExceptionClassifier>();
+        services.AddSingleton<IRetryPolicy, RetryPolicy>();
+
         // Data access repositories
         // Repositories are in-memory (dictionary-backed) for now, so they MUST be
         // singletons - a scoped lifetime would give every request its own empty store
