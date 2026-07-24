@@ -25,12 +25,17 @@ public interface IMetricsCollectionService
 public class MetricsCollectionService : IMetricsCollectionService
 {
     private readonly IUnitOfWork _unitOfWork;
+    private readonly IMetricsIngestQueue _ingestQueue;
     private readonly ILogger<MetricsCollectionService> _logger;
     private GatewayStatistics? _todayStats;
 
-    public MetricsCollectionService(IUnitOfWork unitOfWork, ILogger<MetricsCollectionService> logger)
+    public MetricsCollectionService(
+        IUnitOfWork unitOfWork,
+        IMetricsIngestQueue ingestQueue,
+        ILogger<MetricsCollectionService> logger)
     {
         _unitOfWork = unitOfWork ?? throw new ArgumentNullException(nameof(unitOfWork));
+        _ingestQueue = ingestQueue ?? throw new ArgumentNullException(nameof(ingestQueue));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
@@ -43,8 +48,10 @@ public class MetricsCollectionService : IMetricsCollectionService
         {
             metric.Validate();
 
-            // Record the metric
-            await _unitOfWork.Metrics.RecordRequestAsync(metric);
+            // Hand the metric off to the bounded background queue instead of writing it
+            // to the repository inline - persistence never blocks the proxied request,
+            // and a DB outage can only cause dropped metrics, never a failed request.
+            _ingestQueue.Enqueue(metric);
 
             // Update today's statistics
             var todayStats = await GetTodayStatisticsAsync();

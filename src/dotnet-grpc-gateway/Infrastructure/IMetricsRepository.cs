@@ -14,6 +14,16 @@ namespace DotNetGrpcGateway.Infrastructure;
 public interface IMetricsRepository
 {
     Task<RequestMetric> RecordRequestAsync(RequestMetric metric);
+
+    /// <summary>
+    /// Persists a batch of request metrics in a single operation. Intended for use by the
+    /// background metrics writer so per-request inserts never happen on the proxied
+    /// request's hot path.
+    /// </summary>
+    /// <param name="metrics">The batch of metrics to persist.</param>
+    /// <returns>The number of metrics successfully persisted.</returns>
+    Task<int> BulkInsertAsync(IReadOnlyCollection<RequestMetric> metrics);
+
     Task<List<RequestMetric>> GetMetricsAsync(DateTime from, DateTime to);
     Task<List<RequestMetric>> GetServiceMetricsAsync(int serviceId, int take = 100);
     Task<GatewayStatistics> GetStatisticsAsync(DateTime date);
@@ -57,6 +67,44 @@ public class MetricsRepository : IMetricsRepository
 
             return Task.FromResult(metric);
         }, nameof(RecordRequestAsync));
+    }
+
+    /// <summary>
+    /// Persists a batch of request metrics in a single operation.
+    /// </summary>
+    /// <param name="metrics">The batch of metrics to persist.</param>
+    /// <returns>The number of metrics successfully persisted.</returns>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="metrics"/> is null.</exception>
+    public Task<int> BulkInsertAsync(IReadOnlyCollection<RequestMetric> metrics)
+    {
+        ArgumentNullException.ThrowIfNull(metrics);
+
+        if (metrics.Count == 0)
+            return Task.FromResult(0);
+
+        foreach (var metric in metrics)
+            metric.Validate();
+
+        return _retryPolicy.ExecuteAsync(_ =>
+        {
+            foreach (var metric in metrics)
+            {
+                metric.Id = _nextMetricId++;
+                metric.RecordedAt = DateTime.UtcNow;
+
+                _metricsById[metric.Id] = metric;
+
+                if (!_metricsByService.TryGetValue(metric.ServiceName, out var serviceMetrics))
+                {
+                    serviceMetrics = new List<RequestMetric>();
+                    _metricsByService[metric.ServiceName] = serviceMetrics;
+                }
+
+                serviceMetrics.Add(metric);
+            }
+
+            return Task.FromResult(metrics.Count);
+        }, nameof(BulkInsertAsync));
     }
 
     public Task<List<RequestMetric>> GetMetricsAsync(DateTime from, DateTime to) =>

@@ -42,6 +42,12 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<IMetricsRepository, MetricsRepository>();
         services.AddScoped<IUnitOfWork, UnitOfWork>();
 
+        // Metrics persistence is decoupled from the request hot path: requests enqueue
+        // onto a bounded in-memory channel, and a background writer batches inserts.
+        services.AddSingleton<MetricsIngestQueue>();
+        services.AddSingleton<IMetricsIngestQueue>(sp => sp.GetRequiredService<MetricsIngestQueue>());
+        services.AddHostedService<MetricsPersistenceBackgroundService>();
+
         // Business logic services
         services.AddScoped<IGatewayService, GatewayService>();
         services.AddScoped<IServiceDiscoveryService, ServiceDiscoveryService>();
