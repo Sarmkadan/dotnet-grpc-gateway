@@ -2,9 +2,10 @@
 // =============================================================================
 // Author: Vladyslav Zaiets | https://sarmkadan.com
 // CTO & Software Architect
-// =============================================================================
+// ====================================================================
 
 using DotNetGrpcGateway.Domain;
+using DotNetGrpcGateway.Exceptions;
 
 namespace DotNetGrpcGateway.Infrastructure;
 
@@ -20,6 +21,7 @@ public interface IGatewayRepository
     /// <param name="cancellationToken">A cancellation token.</param>
     /// <returns>A task that represents the asynchronous operation. The task result contains the gateway configuration.</returns>
     /// <exception cref="ArgumentOutOfRangeException">Thrown when <paramref name="id"/> is less than or equal to zero.</exception>
+    /// <exception cref="NotFoundException">Thrown when a gateway configuration with the specified <paramref name="id"/> is not found.</exception>
     Task<GatewayConfiguration> GetByIdAsync(int id, CancellationToken cancellationToken = default);
 
     /// <summary>
@@ -52,6 +54,7 @@ public interface IGatewayRepository
     /// <param name="cancellationToken">A cancellation token.</param>
     /// <returns>A task that represents the asynchronous operation.</returns>
     /// <exception cref="ArgumentNullException">Thrown when <paramref name="config"/> is null.</exception>
+    /// <exception cref="NotFoundException">Thrown when a gateway configuration with the specified identifier is not found.</exception>
     Task UpdateAsync(GatewayConfiguration config, CancellationToken cancellationToken = default);
 
     /// <summary>
@@ -61,6 +64,7 @@ public interface IGatewayRepository
     /// <param name="cancellationToken">A cancellation token.</param>
     /// <returns>A task that represents the asynchronous operation.</returns>
     /// <exception cref="ArgumentOutOfRangeException">Thrown when <paramref name="id"/> is less than or equal to zero.</exception>
+    /// <exception cref="NotFoundException">Thrown when a gateway configuration with the specified <paramref name="id"/> is not found.</exception>
     Task DeleteAsync(int id, CancellationToken cancellationToken = default);
 
     /// <summary>
@@ -93,7 +97,7 @@ public class GatewayRepository : IGatewayRepository
             if (_memoryStore.TryGetValue(id, out var config))
                 return Task.FromResult(config);
 
-            throw new KeyNotFoundException($"Gateway configuration with ID {id} not found");
+            throw new NotFoundException(nameof(GatewayConfiguration), id);
         }, nameof(GetByIdAsync));
     }
 
@@ -140,7 +144,7 @@ public class GatewayRepository : IGatewayRepository
         return _retryPolicy.ExecuteAsync(_ =>
         {
             if (!_memoryStore.ContainsKey(config.Id))
-                throw new KeyNotFoundException($"Gateway configuration with ID {config.Id} not found");
+                throw new NotFoundException(nameof(GatewayConfiguration), config.Id);
 
             config.UpdateModifiedDate();
             _memoryStore[config.Id] = config;
@@ -156,7 +160,7 @@ public class GatewayRepository : IGatewayRepository
         return _retryPolicy.ExecuteAsync(_ =>
         {
             if (!_memoryStore.Remove(id))
-                throw new KeyNotFoundException($"Gateway configuration with ID {id} not found");
+                throw new NotFoundException(nameof(GatewayConfiguration), id);
 
             return Task.CompletedTask;
         }, nameof(DeleteAsync));

@@ -2,9 +2,10 @@
 // =============================================================================
 // Author: Vladyslav Zaiets | https://sarmkadan.com
 // CTO & Software Architect
-// =============================================================================
+// ====================================================================
 
 using DotNetGrpcGateway.Domain;
+using DotNetGrpcGateway.Exceptions;
 
 namespace DotNetGrpcGateway.Infrastructure;
 
@@ -51,6 +52,7 @@ public interface IMetricsRepository
     /// <param name="cancellationToken">A cancellation token.</param>
     /// <returns>A task that represents the asynchronous operation. The task result contains a list of request metrics.</returns>
     /// <exception cref="ArgumentOutOfRangeException">Thrown when <paramref name="serviceId"/> is less than or equal to zero or <paramref name="take"/> is less than 1.</exception>
+    /// <exception cref="NotFoundException">Thrown when no metrics exist for the specified <paramref name="serviceId"/>.</exception>
     Task<List<RequestMetric>> GetServiceMetricsAsync(int serviceId, int take = 100, CancellationToken cancellationToken = default);
 
     /// <summary>
@@ -59,6 +61,7 @@ public interface IMetricsRepository
     /// <param name="date">The date for which to retrieve statistics.</param>
     /// <param name="cancellationToken">A cancellation token.</param>
     /// <returns>A task that represents the asynchronous operation. The task result contains the gateway statistics.</returns>
+    /// <exception cref="NotFoundException">Thrown when statistics for the specified <paramref name="date"/> are not found.</exception>
     Task<GatewayStatistics> GetStatisticsAsync(DateTime date, CancellationToken cancellationToken = default);
 
     /// <summary>
@@ -68,6 +71,7 @@ public interface IMetricsRepository
     /// <param name="cancellationToken">A cancellation token.</param>
     /// <returns>A task that represents the asynchronous operation.</returns>
     /// <exception cref="ArgumentNullException">Thrown when <paramref name="stats"/> is null.</exception>
+    /// <exception cref="NotFoundException">Thrown when statistics to update are not found.</exception>
     Task UpdateStatisticsAsync(GatewayStatistics stats, CancellationToken cancellationToken = default);
 
     /// <summary>
@@ -173,11 +177,20 @@ public class MetricsRepository : IMetricsRepository
         ArgumentOutOfRangeException.ThrowIfLessThanOrEqual(serviceId, 0);
         ArgumentOutOfRangeException.ThrowIfLessThanOrEqual(take, 0);
         cancellationToken.ThrowIfCancellationRequested();
-        return _retryPolicy.ExecuteAsync(_ => Task.FromResult(_metricsById.Values
-            .Where(x => x.RouteId == serviceId)
-            .OrderByDescending(x => x.RecordedAt)
-            .Take(take)
-            .ToList()), nameof(GetServiceMetricsAsync));
+
+        return _retryPolicy.ExecuteAsync(_ =>
+        {
+            var metrics = _metricsById.Values
+                .Where(x => x.RouteId == serviceId)
+                .OrderByDescending(x => x.RecordedAt)
+                .Take(take)
+                .ToList();
+
+            if (metrics.Count == 0)
+                throw new NotFoundException(nameof(RequestMetric), $"serviceId={serviceId}");
+
+            return Task.FromResult(metrics);
+        }, nameof(GetServiceMetricsAsync));
     }
 
     public Task<GatewayStatistics> GetStatisticsAsync(DateTime date, CancellationToken cancellationToken = default)
@@ -190,9 +203,7 @@ public class MetricsRepository : IMetricsRepository
             if (_statisticsByDate.TryGetValue(dateKey, out var stats))
                 return Task.FromResult(stats);
 
-            var newStats = new GatewayStatistics { StatisticsDate = dateKey };
-            _statisticsByDate[dateKey] = newStats;
-            return Task.FromResult(newStats);
+            throw new NotFoundException(nameof(GatewayStatistics), dateKey.ToString("yyyy-MM-dd"));
         }, nameof(GetStatisticsAsync));
     }
 
@@ -208,6 +219,9 @@ public class MetricsRepository : IMetricsRepository
             stats.UpdatedAt = DateTime.UtcNow;
 
             var dateKey = stats.StatisticsDate.Date;
+            if (!_statisticsByDate.ContainsKey(dateKey))
+                throw new NotFoundException(nameof(GatewayStatistics), dateKey.ToString("yyyy-MM-dd"));
+
             _statisticsByDate[dateKey] = stats;
             return Task.CompletedTask;
         }, nameof(UpdateStatisticsAsync));
