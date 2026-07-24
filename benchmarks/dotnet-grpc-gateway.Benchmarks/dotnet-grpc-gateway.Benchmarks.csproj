@@ -14,7 +14,7 @@
     <PackageReference Include="BenchmarkDotNet" Version="0.13.19" />
     <PackageReference Include="Grpc.AspNetCore.Web" Version="2.68.0" />
     <PackageReference Include="Grpc.Net.Client" Version="2.68.0" />
-    <PackageReference Include="Microsoft.Extensions.Logging.Console" Version="10.0.0" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Console" Version="10.0.10" />
     <PackageReference Include="protobuf-net.Grpc.AspNetCore" Version="1.1.1" />
 </ItemGroup>
 
