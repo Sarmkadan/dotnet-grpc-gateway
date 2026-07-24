@@ -10,18 +10,29 @@ namespace DotNetGrpcGateway.Events.EventHandlers;
 /// Event handler for route removal events.
 /// Logs route removals and triggers related cleanup operations.
 /// </summary>
-public class RouteRemovedEventHandler : IEventHandler<RouteRemovedEvent>
+public class RouteRemovedEventHandler : EventHandlerBase<RouteRemovedEvent>, IEventHandler<RouteRemovedEvent>
 {
-    private readonly ILogger<RouteRemovedEventHandler> _logger;
-
+    /// <summary>
+    /// Initializes a new instance of the <see cref="RouteRemovedEventHandler"/> class.
+    /// </summary>
+    /// <param name="logger">The logger instance.</param>
+    /// <exception cref="ArgumentNullException">Thrown when logger is null.</exception>
     public RouteRemovedEventHandler(ILogger<RouteRemovedEventHandler> logger)
+        : base(logger)
     {
-        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
+    /// <summary>
+    /// Handles route removal events by logging the removal.
+    /// </summary>
+    /// <param name="@event">The route removal event.</param>
+    /// <exception cref="ArgumentNullException">Thrown when the event is null.</exception>
     public async Task HandleAsync(RouteRemovedEvent @event)
     {
-        _logger.LogInformation(
+        ValidateEvent(@event);
+
+        SafeLog(
+            LogLevel.Information,
             "Route removed - RouteId: {RouteId}, Pattern: {Pattern}, EventId: {@EventId}",
             @event.RouteId, @event.Pattern, @event.EventId);
 

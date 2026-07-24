@@ -10,18 +10,29 @@ namespace DotNetGrpcGateway.Events.EventHandlers;
 /// Event handler for route addition events.
 /// Logs route additions and optionally triggers cache invalidation.
 /// </summary>
-public class RouteAddedEventHandler : IEventHandler<RouteAddedEvent>
+public class RouteAddedEventHandler : EventHandlerBase<RouteAddedEvent>, IEventHandler<RouteAddedEvent>
 {
-    private readonly ILogger<RouteAddedEventHandler> _logger;
-
+    /// <summary>
+    /// Initializes a new instance of the <see cref="RouteAddedEventHandler"/> class.
+    /// </summary>
+    /// <param name="logger">The logger instance.</param>
+    /// <exception cref="ArgumentNullException">Thrown when logger is null.</exception>
     public RouteAddedEventHandler(ILogger<RouteAddedEventHandler> logger)
+        : base(logger)
     {
-        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
+    /// <summary>
+    /// Handles route addition events by logging the addition.
+    /// </summary>
+    /// <param name="@event">The route addition event.</param>
+    /// <exception cref="ArgumentNullException">Thrown when the event is null.</exception>
     public async Task HandleAsync(RouteAddedEvent @event)
     {
-        _logger.LogInformation(
+        ValidateEvent(@event);
+
+        SafeLog(
+            LogLevel.Information,
             "Route added - RouteId: {RouteId}, Pattern: {Pattern}, TargetServiceId: {TargetServiceId}, EventId: {@EventId}",
             @event.RouteId, @event.Pattern, @event.TargetServiceId, @event.EventId);
 
