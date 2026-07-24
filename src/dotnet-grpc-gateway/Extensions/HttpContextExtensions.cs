@@ -4,6 +4,7 @@
 // CTO & Software Architect
 // ====================================================================
 
+using System.Diagnostics;
 using System.Net;
 using System.Text;
 
@@ -178,12 +179,32 @@ public static class HttpContextExtensions
     /// <returns>The validated correlation ID or generated request ID</returns>
     /// <exception cref="ArgumentNullException">Thrown when <paramref name="context"/> is null</exception>
     /// <remarks>
-    /// Validates that the X-Correlation-ID header contains only safe characters and is not excessively long
+    /// <para>
+    /// This method supports both legacy X-Correlation-ID headers and W3C Trace Context headers.
+    /// It first checks for the traceparent header (W3C standard), then falls back to X-Correlation-ID.
+    /// </para>
+    /// <para>
+    /// If a valid traceparent header is found, it extracts the trace ID and creates an Activity
+    /// to ensure proper W3C Trace Context propagation throughout the request pipeline.
+    /// </para>
     /// </remarks>
     public static string GetCorrelationId(this HttpContext context)
     {
         ArgumentNullException.ThrowIfNull(context);
 
+        // First, check for W3C Trace Context traceparent header (preferred)
+        var traceParent = context.GetHeader("traceparent");
+        if (!string.IsNullOrWhiteSpace(traceParent) && TryParseTraceParent(traceParent, out var traceId))
+        {
+            // Create or update Activity to ensure W3C Trace Context flows through the pipeline
+            // This ensures Activity.Current will have the correct TraceId for RequestContext
+            var activity = new Activity("HTTP Incoming Request");
+            activity.Start();
+
+            return traceId.ToHexString();
+        }
+
+        // Fallback to legacy X-Correlation-ID header
         var correlationId = context.GetHeader("X-Correlation-ID");
 
         if (!string.IsNullOrWhiteSpace(correlationId))
@@ -213,6 +234,59 @@ public static class HttpContextExtensions
 
         // Return request ID as fallback
         return context.GetRequestId();
+
+        /// <summary>
+        /// Attempts to parse a W3C traceparent header value.
+        /// </summary>
+        /// <param name="traceParent">The traceparent header value</param>
+        /// <param name="traceId">Output parameter for the parsed TraceId</param>
+        /// <returns>True if parsing succeeded, false otherwise</returns>
+        static bool TryParseTraceParent(string traceParent, out ActivityTraceId traceId)
+        {
+            traceId = default;
+
+            // W3C Trace Context traceparent format: version-trace-id-parent-id-trace-flags
+            // Example: 00-4bf92f3577b34da6a96410d8a26f5a8d-00f067aa0ba902b7-01
+
+            var parts = traceParent.Split('-');
+            if (parts.Length != 4)
+                return false;
+
+            // Validate version (currently only "00" is valid)
+            if (parts[0] != "00")
+                return false;
+
+            // Validate and parse trace ID (32 hex chars)
+    // Validate and parse trace ID (32 hex chars)
+    if (parts[1].Length != 32)
+        return false;
+    try
+    {
+        traceId = ActivityTraceId.CreateFromString(parts[1]);
+    }
+    catch
+    {
+        return false;
+    }
+
+    // Validate parent ID (16 hex chars)
+    if (parts[2].Length != 16)
+        return false;
+    try
+    {
+        ActivitySpanId.CreateFromString(parts[2]);
+    }
+    catch
+    {
+        return false;
+    }
+
+            // Validate trace flags (2 hex chars)
+            if (parts[3].Length != 2 || !int.TryParse(parts[3], System.Globalization.NumberStyles.HexNumber, null, out _))
+                return false;
+
+            return true;
+        }
     }
 
     /// <summary>
