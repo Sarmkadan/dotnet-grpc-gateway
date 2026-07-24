@@ -15,6 +15,12 @@ public class RequestMetric
 
     public string RequestId { get; set; } = Guid.NewGuid().ToString();
 
+    /// <summary>
+    /// Correlation ID from the incoming request (W3C traceparent or X-Correlation-ID header).
+    /// This ID flows through the entire request pipeline and is propagated to downstream services.
+    /// </summary>
+    public string? CorrelationId { get; set; }
+
     public string ServiceName { get; set; } = null!;
 
     public string MethodName { get; set; } = null!;

@@ -75,6 +75,19 @@ namespace DotNetGrpcGateway.Middleware
             try
             {
                 await _next(context);
+
+            // Propagate correlation ID to response headers for client visibility
+            if (!string.IsNullOrEmpty(requestContext.CorrelationId))
+            {
+                context.Response.Headers.TryAdd("Correlation-ID", requestContext.CorrelationId);
+
+                // Also add traceparent header if available from Activity
+                var traceParent = requestContext.GetTraceParentHeader();
+                if (!string.IsNullOrEmpty(traceParent))
+                {
+                    context.Response.Headers.TryAdd("traceparent", traceParent);
+                }
+            }
             }
             finally
             {
