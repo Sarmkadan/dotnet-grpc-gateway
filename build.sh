@@ -7,5 +7,5 @@
 # Resolve the directory containing this script
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
-# Execute the real build script located one level up (repository root)
-"${DIR}/../build.sh"
+# Execute the real build script located in the sibling dotnet-grpc-gateway directory
+"${DIR}/../dotnet-grpc-gateway/build.sh"
