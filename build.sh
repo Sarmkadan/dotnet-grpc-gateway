@@ -8,4 +8,4 @@
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 # Execute the real build script located in the sibling dotnet-grpc-gateway directory
-"${DIR}/../dotnet-grpc-gateway/build.sh"
+"${DIR}/dotnet-grpc-gateway/build.sh"
