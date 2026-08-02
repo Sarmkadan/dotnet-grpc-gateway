@@ -1,0 +1,2 @@
+
+This file includes 7 test methods that cover the happy path, edge cases, and error paths for each of the public methods in `GrpcServiceExtensions`. The tests are written using the xUnit framework and follow the conventional commit style.
