@@ -4,8 +4,14 @@ using Xunit;
 
 namespace DotNetGrpcGateway.Tests;
 
+/// <summary>
+/// Contains unit tests for the <see cref="RequestContext"/> class.
+/// </summary>
 public class RequestContextTests
 {
+    /// <summary>
+    /// Validates that a new <see cref="RequestContext"/> instance initializes its properties with correct default values.
+    /// </summary>
     [Fact]
     public void Constructor_InitializesPropertiesCorrectly()
     {
@@ -25,6 +31,9 @@ public class RequestContextTests
         context.Properties.Should().BeEmpty();
     }
 
+    /// <summary>
+    /// Validates that the constructor correctly initializes the <see cref="RequestContext.CorrelationId"/> when provided.
+    /// </summary>
     [Fact]
     public void Constructor_WithCorrelationId_SetsCorrelationId()
     {
@@ -38,6 +47,9 @@ public class RequestContextTests
         context.CorrelationId.Should().Be(expectedCorrelationId);
     }
 
+    /// <summary>
+    /// Validates that the <see cref="RequestContext.RequestId"/> property is generated upon initialization and is immutable.
+    /// </summary>
     [Fact]
     public void RequestId_IsGeneratedAndImmutable()
     {
@@ -50,6 +62,9 @@ public class RequestContextTests
         context.RequestId.Should().Be(originalRequestId);
     }
 
+    /// <summary>
+    /// Validates that <see cref="RequestContext.SetProperty(string, object)"/> adds a property when provided with a valid key and value.
+    /// </summary>
     [Fact]
     public void SetProperty_WithValidKeyAndValue_AddsProperty()
     {
@@ -66,6 +81,9 @@ public class RequestContextTests
         context.Properties[key].Should().Be(value);
     }
 
+    /// <summary>
+    /// Validates that <see cref="RequestContext.SetProperty(string, object)"/> removes a property when provided with a null value.
+    /// </summary>
     [Fact]
     public void SetProperty_WithNullValue_RemovesProperty()
     {
@@ -82,6 +100,9 @@ public class RequestContextTests
         context.Properties.Should().NotContainKey(key);
     }
 
+    /// <summary>
+    /// Validates that <see cref="RequestContext.SetProperty(string, object)"/> does nothing when provided with an empty or null key.
+    /// </summary>
     [Fact]
     public void SetProperty_WithEmptyKey_DoesNothing()
     {
@@ -97,6 +118,9 @@ public class RequestContextTests
         context.Properties.Should().HaveCount(initialPropertyCount);
     }
 
+    /// <summary>
+    /// Validates that <see cref="RequestContext.GetProperty{T}(string)"/> returns the correct value for an existing property.
+    /// </summary>
     [Fact]
     public void GetProperty_WithExistingProperty_ReturnsCorrectValue()
     {
@@ -113,6 +137,9 @@ public class RequestContextTests
         result.Should().Be(expectedValue);
     }
 
+    /// <summary>
+    /// Validates that <see cref="RequestContext.GetProperty{T}(string)"/> returns the default value when the property does not exist.
+    /// </summary>
     [Fact]
     public void GetProperty_WithNonExistingProperty_ReturnsDefault()
     {
@@ -127,6 +154,9 @@ public class RequestContextTests
         result.Should().Be(default);
     }
 
+    /// <summary>
+    /// Validates that <see cref="RequestContext.GetProperty{T}(string)"/> returns the default value when provided with an empty or null key.
+    /// </summary>
     [Fact]
     public void GetProperty_WithEmptyKey_ReturnsDefault()
     {
@@ -143,6 +173,9 @@ public class RequestContextTests
         result2.Should().BeNull();
     }
 
+    /// <summary>
+    /// Validates that <see cref="RequestContext.GetProperty{T}(string)"/> throws an <see cref="InvalidCastException"/> when the requested property exists but is of the wrong type.
+    /// </summary>
     [Fact]
     public void GetProperty_WithWrongType_ThrowsInvalidCastException()
     {
@@ -157,6 +190,9 @@ public class RequestContextTests
         act.Should().Throw<InvalidCastException>();
     }
 
+    /// <summary>
+    /// Validates that the <see cref="RequestContext.Properties"/> dictionary is initialized as an empty dictionary.
+    /// </summary>
     [Fact]
     public void PropertiesBag_IsInitializedAsEmptyDictionary()
     {
@@ -169,6 +205,9 @@ public class RequestContextTests
         context.Properties.Should().BeOfType<Dictionary<string, object>>();
     }
 
+    /// <summary>
+    /// Validates that <see cref="RequestContext.Elapsed"/> returns a non-negative <see cref="TimeSpan"/>.
+    /// </summary>
     [Fact]
     public void Elapsed_ReturnsNonNegativeTimeSpan()
     {
@@ -188,6 +227,9 @@ public class RequestContextTests
         elapsed.Should().BeCloseTo(DateTime.UtcNow - startTime, TimeSpan.FromMilliseconds(50));
     }
 
+    /// <summary>
+    /// Validates that <see cref="RequestContext.SetProperty(string, object)"/> updates the value of a property if it is set multiple times.
+    /// </summary>
     [Fact]
     public void SetProperty_MultipleTimes_UpdatesPropertyValue()
     {
@@ -205,6 +247,9 @@ public class RequestContextTests
         context.Properties[key].Should().Be(3);
     }
 
+    /// <summary>
+    /// Validates that <see cref="RequestContext.SetProperty(string, object)"/> correctly stores a complex object as a property value.
+    /// </summary>
     [Fact]
     public void SetProperty_WithComplexObject_StoresCorrectly()
     {
@@ -221,6 +266,9 @@ public class RequestContextTests
         context.Properties[key].Should().BeSameAs(user);
     }
 
+    /// <summary>
+    /// Validates that the <see cref="RequestContext.CorrelationId"/> property can be modified.
+    /// </summary>
     [Fact]
     public void CorrelationId_CanBeModified()
     {
@@ -235,6 +283,9 @@ public class RequestContextTests
         context.CorrelationId.Should().Be(newCorrelationId);
     }
 
+    /// <summary>
+    /// Validates that the <see cref="RequestContext.ClientIp"/> property can be modified.
+    /// </summary>
     [Fact]
     public void ClientIp_CanBeModified()
     {
@@ -249,6 +300,9 @@ public class RequestContextTests
         context.ClientIp.Should().Be(ip);
     }
 
+    /// <summary>
+    /// Validates that the <see cref="RequestContext.UserId"/> property can be modified.
+    /// </summary>
     [Fact]
     public void UserId_CanBeModified()
     {
@@ -263,6 +317,9 @@ public class RequestContextTests
         context.UserId.Should().Be(userId);
     }
 
+    /// <summary>
+    /// Validates that the <see cref="RequestContext.UserId"/> property can be set to null.
+    /// </summary>
     [Fact]
     public void UserId_CanBeSetToNull()
     {
@@ -277,6 +334,9 @@ public class RequestContextTests
         context.UserId.Should().BeNull();
     }
 
+    /// <summary>
+    /// Validates that the <see cref="RequestContext.Path"/> property can be modified.
+    /// </summary>
     [Fact]
     public void Path_CanBeModified()
     {
@@ -291,6 +351,9 @@ public class RequestContextTests
         context.Path.Should().Be(path);
     }
 
+    /// <summary>
+    /// Validates that the <see cref="RequestContext.Method"/> property can be modified.
+    /// </summary>
     [Fact]
     public void Method_CanBeModified()
     {
@@ -305,6 +368,9 @@ public class RequestContextTests
         context.Method.Should().Be(method);
     }
 
+    /// <summary>
+    /// Validates that the <see cref="RequestContext.RequestId"/> property adheres to the expected format.
+    /// </summary>
     [Fact]
     public void RequestId_FormatIsValid()
     {
@@ -316,6 +382,9 @@ public class RequestContextTests
             "RequestId should be in format YYYYMMDDHHMMSS-RRRRRR");
     }
 
+    /// <summary>
+    /// Validates that the <see cref="RequestContext.Properties"/> dictionary is independent between <see cref="RequestContext"/> instances.
+    /// </summary>
     [Fact]
     public void PropertiesDictionary_IsIndependentBetweenInstances()
     {
@@ -332,6 +401,9 @@ public class RequestContextTests
         context2.Properties.Should().ContainKey("key").WhoseValue.Should().Be("value2");
     }
 
+    /// <summary>
+    /// Validates that the <see cref="RequestContext.StartTime"/> property is initialized to the current UTC time.
+    /// </summary>
     [Fact]
     public void StartTime_IsUtcNow()
     {
@@ -343,6 +415,9 @@ public class RequestContextTests
         context.StartTime.Should().BeCloseTo(DateTime.UtcNow, TimeSpan.FromSeconds(1));
     }
 
+    /// <summary>
+    /// Validates that <see cref="RequestContext.SetProperty(string, object)"/> does not throw an exception when trying to set a null value for a property that does not exist.
+    /// </summary>
     [Fact]
     public void SetProperty_WithNullValue_WhenPropertyDoesNotExist_DoesNotThrow()
     {
@@ -357,6 +432,9 @@ public class RequestContextTests
         context.Properties.Should().NotContainKey("nonExistentKey");
     }
 
+    /// <summary>
+    /// Validates that <see cref="RequestContextAccessor"/> handles <see cref="AsyncLocal{T}"/> correctly under concurrent request conditions.
+    /// </summary>
     [Fact]
     public async Task RequestContextAccessor_AsyncLocal_Correctness_WithConcurrentRequests()
     {
@@ -404,6 +482,9 @@ public class RequestContextTests
         result2.CorrelationId.Should().Be("context-2");
     }
 
+    /// <summary>
+    /// Validates that <see cref="RequestContextAccessor.Current"/> property supports get and set operations.
+    /// </summary>
     [Fact]
     public void RequestContextAccessor_Current_GetSet_Roundtrip()
     {
@@ -420,6 +501,9 @@ public class RequestContextTests
         retrieved.CorrelationId.Should().Be("test-correlation-id");
     }
 
+    /// <summary>
+    /// Validates that setting <see cref="RequestContextAccessor.Current"/> to null clears the context.
+    /// </summary>
     [Fact]
     public void RequestContextAccessor_Current_SetNull_ClearsContext()
     {
