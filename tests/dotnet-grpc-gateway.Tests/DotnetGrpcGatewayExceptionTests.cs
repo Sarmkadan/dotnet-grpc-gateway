@@ -1,7 +1,7 @@
 #nullable enable
 using System;
-using DotNetGrpcGateway.Exceptions;
 using Xunit;
+using DotNetGrpcGateway.Exceptions;
 
 namespace DotNetGrpcGateway.Tests;
 
@@ -15,7 +15,6 @@ public class DotnetGrpcGatewayExceptionTests
 
         // Assert
         Assert.NotNull(ex);
-        // The default Exception message contains the full type name.
         Assert.Contains(nameof(DotnetGrpcGatewayException), ex.Message);
     }
 
