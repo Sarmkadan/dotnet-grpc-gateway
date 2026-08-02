@@ -9,17 +9,27 @@ using Xunit;
 
 namespace DotNetGrpcGateway.Tests
 {
+    /// <summary>
+    /// Contains unit tests for the <see cref="ErrorHandlingMiddleware"/> class.
+    /// </summary>
     public class ErrorHandlingMiddlewareTests
     {
         private readonly Mock<ILogger<ErrorHandlingMiddleware>> _mockLogger;
         private readonly Mock<RequestDelegate> _mockNext;
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="ErrorHandlingMiddlewareTests"/> class, setting up mock dependencies.
+        /// </summary>
         public ErrorHandlingMiddlewareTests()
         {
             _mockLogger = new Mock<ILogger<ErrorHandlingMiddleware>>();
             _mockNext = new Mock<RequestDelegate>();
         }
 
+        /// <summary>
+        /// Tests that <see cref="ErrorHandlingMiddleware.InvokeAsync"/> invokes the next delegate successfully when the request is successful.
+        /// </summary>
+        /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
         [Fact]
         public async Task InvokeAsync_WithSuccessfulRequest_InvokesNextDelegate()
         {
@@ -38,6 +48,10 @@ namespace DotNetGrpcGateway.Tests
             context.Response.StatusCode.Should().Be(200);
         }
 
+        /// <summary>
+        /// Tests that <see cref="ErrorHandlingMiddleware.InvokeAsync"/> logs a debug message and does not throw when an <see cref="ObjectDisposedException"/> occurs.
+        /// </summary>
+        /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
         [Fact]
         public async Task InvokeAsync_WithObjectDisposedException_LogsDebugAndDoesNotThrow()
         {
@@ -65,6 +79,10 @@ namespace DotNetGrpcGateway.Tests
             context.Response.StatusCode.Should().Be(200); // No error response written
         }
 
+        /// <summary>
+        /// Tests that <see cref="ErrorHandlingMiddleware.InvokeAsync"/> logs a debug message and does not throw when an <see cref="OperationCanceledException"/> occurs on an aborted request.
+        /// </summary>
+        /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
         [Fact]
         public async Task InvokeAsync_WithOperationCanceledException_LogsDebugAndDoesNotThrow()
         {
@@ -93,6 +111,10 @@ namespace DotNetGrpcGateway.Tests
             context.Response.StatusCode.Should().Be(200); // No error response written
         }
 
+        /// <summary>
+        /// Tests that <see cref="ErrorHandlingMiddleware.InvokeAsync"/> sets the status code to 400 when a <see cref="GatewayException"/> occurs.
+        /// </summary>
+        /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
         [Fact]
         public async Task InvokeAsync_WithGatewayException_SetsBadRequestStatusCode()
         {
@@ -113,6 +135,10 @@ namespace DotNetGrpcGateway.Tests
             context.Response.ContentType.Should().StartWith("application/json");
         }
 
+        /// <summary>
+        /// Tests that <see cref="ErrorHandlingMiddleware.InvokeAsync"/> sets the status code to 500 when a <see cref="GatewayException"/> with details occurs.
+        /// </summary>
+        /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
         [Fact]
         public async Task InvokeAsync_WithGatewayExceptionWithDetails_SetsInternalServerErrorStatusCode()
         {
@@ -136,6 +162,10 @@ namespace DotNetGrpcGateway.Tests
             context.Response.ContentType.Should().StartWith("application/json");
         }
 
+        /// <summary>
+        /// Tests that <see cref="ErrorHandlingMiddleware.InvokeAsync"/> sets the status code to 400 when an <see cref="ArgumentException"/> occurs.
+        /// </summary>
+        /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
         [Fact]
         public async Task InvokeAsync_WithArgumentException_SetsBadRequestStatusCode()
         {
@@ -156,6 +186,10 @@ namespace DotNetGrpcGateway.Tests
             context.Response.ContentType.Should().StartWith("application/json");
         }
 
+        /// <summary>
+        /// Tests that <see cref="ErrorHandlingMiddleware.InvokeAsync"/> sets the status code to 401 when an <see cref="UnauthorizedAccessException"/> occurs.
+        /// </summary>
+        /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
         [Fact]
         public async Task InvokeAsync_WithUnauthorizedAccessException_SetsUnauthorizedStatusCode()
         {
@@ -176,6 +210,10 @@ namespace DotNetGrpcGateway.Tests
             context.Response.ContentType.Should().StartWith("application/json");
         }
 
+        /// <summary>
+        /// Tests that <see cref="ErrorHandlingMiddleware.InvokeAsync"/> sets the status code to 404 when a <see cref="KeyNotFoundException"/> occurs.
+        /// </summary>
+        /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
         [Fact]
         public async Task InvokeAsync_WithKeyNotFoundException_SetsNotFoundStatusCode()
         {
@@ -196,6 +234,10 @@ namespace DotNetGrpcGateway.Tests
             context.Response.ContentType.Should().StartWith("application/json");
         }
 
+        /// <summary>
+        /// Tests that <see cref="ErrorHandlingMiddleware.InvokeAsync"/> sets the status code to 500 when a generic <see cref="Exception"/> occurs.
+        /// </summary>
+        /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
         [Fact]
         public async Task InvokeAsync_WithGenericException_SetsInternalServerErrorStatusCode()
         {
@@ -216,6 +258,10 @@ namespace DotNetGrpcGateway.Tests
             context.Response.ContentType.Should().StartWith("application/json");
         }
 
+        /// <summary>
+        /// Tests that the <see cref="ErrorHandlingMiddleware"/> constructor throws an <see cref="ArgumentNullException"/> when a null next delegate is provided.
+        /// </summary>
+        /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
         [Fact]
         public async Task InvokeAsync_WithNullNextDelegate_ThrowsArgumentNullException()
         {
@@ -224,6 +270,10 @@ namespace DotNetGrpcGateway.Tests
             await act.Should().ThrowAsync<ArgumentNullException>();
         }
 
+        /// <summary>
+        /// Tests that the <see cref="ErrorHandlingMiddleware"/> constructor throws an <see cref="ArgumentNullException"/> when a null logger is provided.
+        /// </summary>
+        /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
         [Fact]
         public async Task InvokeAsync_WithNullLogger_ThrowsArgumentNullException()
         {
