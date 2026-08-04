@@ -1,0 +1,1 @@
+fix: avoid division by zero in EndpointHealthScore computation
