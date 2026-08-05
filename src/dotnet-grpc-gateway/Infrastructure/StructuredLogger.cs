@@ -17,6 +17,12 @@ public static class StructuredLogger
     /// </summary>
     public static void LogRequestStart(ILogger logger, string requestId, string path, string method, string clientIp)
     {
+        ArgumentNullException.ThrowIfNull(logger);
+        ArgumentException.ThrowIfNullOrEmpty(requestId);
+        ArgumentException.ThrowIfNullOrEmpty(path);
+        ArgumentException.ThrowIfNullOrEmpty(method);
+        ArgumentException.ThrowIfNullOrEmpty(clientIp);
+
         logger.LogInformation(
             "Request started - RequestId: {RequestId}, Path: {Path}, Method: {Method}, ClientIp: {ClientIp}",
             requestId, path, method, clientIp);
@@ -27,6 +33,10 @@ public static class StructuredLogger
     /// </summary>
     public static void LogRequestComplete(ILogger logger, string requestId, string path, int statusCode, long durationMs)
     {
+        ArgumentNullException.ThrowIfNull(logger);
+        ArgumentException.ThrowIfNullOrEmpty(requestId);
+        ArgumentException.ThrowIfNullOrEmpty(path);
+
         var logLevel = statusCode >= 500 ? LogLevel.Error :
                        statusCode >= 400 ? LogLevel.Warning : LogLevel.Information;
 
@@ -40,6 +50,8 @@ public static class StructuredLogger
     /// </summary>
     public static void LogServiceDiscovery(ILogger logger, int serviceId, string serviceName, bool healthy)
     {
+        ArgumentNullException.ThrowIfNull(logger);
+
         logger.LogInformation(
             "Service discovery check - ServiceId: {ServiceId}, ServiceName: {ServiceName}, Healthy: {Healthy}",
             serviceId, serviceName, healthy);
@@ -50,6 +62,10 @@ public static class StructuredLogger
     /// </summary>
     public static void LogCacheOperation(ILogger logger, string operation, string key, bool hit)
     {
+        ArgumentNullException.ThrowIfNull(logger);
+        ArgumentException.ThrowIfNullOrEmpty(operation);
+        ArgumentException.ThrowIfNullOrEmpty(key);
+
         logger.LogDebug("Cache operation - Operation: {Operation}, Key: {Key}, Hit: {Hit}",
             operation, key, hit);
     }
@@ -59,6 +75,10 @@ public static class StructuredLogger
     /// </summary>
     public static void LogRouteResolution(ILogger logger, string path, string routePattern, int targetServiceId)
     {
+        ArgumentNullException.ThrowIfNull(logger);
+        ArgumentException.ThrowIfNullOrEmpty(path);
+        ArgumentException.ThrowIfNullOrEmpty(routePattern);
+
         logger.LogInformation(
             "Route resolved - Path: {Path}, Pattern: {Pattern}, TargetServiceId: {TargetServiceId}",
             path, routePattern, targetServiceId);
@@ -78,6 +98,8 @@ public static class StructuredLogger
     /// </summary>
     public static void LogAuthentication(ILogger logger, string? userId, bool success, string? reason = null)
     {
+        ArgumentNullException.ThrowIfNull(logger);
+
         var logLevel = success ? LogLevel.Information : LogLevel.Warning;
         logger.Log(logLevel, "Authentication - UserId: {UserId}, Success: {Success}, Reason: {Reason}",
             userId ?? "unknown", success, reason ?? "");
