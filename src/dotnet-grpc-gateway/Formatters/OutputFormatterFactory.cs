@@ -28,6 +28,8 @@ public class OutputFormatterFactory
         RegisterFormatter(new JsonFormatter());
         RegisterFormatter(new CsvFormatter());
         RegisterFormatter(new XmlFormatter());
+
+        _logger.LogInformation("OutputFormatterFactory initialized with {Count} default formatters", _formatterFactories.Count);
     }
 
     /// <summary>
@@ -38,9 +40,12 @@ public class OutputFormatterFactory
         if (formatter is null)
             throw new ArgumentNullException(nameof(formatter));
 
+        _logger.LogInformation("Registering formatter for content type: {ContentType}", formatter.ContentType);
+
         // Store a factory that returns the formatter instance.
         _formatterFactories[formatter.ContentType] = () => formatter;
-        _logger.LogInformation("Registered formatter for content type: {ContentType}", formatter.ContentType);
+
+        _logger.LogInformation("Formatter registered for content type: {ContentType}", formatter.ContentType);
     }
 
     /// <summary>
@@ -48,17 +53,33 @@ public class OutputFormatterFactory
     /// </summary>
     public IOutputFormatter GetFormatter(string contentType)
     {
+        _logger.LogInformation("Getting formatter for content type: {ContentType}", contentType);
+
         if (string.IsNullOrEmpty(contentType))
+        {
+            _logger.LogInformation("Content type is null or empty, returning default JSON formatter");
             return _formatterFactories["application/json"]();
+        }
 
         // Try exact match first
         if (_formatterFactories.TryGetValue(contentType, out var factory))
+        {
+            _logger.LogInformation("Found exact match for content type: {ContentType}", contentType);
             return factory();
+        }
 
         // Try partial match (e.g., "application/json;charset=utf-8" -> "application/json")
         var baseType = contentType.Split(';')[0].Trim();
+        if (!baseType.Equals(contentType, StringComparison.OrdinalIgnoreCase))
+        {
+            _logger.LogInformation("Exact match not found, trying base type: {BaseType}", baseType);
+        }
+
         if (_formatterFactories.TryGetValue(baseType, out var baseFactory))
+        {
+            _logger.LogInformation("Found formatter for base type: {BaseType}", baseType);
             return baseFactory();
+        }
 
         // No formatter found – throw an exception listing supported formats.
         var supported = string.Join(", ", _formatterFactories.Keys);
@@ -71,7 +92,10 @@ public class OutputFormatterFactory
     /// </summary>
     public IEnumerable<string> GetAvailableContentTypes()
     {
-        return _formatterFactories.Keys;
+        _logger.LogInformation("Getting all available content types");
+        var keys = _formatterFactories.Keys;
+        _logger.LogInformation("Found {Count} available content types", keys.Count);
+        return keys;
     }
 
     /// <summary>
@@ -79,10 +103,18 @@ public class OutputFormatterFactory
     /// </summary>
     public bool IsSupported(string contentType)
     {
-        if (string.IsNullOrEmpty(contentType))
-            return true;
+        _logger.LogInformation("Checking if content type '{ContentType}' is supported", contentType);
 
-        return _formatterFactories.ContainsKey(contentType) ||
-               _formatterFactories.ContainsKey(contentType.Split(';')[0].Trim());
+        if (string.IsNullOrEmpty(contentType))
+        {
+            _logger.LogInformation("Content type is null or empty, considered supported");
+            return true;
+        }
+
+        bool isSupported = _formatterFactories.ContainsKey(contentType) ||
+                           _formatterFactories.ContainsKey(contentType.Split(';')[0].Trim());
+
+        _logger.LogInformation("Content type '{ContentType}' is supported: {IsSupported}", contentType, isSupported);
+        return isSupported;
     }
 }
