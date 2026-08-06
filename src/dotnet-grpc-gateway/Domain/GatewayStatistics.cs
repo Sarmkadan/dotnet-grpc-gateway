@@ -102,6 +102,8 @@ public class GatewayStatistics
 
     public void RecordServiceRequest(string serviceName)
     {
+        ArgumentException.ThrowIfNullOrEmpty(serviceName);
+
         if (!RequestsByService.ContainsKey(serviceName))
             RequestsByService[serviceName] = 0;
 
@@ -110,6 +112,8 @@ public class GatewayStatistics
 
     public void RecordMethodCall(string methodName)
     {
+        ArgumentException.ThrowIfNullOrEmpty(methodName);
+
         if (!RequestsByMethod.ContainsKey(methodName))
             RequestsByMethod[methodName] = 0;
 
@@ -118,6 +122,8 @@ public class GatewayStatistics
 
     public void RecordError(string errorType)
     {
+        ArgumentException.ThrowIfNullOrEmpty(errorType);
+
         if (!ErrorsByType.ContainsKey(errorType))
             ErrorsByType[errorType] = 0;
 
