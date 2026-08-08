@@ -43,8 +43,7 @@ public static class GatewayUtilities
     /// </summary>
     public static T? FromJson<T>(string json)
     {
-        if (string.IsNullOrWhiteSpace(json))
-            return default;
+        ArgumentException.ThrowIfNullOrEmpty(json);
 
         try
         {
@@ -124,6 +123,8 @@ public static class GatewayUtilities
     /// </summary>
     public static string ComputeSha256Hash(string input)
     {
+        ArgumentException.ThrowIfNullOrEmpty(input);
+
         using (var sha256 = System.Security.Cryptography.SHA256.Create())
         {
             var hashedBytes = sha256.ComputeHash(System.Text.Encoding.UTF8.GetBytes(input));
@@ -149,8 +150,8 @@ public static class GatewayUtilities
     /// </summary>
     public static T? SafeGetValue<T>(Dictionary<string, T> dict, string key)
     {
-        if (dict is null || string.IsNullOrWhiteSpace(key))
-            return default;
+        ArgumentNullException.ThrowIfNull(dict);
+        ArgumentException.ThrowIfNullOrEmpty(key);
 
         dict.TryGetValue(key, out var value);
         return value;
@@ -163,6 +164,9 @@ public static class GatewayUtilities
         Dictionary<string, T> first,
         Dictionary<string, T> second)
     {
+        ArgumentNullException.ThrowIfNull(first);
+        ArgumentNullException.ThrowIfNull(second);
+
         var result = new Dictionary<string, T>(first);
 
         foreach (var kvp in second)
