@@ -19,8 +19,7 @@ public static class HttpUtility
     /// </summary>
     public static string GetAcceptedContentType(string? acceptHeader, string defaultType = "application/json")
     {
-        if (string.IsNullOrEmpty(acceptHeader))
-            return defaultType;
+        ArgumentException.ThrowIfNullOrEmpty(acceptHeader);
 
         // Parse Accept header and return first supported type
         var types = acceptHeader.Split(',')
@@ -37,8 +36,7 @@ public static class HttpUtility
     /// </summary>
     public static string BuildAuthorizationHeader(string token)
     {
-        if (string.IsNullOrEmpty(token))
-            throw new ArgumentException("Token cannot be null or empty", nameof(token));
+        ArgumentException.ThrowIfNullOrEmpty(token);
 
         return $"Bearer {token}";
     }
