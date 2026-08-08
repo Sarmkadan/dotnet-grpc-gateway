@@ -1122,3 +1122,62 @@ if (faultedResult.Result is OkObjectResult faultedOkResult)
 ## RequestLogServiceTests
 
 `RequestLogServiceTests` is a comprehensive test class that validates the behavior of request logging functionality in the gRPC gateway. It tests various scenarios including successful requests, failed requests, slow requests, large payloads, cache hits/misses, and retry behavior. The tests ensure that log entries are created with appropriate log levels (INFO, WARN, ERROR) and contain the expected message patterns and metadata for different request outcomes.
+
+### Example Usage
+
+```csharp
+using DotNetGrpcGateway.Infrastructure;
+using Microsoft.Extensions.Logging;
+using Moq;
+using Xunit;
+
+public class RequestLogServiceTestsExample
+{
+    [Fact]
+    public void ExampleUsage()
+    {
+        // 1. Arrange: Create a mock logger and service
+        var loggerMock = new Mock<ILogger>();
+        var service = new RequestLogService(loggerMock.Object);
+
+        // 2. Act: Log a successful request
+        service.LogSuccess("req-123", "/api/v1/data", 200, 150);
+
+        // 3. Assert: Verify interactions (using Moq)
+        loggerMock.Verify(l => l.LogInformation(It.IsAny<string>(), "req-123", "/api/v1/data", 200, 150), Times.Once);
+    }
+}
+```
+
+## StructuredLoggerTests
+
+`StructuredLoggerTests` is a comprehensive test class that validates the logging functionality provided by the `StructuredLogger` class, ensuring that all key gateway events—including request lifecycles, service discovery, cache operations, authentication, and error handling—are logged with the correct levels and parameters. The tests leverage `Moq` to verify `ILogger` interactions for happy path scenarios and ensure appropriate exception handling, such as `ArgumentNullException` when invalid inputs are provided.
+
+### Example Usage
+
+```csharp
+using DotNetGrpcGateway.Infrastructure;
+using Microsoft.Extensions.Logging;
+using Moq;
+using Xunit;
+
+public class StructuredLoggerTestsExample
+{
+    [Fact]
+    public void ExampleUsage()
+    {
+        // 1. Arrange: Create a mock logger
+        var loggerMock = new Mock<ILogger>();
+
+        // 2. Act: Log various gateway events
+        StructuredLogger.LogRequestStart(loggerMock.Object, "req-123", "/api/v1/data", "GET", "127.0.0.1");
+        StructuredLogger.LogRequestComplete(loggerMock.Object, "req-123", "/api/v1/data", 200, 150);
+        StructuredLogger.LogAuthentication(loggerMock.Object, "user-456", true);
+        StructuredLogger.LogCriticalError(loggerMock.Object, new InvalidOperationException("Failed"), "DataService");
+
+        // 3. Assert: Verify interactions (using Moq)
+        loggerMock.Verify(l => l.LogInformation(It.IsAny<string>(), "req-123", "/api/v1/data", "GET", "127.0.0.1"), Times.Once);
+        loggerMock.Verify(l => l.LogError(It.IsAny<Exception>(), It.IsAny<string>(), "DataService", It.IsAny<object>()), Times.Once);
+    }
+}
+```
