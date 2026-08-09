@@ -31,6 +31,7 @@ public static class GatewayStatisticsTestsExtensions
         double avgResponseTimeMs = 125.5,
         long dataProcessedBytes = 1024 * 1024)
     {
+        ArgumentNullException.ThrowIfNull(_);
         ArgumentOutOfRangeException.ThrowIfNegative(totalRequests);
         ArgumentOutOfRangeException.ThrowIfNegative(avgResponseTimeMs);
         ArgumentOutOfRangeException.ThrowIfNegative(dataProcessedBytes);
