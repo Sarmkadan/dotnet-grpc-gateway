@@ -17,6 +17,8 @@ public static class ConfigurationUtility
     /// </summary>
     public static T GetConfigValue<T>(IConfiguration config, string key, T defaultValue)
     {
+        ArgumentNullException.ThrowIfNull(config);
+        ArgumentException.ThrowIfNullOrEmpty(key);
         try
         {
             var value = config[key];
@@ -36,6 +38,8 @@ public static class ConfigurationUtility
     /// </summary>
     public static bool GetBoolValue(IConfiguration config, string key, bool defaultValue = false)
     {
+        ArgumentNullException.ThrowIfNull(config);
+        ArgumentException.ThrowIfNullOrEmpty(key);
         var value = config[key];
         if (string.IsNullOrEmpty(value))
             return defaultValue;
@@ -48,6 +52,8 @@ public static class ConfigurationUtility
     /// </summary>
     public static int GetIntValue(IConfiguration config, string key, int defaultValue = 0)
     {
+        ArgumentNullException.ThrowIfNull(config);
+        ArgumentException.ThrowIfNullOrEmpty(key);
         var value = config[key];
         if (string.IsNullOrEmpty(value))
             return defaultValue;
@@ -60,6 +66,8 @@ public static class ConfigurationUtility
     /// </summary>
     public static TimeSpan GetTimeSpanValue(IConfiguration config, string key, TimeSpan defaultValue)
     {
+        ArgumentNullException.ThrowIfNull(config);
+        ArgumentException.ThrowIfNullOrEmpty(key);
         var value = config[key];
         if (string.IsNullOrEmpty(value))
             return defaultValue;
@@ -79,6 +87,8 @@ public static class ConfigurationUtility
     /// </summary>
     public static T? GetSection<T>(IConfiguration config, string sectionName) where T : class, new()
     {
+        ArgumentNullException.ThrowIfNull(config);
+        ArgumentException.ThrowIfNullOrEmpty(sectionName);
         try
         {
             var section = config.GetSection(sectionName);
@@ -100,6 +110,8 @@ public static class ConfigurationUtility
     /// </summary>
     public static bool ValidateRequiredKey(IConfiguration config, string key)
     {
+        ArgumentNullException.ThrowIfNull(config);
+        ArgumentException.ThrowIfNullOrEmpty(key);
         var value = config[key];
         return !string.IsNullOrWhiteSpace(value);
     }
