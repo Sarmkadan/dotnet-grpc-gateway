@@ -159,6 +159,9 @@ public class DynamicRouteConfigurationExample
     /// </summary>
     public async Task TestRouteMatchingAsync(string serviceName, string methodName)
     {
+        ArgumentException.ThrowIfNullOrEmpty(serviceName);
+        ArgumentException.ThrowIfNullOrEmpty(methodName);
+
         var testData = new { serviceName, methodName };
 
         var content = new StringContent(
@@ -215,6 +218,8 @@ public class DynamicRouteConfigurationExample
     // Main entry point
     public static async Task Main(string[] args)
     {
+        ArgumentNullException.ThrowIfNull(args);
+
         var example = new DynamicRouteConfigurationExample();
 
         Console.WriteLine("=== Dynamic Route Configuration Example ===\n");
