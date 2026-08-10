@@ -36,6 +36,8 @@ public class AuthenticationAndSecurityExample
     /// </summary>
     public async Task<string> CreateAuthenticationTokenAsync(string tokenValue, string description)
     {
+        ArgumentException.ThrowIfNullOrEmpty(tokenValue);
+        ArgumentException.ThrowIfNullOrEmpty(description);
         var tokenData = new
         {
             token = tokenValue,
@@ -72,6 +74,8 @@ public class AuthenticationAndSecurityExample
     /// </summary>
     public async Task CreateProtectedRouteAsync(int serviceId, string pattern, string description)
     {
+        ArgumentException.ThrowIfNullOrEmpty(pattern);
+        ArgumentException.ThrowIfNullOrEmpty(description);
         var routeData = new
         {
             pattern = pattern,
@@ -109,6 +113,8 @@ public class AuthenticationAndSecurityExample
     /// </summary>
     public async Task MakeAuthenticatedRequestAsync(string token, string endpoint)
     {
+        ArgumentException.ThrowIfNullOrEmpty(token);
+        ArgumentException.ThrowIfNullOrEmpty(endpoint);
         var request = new HttpRequestMessage(HttpMethod.Get, endpoint);
         request.Headers.Add("Authorization", $"Bearer {token}");
 
