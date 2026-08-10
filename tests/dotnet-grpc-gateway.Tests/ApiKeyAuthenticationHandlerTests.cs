@@ -69,6 +69,7 @@ public class ApiKeyAuthenticationHandlerTests
     [InlineData("BEARER")]
     public async Task HandleAuthenticateAsync_ValidBearerToken_ReturnsSuccessWithClaims(string scheme)
     {
+        ArgumentException.ThrowIfNullOrEmpty(scheme);
         // Arrange
         var token = Guid.NewGuid().ToString();
         var context = new DefaultHttpContext();
@@ -101,6 +102,7 @@ public class ApiKeyAuthenticationHandlerTests
     [InlineData("Bearer   ")] // Whitespace only after space
     public async Task HandleAuthenticateAsync_MissingToken_ReturnsFailResult(string authHeader)
     {
+        ArgumentException.ThrowIfNullOrEmpty(authHeader);
         // Arrange
         var context = new DefaultHttpContext();
         context.Request.Headers.Authorization = authHeader;
@@ -125,6 +127,7 @@ public class ApiKeyAuthenticationHandlerTests
     [InlineData("Digest abc123")]
     public async Task HandleAuthenticateAsync_InvalidScheme_ReturnsFailResult(string authHeader)
     {
+        ArgumentException.ThrowIfNullOrEmpty(authHeader);
         // Arrange
         var context = new DefaultHttpContext();
         context.Request.Headers.Authorization = authHeader;
@@ -148,6 +151,7 @@ public class ApiKeyAuthenticationHandlerTests
     [InlineData("Bearer abc")]
     public async Task HandleAuthenticateAsync_InvalidTokenFormat_ReturnsFailResult(string authHeader)
     {
+        ArgumentException.ThrowIfNullOrEmpty(authHeader);
         // Arrange
         var context = new DefaultHttpContext();
         context.Request.Headers.Authorization = authHeader;
