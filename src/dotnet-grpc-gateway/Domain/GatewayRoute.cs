@@ -85,6 +85,10 @@ public class GatewayRoute
     }
 
     public void UpdateModifiedDate() => ModifiedAt = DateTime.UtcNow;
+
+    // Added ToString override for concise representation
+    public override string ToString() =>
+        $"GatewayRoute {{ Id = {Id}, Pattern = {Pattern}, TargetServiceId = {TargetServiceId}, Priority = {Priority}, MatchType = {MatchType}, Description = {Description} }}";
 }
 
 public enum RouteMatchType
