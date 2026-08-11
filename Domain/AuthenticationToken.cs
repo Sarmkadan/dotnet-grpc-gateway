@@ -1,1 +1,0 @@
-public override string ToString() => $"AuthenticationToken {{ Id = {Id}, TokenHash = {TokenHash}, ClientName = {ClientName}, ClientId = {ClientId}, ClientSecret = {ClientSecret}, TokenType = {TokenType} }}";
