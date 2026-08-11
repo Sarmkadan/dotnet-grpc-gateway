@@ -70,4 +70,9 @@ public class GatewayConfiguration
     }
 
     public void UpdateModifiedDate() => ModifiedAt = DateTime.UtcNow;
+
+    public override string ToString()
+    {
+        return $"GatewayConfiguration {{ Id = {Id}, Name = {Name}, Description = {Description}, ListenAddress = {ListenAddress}, Port = {Port}, EnableReflection = {EnableReflection} }}";
+    }
 }
