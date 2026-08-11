@@ -53,6 +53,7 @@ public class ErrorHandlingMiddleware
         }
         catch (Exception ex)
         {
+            _logger.LogWarning("Handling unexpected exception {ExceptionType} for request {RequestId}", ex.GetType().Name, requestId);
             _logger.LogError(ex, "Unhandled exception: {Message}", ex.Message);
             await HandleExceptionAsync(context, ex, requestId);
         }
