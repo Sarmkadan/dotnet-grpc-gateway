@@ -27,6 +27,7 @@ public class ErrorHandlingMiddleware
     public async Task InvokeAsync(HttpContext context)
     {
         var requestId = context.TraceIdentifier;
+        _logger.LogInformation("InvokeAsync called with {RequestId}", requestId);
 
         try
         {
@@ -55,6 +56,8 @@ public class ErrorHandlingMiddleware
             _logger.LogError(ex, "Unhandled exception: {Message}", ex.Message);
             await HandleExceptionAsync(context, ex, requestId);
         }
+
+        _logger.LogInformation("InvokeAsync completed with {RequestId}", requestId);
     }
 
     private static Task HandleExceptionAsync(HttpContext context, Exception exception, string requestId)
