@@ -1,8 +1,7 @@
 #nullable enable
-// =============================================================================
-// Author: Vladyslav Zaiets | https://sarmkadan.com
-// CTO & Software Architect
-// =============================================================================
+using System;
+using System.Collections.Generic;
+using System.Linq;
 
 namespace DotNetGrpcGateway.Domain;
 
@@ -48,4 +47,16 @@ public class RouteChannelOptions
     /// When <see langword="null"/> the host derived from <see cref="GrpcService.Host"/> is used.
     /// </summary>
     public string? TlsTargetName { get; set; }
+
+    /// <summary>
+    /// Returns a concise, informative string representation of the current options.
+    /// </summary>
+    public override string ToString()
+    {
+        var headers = AdditionalHeaders != null && AdditionalHeaders.Any()
+            ? $"{{ {string.Join(", ", AdditionalHeaders.Select(kv => $"{kv.Key}={kv.Value}"))} }}"
+            : "{}";
+
+        return $"RouteChannelOptions {{ CallTimeout = {CallTimeout}, MaxReceiveMessageSize = {MaxReceiveMessageSize}, MaxSendMessageSize = {MaxSendMessageSize}, AdditionalHeaders = {headers}, SkipTlsVerification = {SkipTlsVerification}, TlsTargetName = {TlsTargetName} }}";
+    }
 }
