@@ -32,8 +32,10 @@ public class CircuitBreakerController : ControllerBase
     [ProducesResponseType(typeof(IReadOnlyDictionary<int, string>), StatusCodes.Status200OK)]
     public ActionResult GetAll()
     {
+        _logger.LogInformation("Retrieving state of all circuit breakers");
         var states = _registry.GetAllStates()
             .ToDictionary(pair => pair.Key, pair => pair.Value.ToString());
+        _logger.LogInformation("Retrieved state of {BreakerCount} circuit breakers", states.Count);
         return Ok(states);
     }
 
@@ -43,10 +45,15 @@ public class CircuitBreakerController : ControllerBase
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public ActionResult GetStatus(int serviceId)
     {
+        _logger.LogInformation("Retrieving circuit breaker status for service {ServiceId}", serviceId);
         var breaker = _registry.TryGet(serviceId);
         if (breaker is null)
+        {
+            _logger.LogWarning("No circuit breaker registered for service {ServiceId}", serviceId);
             return NotFound($"No circuit breaker registered for service {serviceId}");
+        }
 
+        _logger.LogInformation("Retrieved circuit breaker status for service {ServiceId} in state {State}", serviceId, breaker.State.ToString());
         return Ok(new
         {
             serviceId,
@@ -62,12 +69,16 @@ public class CircuitBreakerController : ControllerBase
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public ActionResult Reset(int serviceId)
     {
+        _logger.LogInformation("Resetting circuit breaker for service {serviceId}", serviceId);
         var breaker = _registry.TryGet(serviceId);
         if (breaker is null)
+        {
+            _logger.LogWarning("Cannot reset circuit breaker for service {serviceId}: not registered", serviceId);
             return NotFound($"No circuit breaker registered for service {serviceId}");
+        }
 
         _registry.Reset(serviceId);
-        _logger.LogInformation("Circuit breaker for service {ServiceId} manually reset via API", serviceId);
+        _logger.LogInformation("Circuit breaker for service {serviceId} manually reset via API", serviceId);
         return Ok(new { serviceId, state = CircuitBreakerState.Closed.ToString() });
     }
 }
