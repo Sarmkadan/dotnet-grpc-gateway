@@ -40,10 +40,15 @@ public class MetricsController : ControllerBase
     [ProducesResponseType(typeof(PerformanceMetrics), StatusCodes.Status200OK)]
     public async Task<ActionResult<PerformanceMetrics>> GetPerformanceMetrics()
     {
+        _logger.LogInformation("Getting performance metrics");
         if (_performanceMonitor is null)
+        {
+            _logger.LogWarning("Performance monitoring not enabled");
             return StatusCode(StatusCodes.Status503ServiceUnavailable, "Performance monitoring not enabled");
+        }
 
         var metrics = await _performanceMonitor.GetMetricsAsync();
+        _logger.LogInformation("Finished getting performance metrics");
         return Ok(metrics);
     }
 
