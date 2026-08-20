@@ -36,6 +36,7 @@ public class CircuitBreakerTests
     [Fact]
     public void InitialState_IsClosed()
     {
+        _logger.Object.LogInformation("Testing {State} state of circuit breaker", "initial");
         var sut = CreateSut();
 
         sut.State.Should().Be(CircuitBreakerState.Closed);
@@ -48,6 +49,7 @@ public class CircuitBreakerTests
     [Fact]
     public void RecordFailure_BelowThreshold_RemainsClosedAndAllowsRequests()
     {
+        _logger.Object.LogInformation("Testing record failure below threshold {Threshold} for circuit breaker", 3);
         var sut = CreateSut(failureThreshold: 3);
         sut.RecordFailure();
         sut.RecordFailure();
@@ -62,6 +64,7 @@ public class CircuitBreakerTests
     [Fact]
     public void RecordFailure_ReachesThreshold_OpensCircuit()
     {
+        _logger.Object.LogInformation("Testing record failure reaching threshold {Threshold} opens circuit breaker", 3);
         var sut = CreateSut(failureThreshold: 3);
         sut.RecordFailure();
         sut.RecordFailure();
@@ -77,6 +80,7 @@ public class CircuitBreakerTests
     [Fact]
     public void RecordSuccess_WhenHalfOpen_ClosesCircuitAfterThreshold()
     {
+        _logger.Object.LogInformation("Testing record success when half-open closes circuit breaker with threshold {Threshold}", 1);
         var sut = CreateSut(failureThreshold: 1, openDurationSeconds: 0);
         sut.RecordFailure();
 
@@ -95,6 +99,7 @@ public class CircuitBreakerTests
     [Fact]
     public void RecordFailure_WhenHalfOpen_ReOpensCircuit()
     {
+        _logger.Object.LogInformation("Testing record failure when half-open re-opens circuit breaker with threshold {Threshold}", 1);
         var sut = CreateSut(failureThreshold: 1, openDurationSeconds: 0);
         sut.RecordFailure();
 
@@ -110,6 +115,7 @@ public class CircuitBreakerTests
     [Fact]
     public void Reset_OpenCircuit_ClosesAndClearsCounters()
     {
+        _logger.Object.LogInformation("Testing reset open circuit breaker with threshold {Threshold}", 2);
         var sut = CreateSut(failureThreshold: 2);
         sut.RecordFailure();
         sut.RecordFailure();
