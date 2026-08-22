@@ -33,6 +33,7 @@ namespace DotNetGrpcGateway.Tests
         [Fact]
         public async Task InvokeAsync_WithSuccessfulRequest_InvokesNextDelegate()
         {
+            _mockLogger.Object.LogInformation("Starting test {TestName}", nameof(InvokeAsync_WithSuccessfulRequest_InvokesNextDelegate));
             // Arrange
             var context = new DefaultHttpContext();
             _mockNext.Setup(n => n.Invoke(It.IsAny<HttpContext>()))
@@ -46,6 +47,7 @@ namespace DotNetGrpcGateway.Tests
             // Assert
             _mockNext.Verify(n => n.Invoke(context), Times.Once);
             context.Response.StatusCode.Should().Be(200);
+            _mockLogger.Object.LogInformation("Finished test {TestName}", nameof(InvokeAsync_WithSuccessfulRequest_InvokesNextDelegate));
         }
 
         /// <summary>
@@ -118,6 +120,7 @@ namespace DotNetGrpcGateway.Tests
         [Fact]
         public async Task InvokeAsync_WithGatewayException_SetsBadRequestStatusCode()
         {
+            _mockLogger.Object.LogInformation("Starting test {TestName}", nameof(InvokeAsync_WithGatewayException_SetsBadRequestStatusCode));
             // Arrange
             var context = new DefaultHttpContext();
             var exception = new GatewayException("Test gateway error", "TEST_ERROR", 400);
@@ -133,6 +136,7 @@ namespace DotNetGrpcGateway.Tests
             // Assert
             context.Response.StatusCode.Should().Be(400);
             context.Response.ContentType.Should().StartWith("application/json");
+            _mockLogger.Object.LogInformation("Finished test {TestName}", nameof(InvokeAsync_WithGatewayException_SetsBadRequestStatusCode));
         }
 
         /// <summary>
@@ -142,6 +146,7 @@ namespace DotNetGrpcGateway.Tests
         [Fact]
         public async Task InvokeAsync_WithGatewayExceptionWithDetails_SetsInternalServerErrorStatusCode()
         {
+            _mockLogger.Object.LogInformation("Starting test {TestName}", nameof(InvokeAsync_WithGatewayExceptionWithDetails_SetsInternalServerErrorStatusCode));
             // Arrange
             var context = new DefaultHttpContext();
             var exception = new GatewayException("Test gateway error with details");
@@ -160,6 +165,7 @@ namespace DotNetGrpcGateway.Tests
             // Assert
             context.Response.StatusCode.Should().Be(500);
             context.Response.ContentType.Should().StartWith("application/json");
+            _mockLogger.Object.LogInformation("Finished test {TestName}", nameof(InvokeAsync_WithGatewayExceptionWithDetails_SetsInternalServerErrorStatusCode));
         }
 
         /// <summary>
@@ -169,6 +175,7 @@ namespace DotNetGrpcGateway.Tests
         [Fact]
         public async Task InvokeAsync_WithArgumentException_SetsBadRequestStatusCode()
         {
+            _mockLogger.Object.LogInformation("Starting test {TestName}", nameof(InvokeAsync_WithArgumentException_SetsBadRequestStatusCode));
             // Arrange
             var context = new DefaultHttpContext();
             var exception = new ArgumentException("Invalid argument");
@@ -184,6 +191,7 @@ namespace DotNetGrpcGateway.Tests
             // Assert
             context.Response.StatusCode.Should().Be((int)HttpStatusCode.BadRequest);
             context.Response.ContentType.Should().StartWith("application/json");
+            _mockLogger.Object.LogInformation("Finished test {TestName}", nameof(InvokeAsync_WithArgumentException_SetsBadRequestStatusCode));
         }
 
         /// <summary>
@@ -193,6 +201,7 @@ namespace DotNetGrpcGateway.Tests
         [Fact]
         public async Task InvokeAsync_WithUnauthorizedAccessException_SetsUnauthorizedStatusCode()
         {
+            _mockLogger.Object.LogInformation("Starting test {TestName}", nameof(InvokeAsync_WithUnauthorizedAccessException_SetsUnauthorizedStatusCode));
             // Arrange
             var context = new DefaultHttpContext();
             var exception = new UnauthorizedAccessException("Not authorized");
@@ -208,6 +217,7 @@ namespace DotNetGrpcGateway.Tests
             // Assert
             context.Response.StatusCode.Should().Be((int)HttpStatusCode.Unauthorized);
             context.Response.ContentType.Should().StartWith("application/json");
+            _mockLogger.Object.LogInformation("Finished test {TestName}", nameof(InvokeAsync_WithUnauthorizedAccessException_SetsUnauthorizedStatusCode));
         }
 
         /// <summary>
@@ -217,6 +227,7 @@ namespace DotNetGrpcGateway.Tests
         [Fact]
         public async Task InvokeAsync_WithKeyNotFoundException_SetsNotFoundStatusCode()
         {
+            _mockLogger.Object.LogInformation("Starting test {TestName}", nameof(InvokeAsync_WithKeyNotFoundException_SetsNotFoundStatusCode));
             // Arrange
             var context = new DefaultHttpContext();
             var exception = new KeyNotFoundException("Item not found");
@@ -232,6 +243,7 @@ namespace DotNetGrpcGateway.Tests
             // Assert
             context.Response.StatusCode.Should().Be((int)HttpStatusCode.NotFound);
             context.Response.ContentType.Should().StartWith("application/json");
+            _mockLogger.Object.LogInformation("Finished test {TestName}", nameof(InvokeAsync_WithKeyNotFoundException_SetsNotFoundStatusCode));
         }
 
         /// <summary>
