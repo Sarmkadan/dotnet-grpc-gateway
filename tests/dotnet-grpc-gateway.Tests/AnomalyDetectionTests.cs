@@ -10,6 +10,7 @@ using DotNetGrpcGateway.Domain;
 using DotNetGrpcGateway.Services;
 using Microsoft.Extensions.Logging;
 using Moq;
+using System.Reflection;
 using Xunit;
 
 namespace DotNetGrpcGateway.Tests;
@@ -33,6 +34,8 @@ public class AnomalyDetectionTests
     [Fact]
     public async Task DetectAnomaliesAsync_NoAnomalies_ShouldReturnEmptyList()
     {
+        _mockLogger.Object.LogInformation("Starting test {TestMethod}", nameof(DetectAnomaliesAsync_NoAnomalies_ShouldReturnEmptyList));
+        
         // Arrange: Normal traffic with high success rate and low latency
         var normalStats = new GatewayStatistics
         {
@@ -60,11 +63,15 @@ public class AnomalyDetectionTests
         Assert.Empty(alerts);
         _mockMetricsService.Verify(s => s.GetTodayStatisticsAsync(), Times.Once);
         _mockMetricsService.Verify(s => s.GetSlowRequestsAsync(0), Times.Once);
+
+        _mockLogger.Object.LogInformation("Finished test {TestMethod}", nameof(DetectAnomaliesAsync_NoAnomalies_ShouldReturnEmptyList));
     }
 
     [Fact]
     public async Task DetectAnomaliesAsync_HighErrorRate_ShouldGenerateAlert()
     {
+        _mockLogger.Object.LogInformation("Starting test {TestMethod}", nameof(DetectAnomaliesAsync_HighErrorRate_ShouldGenerateAlert));
+
         // Arrange: High error rate (below 95% success threshold)
         // Note: The success rate is calculated from slowRequests, not GatewayStatistics
         var slowRequests = new List<RequestMetric>
@@ -104,6 +111,8 @@ public class AnomalyDetectionTests
         Assert.Equal(DateTime.UtcNow.Date, alert.DetectedAt.Date);
         Assert.True(alert.Severity >= 2); // Should be at least severity 2
         Assert.Equal(4, alert.Severity); // Since error rate is 40% which is < 90%
+
+        _mockLogger.Object.LogInformation("Finished test {TestMethod}", nameof(DetectAnomaliesAsync_HighErrorRate_ShouldGenerateAlert));
     }
 
     [Fact]
@@ -348,6 +357,8 @@ public class AnomalyDetectionTests
     [Fact]
     public async Task DetectAnomaliesAsync_ServiceException_ShouldReturnHighErrorRateAlert()
     {
+        _mockLogger.Object.LogInformation("Starting test {TestMethod}", nameof(DetectAnomaliesAsync_ServiceException_ShouldReturnHighErrorRateAlert));
+        
         // Arrange: Service throws exception, which causes AnalyzeRequestPatternsAsync to return default analysis
         // with SuccessRate = 0, triggering HighErrorRate alert
         _mockMetricsService
@@ -355,14 +366,23 @@ public class AnomalyDetectionTests
             .ThrowsAsync(new Exception("Service error"));
 
         // Act
-        var alerts = await _analyzerService.DetectAnomaliesAsync();
+        try 
+        {
+            var alerts = await _analyzerService.DetectAnomaliesAsync();
+            // Assert
+            Assert.NotNull(alerts);
+            Assert.Single(alerts);
+            var alert = alerts[0];
+            Assert.Equal("HighErrorRate", alert.AlertType);
+            Assert.Equal("Error rate is 100.0% (threshold: 5%)", alert.Message);
+        }
+        catch (Exception ex)
+        {
+            _mockLogger.Object.LogError(ex, "An unexpected exception occurred during test {TestMethod}", nameof(DetectAnomaliesAsync_ServiceException_ShouldReturnHighErrorRateAlert));
+            throw;
+        }
 
-        // Assert
-        Assert.NotNull(alerts);
-        Assert.Single(alerts);
-        var alert = alerts[0];
-        Assert.Equal("HighErrorRate", alert.AlertType);
-        Assert.Equal("Error rate is 100.0% (threshold: 5%)", alert.Message);
+        _mockLogger.Object.LogInformation("Finished test {TestMethod}", nameof(DetectAnomaliesAsync_ServiceException_ShouldReturnHighErrorRateAlert));
     }
 
     [Fact]
