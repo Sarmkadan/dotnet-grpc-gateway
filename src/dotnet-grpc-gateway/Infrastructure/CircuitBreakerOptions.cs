@@ -1,4 +1,5 @@
 #nullable enable
+
 // =============================================================================
 // Author: Vladyslav Zaiets | https://sarmkadan.com
 // CTO & Software Architect
@@ -19,4 +20,6 @@ public class CircuitBreakerOptions
 
     /// <summary>Number of successful calls in half-open state required to close the circuit.</summary>
     public int HalfOpenSuccessThreshold { get; set; } = 2;
+
+    public override string ToString() => $"CircuitBreakerOptions {{ FailureThreshold = {FailureThreshold}, OpenDuration = {OpenDuration}, HalfOpenSuccessThreshold = {HalfOpenSuccessThreshold} }}";
 }
