@@ -147,4 +147,7 @@ public class GatewayStatistics
         UnhealthyServices = unhealthyCount;
         TotalServices = healthyCount + unhealthyCount;
     }
+
+    public override string ToString()
+        => $"GatewayStatistics {{ Id = {Id}, StatisticsDate = {StatisticsDate}, TotalRequestsProcessed = {TotalRequestsProcessed}, SuccessfulRequests = {SuccessfulRequests}, FailedRequests = {FailedRequests}, SuccessRate = {SuccessRate} }}";
 }
