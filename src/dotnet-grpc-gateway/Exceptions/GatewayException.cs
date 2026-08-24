@@ -36,6 +36,8 @@ public class GatewayException : Exception
         Details ??= new Dictionary<string, object>();
         Details[key] = value;
     }
+
+    public override string ToString() => $"GatewayException {{ ErrorCode = {ErrorCode}, HttpStatusCode = {HttpStatusCode}, Details = {Details} }}";
 }
 
 /// <summary>
