@@ -27,6 +27,7 @@ public class ServiceEndpoint
     public DateTime RegisteredAt { get; set; } = DateTime.UtcNow;
     public DateTime LastUsedAt { get; set; } = DateTime.UtcNow;
 
+    public override string ToString() => $"ServiceEndpoint {{ Id = {Id}, ServiceId = {ServiceId}, Host = {Host}, Port = {Port}, UseTls = {UseTls}, IsHealthy = {IsHealthy} }}";
     public string GetUri() => $"{(UseTls ? "https" : "http")}://{Host}:{Port}";
 
     public void RecordRequest(double responseTimeMs, bool success)
