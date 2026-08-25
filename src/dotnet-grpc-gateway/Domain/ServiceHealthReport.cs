@@ -47,6 +47,9 @@ public class ServiceHealthReport
 
     public List<string> DiagnosticMessages { get; set; } = new();
 
+    public override string ToString()
+        => $"ServiceHealthReport {{ Id = {Id}, ServiceId = {ServiceId}, IsHealthy = {IsHealthy}, HealthStatus = {HealthStatus}, ResponseTimeMs = {ResponseTimeMs}, HttpStatusCode = {HttpStatusCode} }}";
+
     public void Validate()
     {
         if (ServiceId <= 0)
