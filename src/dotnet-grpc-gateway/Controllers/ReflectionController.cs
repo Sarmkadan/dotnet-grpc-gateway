@@ -217,4 +217,9 @@ public class ReflectionHealthSummary
 
     /// <summary>Gets or sets a human-readable status message.</summary>
     public string? Message { get; set; }
+
+    public override string ToString()
+    {
+        return $"ReflectionHealthSummary {{ IsAvailable = {IsAvailable}, AvailableServiceCount = {AvailableServiceCount}, TotalServiceCount = {TotalServiceCount}, CheckedAt = {CheckedAt}, Message = {Message} }}";
+    }
 }
