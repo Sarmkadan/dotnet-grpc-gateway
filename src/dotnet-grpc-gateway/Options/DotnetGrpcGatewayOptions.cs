@@ -38,6 +38,8 @@ public class DotnetGrpcGatewayOptions
 
     [Required]
     public RequestLoggingOptions RequestLogging { get; set; } = new();
+
+    public override string ToString() => $"DotnetGrpcGatewayOptions {{ ListenAddress = {ListenAddress}, Port = {Port}, EnableReflection = {EnableReflection}, EnableMetrics = {EnableMetrics}, MaxConcurrentConnections = {MaxConcurrentConnections}, RequestTimeoutMs = {RequestTimeoutMs} }}";
 }
 
 public class HealthCheckOptions
