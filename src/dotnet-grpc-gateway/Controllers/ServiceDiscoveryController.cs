@@ -166,6 +166,8 @@ public class ServiceInfo
     public int Port { get; set; }
     public bool UseTls { get; set; }
     public bool IsActive { get; set; }
+
+    public override string ToString() => $"ServiceInfo {{ Id = {Id}, Name = {Name}, ServiceFullName = {ServiceFullName}, Host = {Host}, Port = {Port}, UseTls = {UseTls} }}";
 }
 
 /// <summary>
