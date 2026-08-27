@@ -3,8 +3,14 @@ using Xunit;
 
 namespace DotNetGrpcGateway.Tests
 {
+    /// <summary>
+    /// Test class for RequestContextExtensions.
+    /// </summary>
     public class RequestContextExtensionsTests
     {
+        /// <summary>
+        /// Tests that HasUserId returns true when UserId is a non-empty string.
+        /// </summary>
         [Fact]
         public void HasUserId_WithValidUserId_ReturnsTrue()
         {
@@ -18,6 +24,9 @@ namespace DotNetGrpcGateway.Tests
             Assert.True(result);
         }
 
+        /// <summary>
+        /// Tests that HasUserId returns false when UserId is an empty string.
+        /// </summary>
         [Fact]
         public void HasUserId_WithEmptyUserId_ReturnsFalse()
         {
@@ -31,6 +40,9 @@ namespace DotNetGrpcGateway.Tests
             Assert.False(result);
         }
 
+        /// <summary>
+        /// Tests that HasUserId returns false when UserId is null.
+        /// </summary>
         [Fact]
         public void HasUserId_WithNullUserId_ReturnsFalse()
         {
@@ -44,6 +56,9 @@ namespace DotNetGrpcGateway.Tests
             Assert.False(result);
         }
 
+        /// <summary>
+        /// Tests that HasUserId throws ArgumentNullException when the RequestContext is null.
+        /// </summary>
         [Fact]
         public void HasUserId_WithNullRequestContext_ThrowsArgumentNullException()
         {
@@ -51,6 +66,9 @@ namespace DotNetGrpcGateway.Tests
             Assert.Throws<ArgumentNullException>(() => ((RequestContext)null).HasUserId());
         }
 
+        /// <summary>
+        /// Tests that GetClientInfo returns the expected string when ClientIp and UserId are set.
+        /// </summary>
         [Fact]
         public void GetClientInfo_WithValidRequestContext_ReturnsClientInfo()
         {
@@ -64,6 +82,9 @@ namespace DotNetGrpcGateway.Tests
             Assert.Equal("Client IP: 192.168.1.1, User ID: test-user", result);
         }
 
+        /// <summary>
+        /// Tests that GetClientInfo throws ArgumentNullException when the RequestContext is null.
+        /// </summary>
         [Fact]
         public void GetClientInfo_WithNullRequestContext_ThrowsArgumentNullException()
         {
@@ -71,6 +92,9 @@ namespace DotNetGrpcGateway.Tests
             Assert.Throws<ArgumentNullException>(() => ((RequestContext)null).GetClientInfo());
         }
 
+        /// <summary>
+        /// Tests that SetStartTime sets the start time correctly.
+        /// </summary>
         [Fact]
         public void SetStartTime_WithValidRequestContextAndStartTime_SetsStartTime()
         {
@@ -85,6 +109,9 @@ namespace DotNetGrpcGateway.Tests
             Assert.Equal(startTime, requestContext.GetStartTime());
         }
 
+        /// <summary>
+        /// Tests that SetStartTime throws ArgumentNullException when the RequestContext is null.
+        /// </summary>
         [Fact]
         public void SetStartTime_WithNullRequestContext_ThrowsArgumentNullException()
         {
@@ -92,6 +119,9 @@ namespace DotNetGrpcGateway.Tests
             Assert.Throws<ArgumentNullException>(() => ((RequestContext)null).SetStartTime(DateTime.Now));
         }
 
+        /// <summary>
+        /// Tests that GetStartTime returns the previously set start time.
+        /// </summary>
         [Fact]
         public void GetStartTime_WithValidRequestContextAndStartTime_ReturnsStartTime()
         {
@@ -107,6 +137,9 @@ namespace DotNetGrpcGateway.Tests
             Assert.Equal(startTime, result);
         }
 
+        /// <summary>
+        /// Tests that GetStartTime throws ArgumentNullException when the RequestContext is null.
+        /// </summary>
         [Fact]
         public void GetStartTime_WithNullRequestContext_ThrowsArgumentNullException()
         {
@@ -114,6 +147,9 @@ namespace DotNetGrpcGateway.Tests
             Assert.Throws<ArgumentNullException>(() => ((RequestContext)null).GetStartTime());
         }
 
+        /// <summary>
+        /// Tests that GetStartTime returns null when no start time has been set.
+        /// </summary>
         [Fact]
         public void GetStartTime_WithNoStartTime_ReturnsNull()
         {
