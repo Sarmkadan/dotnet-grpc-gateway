@@ -8,8 +8,14 @@ using Xunit;
 
 namespace DotNetGrpcGateway.Tests
 {
+    /// <summary>
+    /// Test class for <see cref="StructuredLogger"/>.
+    /// </summary>
     public class StructuredLoggerTests
     {
+    /// <summary>
+    /// Verifies that the StructuredLogger.LogRequestStart method LogsRequestStart in the HappyPath scenario.
+    /// </summary>
         [Fact]
         public void LogRequestStart_HappyPath_LogsRequestStart()
         {
@@ -27,6 +33,9 @@ namespace DotNetGrpcGateway.Tests
             loggerMock.Verify(l => l.LogInformation(It.IsAny<string>(), requestId, path, method, clientIp), Times.Once);
         }
 
+    /// <summary>
+    /// Verifies that the StructuredLogger.LogRequestComplete method LogsRequestComplete in the HappyPath scenario.
+    /// </summary>
         [Fact]
         public void LogRequestComplete_HappyPath_LogsRequestComplete()
         {
@@ -44,6 +53,9 @@ namespace DotNetGrpcGateway.Tests
             loggerMock.Verify(l => l.LogInformation(It.IsAny<string>(), requestId, path, statusCode, durationMs), Times.Once);
         }
 
+    /// <summary>
+    /// Verifies that the StructuredLogger.LogServiceDiscovery method LogsServiceDiscovery in the HappyPath scenario.
+    /// </summary>
         [Fact]
         public void LogServiceDiscovery_HappyPath_LogsServiceDiscovery()
         {
@@ -60,6 +72,9 @@ namespace DotNetGrpcGateway.Tests
             loggerMock.Verify(l => l.LogInformation(It.IsAny<string>(), serviceId, serviceName, healthy), Times.Once);
         }
 
+    /// <summary>
+    /// Verifies that the StructuredLogger.LogCacheOperation method LogsCacheOperation in the HappyPath scenario.
+    /// </summary>
         [Fact]
         public void LogCacheOperation_HappyPath_LogsCacheOperation()
         {
@@ -76,6 +91,9 @@ namespace DotNetGrpcGateway.Tests
             loggerMock.Verify(l => l.LogDebug(It.IsAny<string>(), operation, key, hit), Times.Once);
         }
 
+    /// <summary>
+    /// Verifies that the StructuredLogger.LogRouteResolution method LogsRouteResolution in the HappyPath scenario.
+    /// </summary>
         [Fact]
         public void LogRouteResolution_HappyPath_LogsRouteResolution()
         {
@@ -92,6 +110,9 @@ namespace DotNetGrpcGateway.Tests
             loggerMock.Verify(l => l.LogInformation(It.IsAny<string>(), path, routePattern, targetServiceId), Times.Once);
         }
 
+    /// <summary>
+    /// Verifies that the StructuredLogger.LogRateLimit method LogsRateLimit in the HappyPath scenario.
+    /// </summary>
         [Fact]
         public void LogRateLimit_HappyPath_LogsRateLimit()
         {
@@ -108,6 +129,9 @@ namespace DotNetGrpcGateway.Tests
             loggerMock.Verify(l => l.LogWarning(It.IsAny<string>(), clientIp, path, limit), Times.Once);
         }
 
+    /// <summary>
+    /// Verifies that the StructuredLogger.LogAuthentication method LogsAuthentication in the HappyPath scenario.
+    /// </summary>
         [Fact]
         public void LogAuthentication_HappyPath_LogsAuthentication()
         {
@@ -123,6 +147,9 @@ namespace DotNetGrpcGateway.Tests
             loggerMock.Verify(l => l.LogInformation(It.IsAny<string>(), userId, success, It.IsAny<string>()), Times.Once);
         }
 
+    /// <summary>
+    /// Verifies that the StructuredLogger.LogCriticalError method LogsCriticalError in the HappyPath scenario.
+    /// </summary>
         [Fact]
         public void LogCriticalError_HappyPath_LogsCriticalError()
         {
@@ -138,6 +165,9 @@ namespace DotNetGrpcGateway.Tests
             loggerMock.Verify(l => l.LogError(It.IsAny<Exception>(), It.IsAny<string>(), context, It.IsAny<object>()), Times.Once);
         }
 
+    /// <summary>
+    /// Verifies that the StructuredLogger.LogPerformanceMetrics method LogsPerformanceMetrics in the HappyPath scenario.
+    /// </summary>
         [Fact]
         public void LogPerformanceMetrics_HappyPath_LogsPerformanceMetrics()
         {
@@ -153,6 +183,9 @@ namespace DotNetGrpcGateway.Tests
             loggerMock.Verify(l => l.LogInformation(It.IsAny<string>(), operation, durationMs), Times.Once);
         }
 
+    /// <summary>
+    /// Verifies that the StructuredLogger.LogRequestStart method ThrowsArgumentNullException in the NullLogger scenario.
+    /// </summary>
         [Fact]
         public void LogRequestStart_NullLogger_ThrowsArgumentNullException()
         {
@@ -160,6 +193,9 @@ namespace DotNetGrpcGateway.Tests
             Assert.Throws<ArgumentNullException>(() => StructuredLogger.LogRequestStart(null, "requestId", "/path", "GET", "192.168.1.1"));
         }
 
+    /// <summary>
+    /// Verifies that the StructuredLogger.LogRequestComplete method ThrowsArgumentNullException in the NullLogger scenario.
+    /// </summary>
         [Fact]
         public void LogRequestComplete_NullLogger_ThrowsArgumentNullException()
         {
@@ -168,3 +204,4 @@ namespace DotNetGrpcGateway.Tests
         }
     }
 }
+
