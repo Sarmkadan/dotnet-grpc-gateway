@@ -1216,3 +1216,37 @@ bool emptyUserId = emptyContext.HasUserId(); // Returns false
 var nullContext = new RequestContext { UserId = null };
 bool nullUserId = nullContext.HasUserId(); // Returns false
 ```
+
+## ErrorHandlingMiddlewareTests
+
+`ErrorHandlingMiddlewareTests` is a comprehensive test class that validates the behavior of the `ErrorHandlingMiddleware` class, which handles exceptions in the gRPC gateway pipeline and maps them to appropriate HTTP status codes. The tests cover successful requests, specific exception types (ObjectDisposedException, OperationCanceledException, GatewayException, ArgumentException, UnauthorizedAccessException, KeyNotFoundException, generic Exception), and constructor argument validation.
+
+### Example Usage
+
+```csharp
+using DotNetGrpcGateway.Infrastructure;
+using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.Logging;
+using Moq;
+
+// 1. Set up mocks for the middleware dependencies
+var mockLogger = new Mock<ILogger<ErrorHandlingMiddleware>>();
+var mockNext = new Mock<RequestDelegate>();
+
+// 2. Configure the next delegate to simulate a successful request
+mockNext.Setup(n => n.Invoke(It.IsAny<HttpContext>()))
+        .Returns(Task.CompletedTask);
+
+// 3. Create the middleware instance
+var middleware = new ErrorHandlingMiddleware(mockNext.Object, mockLogger.Object);
+
+// 4. Create a default HTTP context to process
+var context = new DefaultHttpContext();
+
+// 5. Invoke the middleware
+await middleware.InvokeAsync(context);
+
+// 6. Verify that the next delegate was called and the response is successful
+mockNext.Verify(n => n.Invoke(context), Times.Once);
+context.Response.StatusCode.Should().Be(200);
+```
