@@ -1379,3 +1379,51 @@ public void ValidTokenAuthenticationExample()
     Assert.True(result.Principal.Identity.IsAuthenticated);
 }
 ```
+
+## FlowControlWindowTests
+
+`FlowControlWindowTests` validates the behavior of the `FlowControlWindow` class, which manages flow control parameters for gRPC streaming. The tests verify property initialization, validation of boundary values (zero and positive values), equality checks, usage in collections, and serialization roundtrip behavior.
+
+### Example Usage
+
+```csharp
+using DotNetGrpcGateway.Streaming;
+
+// 1. Create a flow control window with initial configuration
+var window = new FlowControlWindow
+{
+    InitialSize = 65535,
+    AvailableCredits = 65535,
+    IsThrottled = false
+};
+
+// 2. Verify initial state
+Console.WriteLine($"Initial size: {window.InitialSize}");
+Console.WriteLine($"Available credits: {window.AvailableCredits}");
+Console.WriteLine($"Is throttled: {window.IsThrottled}");
+
+// 3. Update properties to simulate flow control updates
+window.AvailableCredits = 32768;
+window.IsThrottled = true;
+
+// 4. Verify updated state
+Console.WriteLine($"Updated available credits: {window.AvailableCredits}");
+Console.WriteLine($"Updated throttled state: {window.IsThrottled}");
+
+// 5. Test equality with another window having same values
+var window2 = new FlowControlWindow
+{
+    InitialSize = 65535,
+    AvailableCredits = 32768,
+    IsThrottled = true
+};
+
+bool areEqual = window.InitialSize == window2.InitialSize &&
+                window.AvailableCredits == window2.AvailableCredits &&
+                window.IsThrottled == window2.IsThrottled;
+Console.WriteLine($"Windows are equal: {areEqual}");
+
+// 6. Use in a collection to track multiple windows
+var windows = new List<FlowControlWindow> { window, window2 };
+Console.WriteLine($"Total windows in collection: {windows.Count}");
+```
