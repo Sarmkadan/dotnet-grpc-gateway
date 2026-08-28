@@ -1322,3 +1322,60 @@ boundaryOptions.FailureThreshold = 0;        // Allow zero failures
 boundaryOptions.OpenDuration = TimeSpan.Zero; // No open duration
 boundaryOptions.HalfOpenSuccessThreshold = 1; // Minimum success threshold
 ```
+
+## ApiKeyAuthenticationHandlerTests
+
+`ApiKeyAuthenticationHandlerTests` validates the behavior of the API key authentication handler, which processes Bearer tokens from the Authorization header to establish user identity. The tests cover scenarios including missing headers, valid/invalid tokens, scheme validation, health check endpoint bypass, and case-insensitive header handling.
+
+### Example Usage
+
+```csharp
+using DotNetGrpcGateway.Middleware;
+using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
+using Moq;
+using System.Text.Encodings.Web;
+using Xunit;
+
+// Example test demonstrating valid token authentication
+public void ValidTokenAuthenticationExample()
+{
+    // Arrange
+    var optionsMonitorMock = new Mock<IOptionsMonitor<AuthenticationSchemeOptions>>();
+    var loggerFactoryMock = new Mock<ILoggerFactory>();
+    var loggerMock = new Mock<ILogger<ApiKeyAuthenticationHandler>>();
+    var urlEncoderMock = new Mock<UrlEncoder>();
+    
+    loggerFactoryMock
+        .Setup(x => x.CreateLogger(It.IsAny<string>()))
+        .Returns(loggerMock.Object);
+    
+    optionsMonitorMock
+        .Setup(x => x.Get(It.IsAny<string>()))
+        .Returns(new AuthenticationSchemeOptions());
+    
+    var handler = new ApiKeyAuthenticationHandler(
+        optionsMonitorMock.Object,
+        loggerFactoryMock.Object,
+        urlEncoderMock.Object);
+    
+    var token = Guid.NewGuid().ToString();
+    var context = new DefaultHttpContext();
+    context.Request.Headers.Authorization = $"Bearer {token}";
+    
+    handler.InitializeAsync(
+        new AuthenticationScheme("ApiKey", "ApiKey", typeof(ApiKeyAuthenticationHandler)),
+        context).Wait();
+    
+    // Act
+    var result = handler.AuthenticateAsync().Result;
+    
+    // Assert
+    Assert.True(result.Succeeded);
+    Assert.Null(result.Failure);
+    Assert.NotNull(result.Principal);
+    Assert.True(result.Principal.Identity.IsAuthenticated);
+}
+```
