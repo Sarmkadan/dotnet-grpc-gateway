@@ -1294,3 +1294,31 @@ var alerts = await analyzerService.DetectAnomaliesAsync();
 Assert.NotNull(alerts);
 Assert.Empty(alerts);
 ```
+
+## CircuitBreakerOptionsTests
+
+`CircuitBreakerOptionsTests` validates the configuration options for the circuit breaker pattern implementation. It tests that all properties (FailureThreshold, OpenDuration, HalfOpenSuccessThreshold) can be correctly set and retrieved, validates boundary conditions (zero and negative values), confirms independent property storage, and verifies object initializer syntax works properly.
+
+### Example Usage
+
+```csharp
+using DotNetGrpcGateway.Infrastructure;
+
+// 1. Create options with default values
+var defaultOptions = new CircuitBreakerOptions();
+// Defaults: FailureThreshold=5, OpenDuration=30 seconds, HalfOpenSuccessThreshold=2
+
+// 2. Configure custom circuit breaker behavior
+var customOptions = new CircuitBreakerOptions
+{
+    FailureThreshold = 10,           // Open after 10 consecutive failures
+    OpenDuration = TimeSpan.FromMinutes(5),  // Stay open for 5 minutes
+    HalfOpenSuccessThreshold = 3     // Require 3 successes to close
+};
+
+// 3. Test boundary conditions
+var boundaryOptions = new CircuitBreakerOptions();
+boundaryOptions.FailureThreshold = 0;        // Allow zero failures
+boundaryOptions.OpenDuration = TimeSpan.Zero; // No open duration
+boundaryOptions.HalfOpenSuccessThreshold = 1; // Minimum success threshold
+```
