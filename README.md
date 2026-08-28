@@ -1182,6 +1182,53 @@ public class StructuredLoggerTestsExample
 }
 ```
 
+## RequestContextTests
+
+`RequestContextTests` validates the behavior of the `RequestContext` class, which carries per-request metadata through the gRPC gateway pipeline. The tests cover constructor initialization (auto-generated immutable `RequestId`, `CorrelationId`, `StartTime`), the mutable request fields (`ClientIp`, `UserId`, `Path`, `Method`), and the typed property bag (`SetProperty`/`GetProperty<T>`) including null removal, empty-key no-ops, and wrong-type casting. Each test verifies that the context maintains correct default state and exposes accurate timing via `Elapsed`.
+
+### Example Usage
+
+```csharp
+using DotNetGrpcGateway.Infrastructure;
+using System;
+
+// 1. Create a new request context with auto-generated defaults
+var context = new RequestContext();
+Console.WriteLine($"RequestId: {context.RequestId}");        // e.g. 20260828120000-123456
+Console.WriteLine($"CorrelationId: {context.CorrelationId}"); // Defaults to RequestId
+Console.WriteLine($"StartTime: {context.StartTime}");         // UTC now
+
+// 2. Populate the mutable request fields
+context.CorrelationId = "corr-abc-123";
+context.ClientIp = "192.168.1.100";
+context.UserId = "user-456";
+context.Path = "/api/v1/users";
+context.Method = "POST";
+Console.WriteLine($"Path: {context.Path}, Method: {context.Method}");
+
+// 3. Store and retrieve typed properties
+context.SetProperty("attempt", 3);
+context.SetProperty("region", "eu-west-1");
+int attempt = context.GetProperty<int>("attempt");   // 3
+string region = context.GetProperty<string>("region"); // "eu-west-1"
+Console.WriteLine($"Attempt: {attempt}, Region: {region}");
+
+// 4. Update an existing property value
+context.SetProperty("attempt", 4);
+Console.WriteLine($"Updated attempt: {context.GetProperty<int>("attempt")}");
+
+// 5. Remove a property by setting its value to null
+context.SetProperty("region", null);
+bool regionRemoved = !context.Properties.ContainsKey("region"); // true
+
+// 6. Get a default value for a missing property
+int missing = context.GetProperty<int>("nonExistentKey"); // 0
+
+// 7. Measure elapsed time since the context was created
+var elapsed = context.Elapsed;
+Console.WriteLine($"Elapsed: {elapsed.TotalMilliseconds:F0}ms");
+```
+
 ## RequestContextExtensionsTests
 
 `RequestContextExtensionsTests` validates the extension methods for the `RequestContext` class, which provide helper functionality for checking user identification, retrieving client information, and managing request start times. The tests cover scenarios for valid and invalid inputs, including null checks and empty values, ensuring the extension methods behave correctly and throw appropriate exceptions when needed.
