@@ -1181,3 +1181,38 @@ public class StructuredLoggerTestsExample
     }
 }
 ```
+
+## RequestContextExtensionsTests
+
+`RequestContextExtensionsTests` validates the extension methods for the `RequestContext` class, which provide helper functionality for checking user identification, retrieving client information, and managing request start times. The tests cover scenarios for valid and invalid inputs, including null checks and empty values, ensuring the extension methods behave correctly and throw appropriate exceptions when needed.
+
+### Example Usage
+
+```csharp
+using DotNetGrpcGateway.Infrastructure;
+
+// 1. Create a request context with user and client information
+var requestContext = new RequestContext
+{
+    UserId = "user-123",
+    ClientIp = "192.168.1.100"
+};
+
+// 2. Check if the request has a user ID
+bool hasUserId = requestContext.HasUserId(); // Returns true
+
+// 3. Get formatted client information
+string clientInfo = requestContext.GetClientInfo(); // Returns "Client IP: 192.168.1.100, User ID: user-123"
+
+// 4. Set and retrieve the start time for the request
+var startTime = DateTime.UtcNow;
+requestContext.SetStartTime(startTime);
+DateTime? retrievedStartTime = requestContext.GetStartTime(); // Returns the set start time
+
+// 5. Check behavior with empty or null user ID
+var emptyContext = new RequestContext { UserId = string.Empty };
+bool emptyUserId = emptyContext.HasUserId(); // Returns false
+
+var nullContext = new RequestContext { UserId = null };
+bool nullUserId = nullContext.HasUserId(); // Returns false
+```
