@@ -1250,3 +1250,47 @@ await middleware.InvokeAsync(context);
 mockNext.Verify(n => n.Invoke(context), Times.Once);
 context.Response.StatusCode.Should().Be(200);
 ```
+
+## AnomalyDetectionTests
+
+`AnomalyDetectionTests` is a comprehensive test class that validates the anomaly detection functionality in the `RequestMetricsAnalyzerService` class. It tests various scenarios including high error rates, high latency, and combined anomalies to ensure the service correctly identifies and alerts on abnormal system behavior.
+
+### Example Usage
+
+```csharp
+using DotNetGrpcGateway.Domain;
+using DotNetGrpcGateway.Services;
+using Microsoft.Extensions.Logging;
+using Moq;
+
+// 1. Set up mocks for the service dependencies
+var mockMetricsService = new Mock<IMetricsCollectionService>();
+var mockLogger = new Mock<ILogger<RequestMetricsAnalyzerService>>();
+var analyzerService = new RequestMetricsAnalyzerService(mockMetricsService.Object, mockLogger.Object);
+
+// 2. Configure normal traffic statistics (no anomalies)
+var normalStats = new GatewayStatistics
+{
+    TotalRequestsProcessed = 1000,
+    SuccessfulRequests = 995,
+    FailedRequests = 5,
+    AverageResponseTimeMs = 500, // Below 1000ms threshold
+    SuccessRate = 0.995 // Above 0.95 threshold
+};
+
+var slowRequests = new List<RequestMetric>(); // No slow requests
+
+mockMetricsService
+    .Setup(s => s.GetTodayStatisticsAsync())
+    .ReturnsAsync(normalStats);
+mockMetricsService
+    .Setup(s => s.GetSlowRequestsAsync(0))
+    .ReturnsAsync(slowRequests);
+
+// 3. Execute anomaly detection
+var alerts = await analyzerService.DetectAnomaliesAsync();
+
+// 4. Verify no alerts were generated for normal traffic
+Assert.NotNull(alerts);
+Assert.Empty(alerts);
+```
