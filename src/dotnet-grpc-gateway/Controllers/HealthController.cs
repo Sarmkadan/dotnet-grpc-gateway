@@ -5,6 +5,7 @@
 // CTO & Software Architect
 // =============================================================================
 
+using System.Diagnostics;
 using DotNetGrpcGateway.Domain;
 using DotNetGrpcGateway.Infrastructure;
 using DotNetGrpcGateway.Services;
@@ -55,6 +56,10 @@ public class HealthController : ControllerBase
     [ProducesResponseType(StatusCodes.Status503ServiceUnavailable)]
     public async Task<ActionResult<HealthStatus>> GetHealthStatus()
     {
+        const string endpointName = "status";
+        _logger.LogDebug("Health check {Endpoint} started", endpointName);
+        var stopwatch = Stopwatch.StartNew();
+
         try
         {
             // Test database connectivity
@@ -66,10 +71,29 @@ public class HealthController : ControllerBase
             var halfOpenCircuits = circuitBreakerStates.Count(x => x.Value == CircuitBreakerState.HalfOpen);
             var closedCircuits = circuitBreakerStates.Count(x => x.Value == CircuitBreakerState.Closed);
 
+            if (openCircuits > 0)
+            {
+                _logger.LogWarning(
+                    "Health check component {Component} unhealthy: {Reason}. Open circuits: {OpenCircuitCount}",
+                    "Circuit Breaker Registry",
+                    "One or more circuit breakers are open",
+                    openCircuits);
+            }
+
             // Get service health
             var serviceHealth = await _serviceDiscoveryService.GetAllServicesHealthAsync();
             var healthyServices = serviceHealth.Count(x => x.Value == DotNetGrpcGateway.Services.ServiceHealthStatus.Healthy);
             var totalServices = serviceHealth.Count;
+
+            if (healthyServices != totalServices)
+            {
+                _logger.LogWarning(
+                    "Health check component {Component} unhealthy: {Reason}. Unhealthy services: {UnhealthyServiceCount}; total services: {TotalServiceCount}",
+                    "Service Discovery",
+                    "One or more discovered services are unhealthy",
+                    totalServices - healthyServices,
+                    totalServices);
+            }
 
             // Get performance metrics if available
             PerformanceMetrics? performanceMetrics = null;
@@ -156,11 +180,23 @@ public class HealthController : ControllerBase
                 }
             };
 
+            stopwatch.Stop();
+            _logger.LogInformation(
+                "Health check {Endpoint} completed with status {Status} in {ElapsedMilliseconds} ms",
+                endpointName,
+                healthStatus.Status,
+                stopwatch.ElapsedMilliseconds);
             return Ok(healthStatus);
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Health check failed");
+            stopwatch.Stop();
+            _logger.LogInformation(
+                "Health check {Endpoint} completed with status {Status} in {ElapsedMilliseconds} ms",
+                endpointName,
+                "Unhealthy",
+                stopwatch.ElapsedMilliseconds);
             return StatusCode(StatusCodes.Status503ServiceUnavailable, new
             {
                 Status = "Unhealthy",
@@ -179,12 +215,24 @@ public class HealthController : ControllerBase
     [ProducesResponseType(typeof(LivenessStatus), StatusCodes.Status200OK)]
     public IActionResult GetLiveness()
     {
-        return Ok(new LivenessStatus
+        const string endpointName = "liveness";
+        _logger.LogDebug("Health check {Endpoint} started", endpointName);
+        var stopwatch = Stopwatch.StartNew();
+
+        var livenessStatus = new LivenessStatus
         {
             Status = "Healthy",
             Timestamp = DateTime.UtcNow,
             Application = "dotnet-grpc-gateway"
-        });
+        };
+
+        stopwatch.Stop();
+        _logger.LogInformation(
+            "Health check {Endpoint} completed with status {Status} in {ElapsedMilliseconds} ms",
+            endpointName,
+            livenessStatus.Status,
+            stopwatch.ElapsedMilliseconds);
+        return Ok(livenessStatus);
     }
 
     /// <summary>
@@ -197,6 +245,10 @@ public class HealthController : ControllerBase
     [ProducesResponseType(StatusCodes.Status503ServiceUnavailable)]
     public async Task<ActionResult<ReadinessStatus>> GetReadiness()
     {
+        const string endpointName = "readiness";
+        _logger.LogDebug("Health check {Endpoint} started", endpointName);
+        var stopwatch = Stopwatch.StartNew();
+
         try
         {
             // Check database connectivity
@@ -206,10 +258,29 @@ public class HealthController : ControllerBase
             var circuitBreakerStates = _circuitBreakerRegistry.GetAllStates();
             var openCircuits = circuitBreakerStates.Count(x => x.Value == CircuitBreakerState.Open);
 
+            if (openCircuits > 0)
+            {
+                _logger.LogWarning(
+                    "Health check component {Component} unhealthy: {Reason}. Open circuits: {OpenCircuitCount}",
+                    "Circuit Breaker Registry",
+                    "One or more circuit breakers are open",
+                    openCircuits);
+            }
+
             // Get service health
             var serviceHealth = await _serviceDiscoveryService.GetAllServicesHealthAsync();
             var healthyServices = serviceHealth.Count(x => x.Value == DotNetGrpcGateway.Services.ServiceHealthStatus.Healthy);
             var totalServices = serviceHealth.Count;
+
+            if (healthyServices != totalServices)
+            {
+                _logger.LogWarning(
+                    "Health check component {Component} unhealthy: {Reason}. Unhealthy services: {UnhealthyServiceCount}; total services: {TotalServiceCount}",
+                    "Service Discovery",
+                    "One or more discovered services are unhealthy",
+                    totalServices - healthyServices,
+                    totalServices);
+            }
 
             // Get today's statistics
             var todayStats = await _metricsService.GetTodayStatisticsAsync();
@@ -228,11 +299,23 @@ public class HealthController : ControllerBase
                     : "Gateway is not ready to serve traffic"
             };
 
+            stopwatch.Stop();
+            _logger.LogInformation(
+                "Health check {Endpoint} completed with status {Status} in {ElapsedMilliseconds} ms",
+                endpointName,
+                readinessStatus.Status,
+                stopwatch.ElapsedMilliseconds);
             return Ok(readinessStatus);
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Readiness check failed");
+            stopwatch.Stop();
+            _logger.LogInformation(
+                "Health check {Endpoint} completed with status {Status} in {ElapsedMilliseconds} ms",
+                endpointName,
+                "NotReady",
+                stopwatch.ElapsedMilliseconds);
             return StatusCode(StatusCodes.Status503ServiceUnavailable, new
             {
                 Status = "NotReady",
@@ -252,7 +335,11 @@ public class HealthController : ControllerBase
         }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "Database connectivity check failed");
+            _logger.LogWarning(
+                ex,
+                "Health check component {Component} unhealthy: {Reason}",
+                "Database",
+                ex.Message);
             return false;
         }
     }
