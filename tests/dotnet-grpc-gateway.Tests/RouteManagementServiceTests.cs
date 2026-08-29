@@ -52,6 +52,47 @@ public class RouteManagementServiceTests
         RateLimitPerMinute = 100
     };
 
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    public async Task FindMatchingRouteAsync_NullOrEmptyPath_ReturnsNull(string? path)
+    {
+        var sut = CreateSut();
+
+        var result = await sut.FindMatchingRouteAsync(path!);
+
+        result.Should().BeNull();
+        _routeRepo.Verify(r => r.GetAllAsync(It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task FindMatchingRouteAsync_MultipleWildcardMatches_ReturnsHighestPriorityActiveRoute()
+    {
+        var lowPriority = BuildRoute(1, "UserService.*", serviceId: 1, priority: 100);
+        var highPriority = BuildRoute(2, "*.GetUser", serviceId: 2, priority: 300);
+        var inactive = BuildRoute(3, "*", serviceId: 3, priority: 500);
+        inactive.IsActive = false;
+        _routeRepo.Setup(r => r.GetAllAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<GatewayRoute> { lowPriority, inactive, highPriority });
+        var sut = CreateSut();
+
+        var result = await sut.FindMatchingRouteAsync("UserService.GetUser");
+
+        result.Should().BeSameAs(highPriority);
+    }
+
+    [Fact]
+    public async Task FindMatchingRouteAsync_RepositoryThrows_ReturnsNull()
+    {
+        _routeRepo.Setup(r => r.GetAllAsync(It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new InvalidOperationException("Repository unavailable"));
+        var sut = CreateSut();
+
+        var result = await sut.FindMatchingRouteAsync("UserService.GetUser");
+
+        result.Should().BeNull();
+    }
+
     /// <summary>
     /// Tests that an empty pattern returns false.
     /// </summary>
@@ -147,6 +188,42 @@ public class RouteManagementServiceTests
 
         result.Should().HaveCount(2);
         result.Should().OnlyContain(r => r.TargetServiceId == 1);
-        result.First().Priority.Should().Be(200, "results must be ordered by priority descending");
+        result.Select(r => r.Priority).Should().Equal(200, 100);
+    }
+
+    [Fact]
+    public async Task GetRoutesByServiceAsync_RepositoryThrows_ReturnsEmptyList()
+    {
+        _routeRepo.Setup(r => r.GetAllAsync(It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new InvalidOperationException("Repository unavailable"));
+        var sut = CreateSut();
+
+        var result = await sut.GetRoutesByServiceAsync(serviceId: 1);
+
+        result.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void Constructor_NullRouteRepository_ThrowsArgumentNullException()
+    {
+        var act = () => new RouteManagementService(null!, _eventPublisher.Object, _logger.Object);
+
+        act.Should().Throw<ArgumentNullException>().WithParameterName("routeRepository");
+    }
+
+    [Fact]
+    public void Constructor_NullEventPublisher_ThrowsArgumentNullException()
+    {
+        var act = () => new RouteManagementService(_routeRepo.Object, null!, _logger.Object);
+
+        act.Should().Throw<ArgumentNullException>().WithParameterName("eventPublisher");
+    }
+
+    [Fact]
+    public void Constructor_NullLogger_ThrowsArgumentNullException()
+    {
+        var act = () => new RouteManagementService(_routeRepo.Object, _eventPublisher.Object, null!);
+
+        act.Should().Throw<ArgumentNullException>().WithParameterName("logger");
     }
 }
