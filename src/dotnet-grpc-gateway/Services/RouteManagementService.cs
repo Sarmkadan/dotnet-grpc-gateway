@@ -16,10 +16,10 @@ namespace DotNetGrpcGateway.Services;
 /// </summary>
 public interface IRouteManagementService
 {
-    Task<List<GatewayRoute>> GetRoutesByServiceAsync(int serviceId);
-    Task<GatewayRoute?> FindMatchingRouteAsync(string path);
-    Task<List<GatewayRoute>> GetConflictingRoutesAsync(string pattern);
-    Task<bool> ValidateRouteAsync(GatewayRoute route);
+    Task<List<GatewayRoute>> GetRoutesByServiceAsync(int serviceId, CancellationToken cancellationToken = default);
+    Task<GatewayRoute?> FindMatchingRouteAsync(string path, CancellationToken cancellationToken = default);
+    Task<List<GatewayRoute>> GetConflictingRoutesAsync(string pattern, CancellationToken cancellationToken = default);
+    Task<bool> ValidateRouteAsync(GatewayRoute route, CancellationToken cancellationToken = default);
 }
 
 /// <summary>
@@ -41,11 +41,11 @@ public class RouteManagementService : IRouteManagementService
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
-    public async Task<List<GatewayRoute>> GetRoutesByServiceAsync(int serviceId)
+    public async Task<List<GatewayRoute>> GetRoutesByServiceAsync(int serviceId, CancellationToken cancellationToken = default)
     {
         try
         {
-            var routes = await _routeRepository.GetAllAsync(CancellationToken.None);
+            var routes = await _routeRepository.GetAllAsync(cancellationToken);
             return routes.Where(r => r.TargetServiceId == serviceId).OrderByDescending(r => r.Priority).ToList();
         }
         catch (Exception ex)
@@ -55,14 +55,14 @@ public class RouteManagementService : IRouteManagementService
         }
     }
 
-    public async Task<GatewayRoute?> FindMatchingRouteAsync(string path)
+    public async Task<GatewayRoute?> FindMatchingRouteAsync(string path, CancellationToken cancellationToken = default)
     {
         if (string.IsNullOrEmpty(path))
             return null;
 
         try
         {
-            var allRoutes = await _routeRepository.GetAllAsync(CancellationToken.None);
+            var allRoutes = await _routeRepository.GetAllAsync(cancellationToken);
 
             // Find routes that match the path, ordered by priority
             var matchingRoute = allRoutes
@@ -84,14 +84,14 @@ public class RouteManagementService : IRouteManagementService
         }
     }
 
-    public async Task<List<GatewayRoute>> GetConflictingRoutesAsync(string pattern)
+    public async Task<List<GatewayRoute>> GetConflictingRoutesAsync(string pattern, CancellationToken cancellationToken = default)
     {
         if (string.IsNullOrEmpty(pattern))
             return new List<GatewayRoute>();
 
         try
         {
-            var allRoutes = await _routeRepository.GetAllAsync(CancellationToken.None);
+            var allRoutes = await _routeRepository.GetAllAsync(cancellationToken);
 
             // Find routes with overlapping patterns
             var conflicting = allRoutes.Where(r =>
@@ -113,7 +113,7 @@ public class RouteManagementService : IRouteManagementService
         }
     }
 
-    public async Task<bool> ValidateRouteAsync(GatewayRoute route)
+    public async Task<bool> ValidateRouteAsync(GatewayRoute route, CancellationToken cancellationToken = default)
     {
         try
         {
@@ -146,7 +146,7 @@ public class RouteManagementService : IRouteManagementService
             }
 
             // Check for duplicate patterns
-            var allRoutes = await _routeRepository.GetAllAsync(CancellationToken.None);
+            var allRoutes = await _routeRepository.GetAllAsync(cancellationToken);
             var duplicate = allRoutes.FirstOrDefault(r => r.Id != route.Id && r.Pattern == route.Pattern);
 
             if (duplicate is not null)
