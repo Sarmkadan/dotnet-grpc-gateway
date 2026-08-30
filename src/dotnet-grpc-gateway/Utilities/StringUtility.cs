@@ -17,8 +17,12 @@ public static class StringUtility
     /// <summary>
     /// Safely truncates a string to max length and appends ellipsis if truncated.
     /// </summary>
+    /// <remarks>A <see langword="null"/> or empty <paramref name="value"/> returns <see cref="string.Empty"/>.</remarks>
+    /// <exception cref="ArgumentOutOfRangeException"><paramref name="maxLength"/> is negative.</exception>
     public static string Truncate(string? value, int maxLength = 100)
     {
+        ArgumentOutOfRangeException.ThrowIfNegative(maxLength);
+
         if (string.IsNullOrEmpty(value))
             return string.Empty;
 
@@ -31,6 +35,7 @@ public static class StringUtility
     /// <summary>
     /// Removes whitespace characters from both ends and normalizes internal spaces.
     /// </summary>
+    /// <remarks>A <see langword="null"/> or empty <paramref name="value"/> returns <see cref="string.Empty"/>.</remarks>
     public static string NormalizeWhitespace(string? value)
     {
         if (string.IsNullOrEmpty(value))
@@ -43,6 +48,7 @@ public static class StringUtility
     /// <summary>
     /// Generates a slug from a string (lowercase, hyphenated, alphanumeric only).
     /// </summary>
+    /// <remarks>A <see langword="null"/> or empty <paramref name="value"/> returns <see cref="string.Empty"/>.</remarks>
     public static string ToSlug(string? value)
     {
         if (string.IsNullOrEmpty(value))
@@ -59,8 +65,12 @@ public static class StringUtility
     /// <summary>
     /// Masks sensitive parts of a string (useful for logging credentials).
     /// </summary>
+    /// <remarks>A <see langword="null"/> or empty <paramref name="value"/> returns <c>***</c>.</remarks>
+    /// <exception cref="ArgumentOutOfRangeException"><paramref name="showChars"/> is negative.</exception>
     public static string MaskSensitiveData(string? value, int showChars = 4)
     {
+        ArgumentOutOfRangeException.ThrowIfNegative(showChars);
+
         if (string.IsNullOrEmpty(value) || value.Length <= showChars)
             return "***";
 
@@ -72,6 +82,10 @@ public static class StringUtility
     /// <summary>
     /// Checks if a string matches a wildcard pattern (e.g., "user.*.Get*").
     /// </summary>
+    /// <remarks>
+    /// Returns <see langword="false"/> when <paramref name="value"/> or <paramref name="pattern"/> is
+    /// <see langword="null"/> or empty.
+    /// </remarks>
     public static bool MatchesWildcardPattern(string? value, string? pattern)
     {
         if (string.IsNullOrEmpty(value) || string.IsNullOrEmpty(pattern))
@@ -85,6 +99,7 @@ public static class StringUtility
     /// <summary>
     /// Converts camelCase to PascalCase.
     /// </summary>
+    /// <remarks>A <see langword="null"/> or empty <paramref name="value"/> returns <see cref="string.Empty"/>.</remarks>
     public static string ToPascalCase(string? value)
     {
         if (string.IsNullOrEmpty(value))
@@ -96,6 +111,7 @@ public static class StringUtility
     /// <summary>
     /// Converts PascalCase or camelCase to kebab-case.
     /// </summary>
+    /// <remarks>A <see langword="null"/> or empty <paramref name="value"/> returns <see cref="string.Empty"/>.</remarks>
     public static string ToKebabCase(string? value)
     {
         if (string.IsNullOrEmpty(value))
