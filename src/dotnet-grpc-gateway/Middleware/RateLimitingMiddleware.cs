@@ -15,6 +15,10 @@ namespace DotNetGrpcGateway.Middleware;
 /// </summary>
 public class RateLimitingMiddleware
 {
+    private const int DefaultRequestsPerWindow = 100;
+    private const int DefaultWindowSeconds = 60;
+    private const int CleanupIntervalSeconds = 60;
+
     private readonly RequestDelegate _next;
     private readonly ILogger<RateLimitingMiddleware> _logger;
     private readonly int _requestsPerWindow;
@@ -23,7 +27,7 @@ public class RateLimitingMiddleware
     private readonly ConcurrentDictionary<string, (int count, DateTime windowStart)> _requestTracker = new();
 
     public RateLimitingMiddleware(RequestDelegate next, ILogger<RateLimitingMiddleware> logger,
-        int requestsPerWindow = 100, int windowSeconds = 60)
+        int requestsPerWindow = DefaultRequestsPerWindow, int windowSeconds = DefaultWindowSeconds)
     {
         _next = next ?? throw new ArgumentNullException(nameof(next));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
@@ -107,7 +111,7 @@ public class RateLimitingMiddleware
         {
             try
             {
-                await Task.Delay(TimeSpan.FromMinutes(1));
+                await Task.Delay(TimeSpan.FromSeconds(CleanupIntervalSeconds));
 
                 var now = DateTime.UtcNow;
                 var expiredKeys = _requestTracker
