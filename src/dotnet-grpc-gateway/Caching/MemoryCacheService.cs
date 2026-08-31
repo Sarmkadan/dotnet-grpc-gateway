@@ -28,44 +28,43 @@ public class MemoryCacheService : ICacheService
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
-    public async Task<T?> GetAsync<T>(string key)
+    public Task<T?> GetAsync<T>(string key)
     {
         if (string.IsNullOrEmpty(key))
-            return default;
+            return Task.FromResult<T?>(default);
 
-        // Simulate async operation for consistency with interface
-        return await Task.FromResult(Get<T>(key));
+        return Task.FromResult(Get<T>(key));
     }
 
-    public async Task SetAsync<T>(string key, T value, TimeSpan? expiration = null)
+    public Task SetAsync<T>(string key, T value, TimeSpan? expiration = null)
     {
         if (string.IsNullOrEmpty(key))
             throw new ArgumentException("Cache key cannot be null or empty", nameof(key));
 
-        // Simulate async operation for consistency with interface
-        await Task.Run(() => Set(key, value, expiration));
+        Set(key, value, expiration);
+        return Task.CompletedTask;
     }
 
-    public async Task RemoveAsync(string key)
+    public Task RemoveAsync(string key)
     {
         if (string.IsNullOrEmpty(key))
-            return;
+            return Task.CompletedTask;
 
-        await Task.Run(() => Remove(key));
+        Remove(key);
+        return Task.CompletedTask;
     }
 
-    public async Task<bool> ExistsAsync(string key)
+    public Task<bool> ExistsAsync(string key)
     {
         if (string.IsNullOrEmpty(key))
-            return false;
+            return Task.FromResult(false);
 
-        return await Task.FromResult(_cache.TryGetValue(key, out _));
+        return Task.FromResult(_cache.TryGetValue(key, out _));
     }
 
-    public async Task ClearAsync()
+    public Task ClearAsync()
     {
         // IMemoryCache has no built-in Clear, so evict every key tracked in metadata.
-        await Task.CompletedTask;
         foreach (var key in _metadata.Keys)
         {
             _cache.Remove(key);
@@ -75,11 +74,12 @@ public class MemoryCacheService : ICacheService
         Interlocked.Exchange(ref _hitCount, 0);
         Interlocked.Exchange(ref _missCount, 0);
         _logger.LogInformation("Cache cleared");
+        return Task.CompletedTask;
     }
 
-    public async Task<CacheStatistics> GetStatisticsAsync()
+    public Task<CacheStatistics> GetStatisticsAsync()
     {
-        return await Task.FromResult(new CacheStatistics
+        return Task.FromResult(new CacheStatistics
         {
             HitCount = _hitCount,
             MissCount = _missCount,
