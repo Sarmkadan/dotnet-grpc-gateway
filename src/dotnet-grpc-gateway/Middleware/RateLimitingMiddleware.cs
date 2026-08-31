@@ -67,41 +67,14 @@ public class RateLimitingMiddleware
     private bool IsRateLimited(string clientIp)
     {
         var now = DateTime.UtcNow;
-        var key = clientIp;
+        var entry = _requestTracker.AddOrUpdate(
+            clientIp,
+            _ => (1, now),
+            (_, current) => (now - current.windowStart).TotalSeconds >= _windowSeconds
+                ? (1, now)
+                : (current.count + 1, current.windowStart));
 
-        while (true)
-        {
-            // Try to get or create entry for this IP
-            if (_requestTracker.TryGetValue(key, out var entry))
-            {
-                var (count, windowStart) = entry;
-                var elapsed = now - windowStart;
-
-                // Window has expired, reset counter
-                if (elapsed.TotalSeconds >= _windowSeconds)
-                {
-                    if (_requestTracker.TryUpdate(key, (1, now), entry))
-                        return false;
-                }
-                // Within window and under limit
-                else if (count < _requestsPerWindow)
-                {
-                    if (_requestTracker.TryUpdate(key, (count + 1, windowStart), entry))
-                        return false;
-                }
-                // Rate limit exceeded
-                else
-                {
-                    return true;
-                }
-            }
-            else
-            {
-                // First request from this IP
-                if (_requestTracker.TryAdd(key, (1, now)))
-                    return false;
-            }
-        }
+        return entry.count > _requestsPerWindow;
     }
 
     private async Task CleanupExpiredEntriesAsync()
