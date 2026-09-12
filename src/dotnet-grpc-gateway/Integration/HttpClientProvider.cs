@@ -15,8 +15,25 @@ namespace DotNetGrpcGateway.Integration;
 /// </summary>
 public interface IHttpClientProvider
 {
+    /// <summary>
+    /// Creates a new HTTP client with the specified name and optional configuration.
+    /// </summary>
+    /// <param name="name">The name of the client.</param>
+    /// <param name="options">Optional configuration options for the client.</param>
+    /// <returns>The created <see cref="HttpClient"/>.</returns>
     HttpClient CreateClient(string name, HttpClientOptions? options = null);
+
+    /// <summary>
+    /// Gets an existing HTTP client by name, creating a default one if it does not exist.
+    /// </summary>
+    /// <param name="name">The name of the client.</param>
+    /// <returns>The <see cref="HttpClient"/> associated with the specified name.</returns>
     HttpClient GetClient(string name);
+
+    /// <summary>
+    /// Removes and disposes the HTTP client with the specified name, if it exists.
+    /// </summary>
+    /// <param name="name">The name of the client to remove.</param>
     void RemoveClient(string name);
 }
 
@@ -25,10 +42,29 @@ public interface IHttpClientProvider
 /// </summary>
 public class HttpClientOptions
 {
+    /// <summary>
+    /// Gets or sets the request timeout. Defaults to 30 seconds.
+    /// </summary>
     public TimeSpan Timeout { get; set; } = TimeSpan.FromSeconds(30);
+
+    /// <summary>
+    /// Gets or sets the maximum number of retries. Defaults to 3.
+    /// </summary>
     public int MaxRetries { get; set; } = 3;
+
+    /// <summary>
+    /// Gets or sets whether automatic redirects are allowed. Defaults to true.
+    /// </summary>
     public bool AllowAutoRedirect { get; set; } = true;
+
+    /// <summary>
+    /// Gets or sets the maximum number of connections per server. Defaults to 10.
+    /// </summary>
     public int MaxConnectionsPerServer { get; set; } = 10;
+
+    /// <summary>
+    /// Gets or sets the default headers applied to every request.
+    /// </summary>
     public Dictionary<string, string>? DefaultHeaders { get; set; }
 }
 
@@ -41,12 +77,25 @@ public class HttpClientProvider : IHttpClientProvider
     private readonly ILogger<HttpClientProvider> _logger;
     private readonly Dictionary<string, HttpClient> _clients = new();
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="HttpClientProvider"/> class.
+    /// </summary>
+    /// <param name="httpClientFactory">The HTTP client factory.</param>
+    /// <param name="logger">The logger.</param>
     public HttpClientProvider(IHttpClientFactory httpClientFactory, ILogger<HttpClientProvider> logger)
     {
         _httpClientFactory = httpClientFactory ?? throw new ArgumentNullException(nameof(httpClientFactory));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
+    /// <summary>
+    /// Creates a new HTTP client with the specified name and optional configuration.
+    /// </summary>
+    /// <param name="name">The name of the client.</param>
+    /// <param name="options">Optional configuration options for the client.</param>
+    /// <returns>The created <see cref="HttpClient"/>.</returns>
+    /// <exception cref="ArgumentException">Thrown when the client name is null or empty.</exception>
+    /// <exception cref="DotnetGrpcGatewayException">Thrown when an error occurs during client creation.</exception>
     public HttpClient CreateClient(string name, HttpClientOptions? options = null)
     {
         if (string.IsNullOrEmpty(name))
@@ -91,6 +140,12 @@ public class HttpClientProvider : IHttpClientProvider
         }
     }
 
+    /// <summary>
+    /// Gets an existing HTTP client by name, creating a default one if it does not exist.
+    /// </summary>
+    /// <param name="name">The name of the client.</param>
+    /// <returns>The <see cref="HttpClient"/> associated with the specified name.</returns>
+    /// <exception cref="ArgumentException">Thrown when the client name is null or empty.</exception>
     public HttpClient GetClient(string name)
     {
         if (string.IsNullOrEmpty(name))
@@ -104,6 +159,10 @@ public class HttpClientProvider : IHttpClientProvider
         return CreateClient(name);
     }
 
+    /// <summary>
+    /// Removes and disposes the HTTP client with the specified name, if it exists.
+    /// </summary>
+    /// <param name="name">The name of the client to remove.</param>
     public void RemoveClient(string name)
     {
         if (string.IsNullOrEmpty(name))
