@@ -24,5 +24,9 @@ public interface IEventPublisher
 /// </summary>
 public interface IEventHandler<TEvent> where TEvent : GatewayEvent
 {
+    /// <summary>
+    /// Handles the specified event asynchronously.
+    /// </summary>
+    /// <param name="event">The event to handle.</param>
     Task HandleAsync(TEvent @event);
 }
