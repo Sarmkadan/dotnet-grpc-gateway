@@ -21,6 +21,10 @@ public interface IReflectionService
     /// Gets a value indicating whether at least one service has a reachable
     /// reflection endpoint in the current cache snapshot.
     /// </summary>
+    /// <value>
+    /// <c>true</c> when reflection is available for at least one cached service;
+    /// otherwise, <c>false</c>.
+    /// </value>
     bool IsReflectionAvailable { get; }
 
     /// <summary>
@@ -29,11 +33,18 @@ public interface IReflectionService
     /// </summary>
     /// <param name="serviceId">Identifier of the registered <see cref="GrpcService"/>.</param>
     /// <param name="cancellationToken">Token used to cancel the operation.</param>
+    /// <returns>
+    /// A task whose result contains the cached reflection information, or <c>null</c>
+    /// when the service has no cached reflection information.
+    /// </returns>
     Task<ServiceReflectionInfo?> GetServiceReflectionAsync(int serviceId,
         CancellationToken cancellationToken = default);
 
     /// <summary>Returns cached reflection snapshots for every registered service.</summary>
     /// <param name="cancellationToken">Token used to cancel the operation.</param>
+    /// <returns>
+    /// A task whose result contains the cached reflection information for all services.
+    /// </returns>
     Task<IReadOnlyList<ServiceReflectionInfo>> GetAllReflectionInfoAsync(
         CancellationToken cancellationToken = default);
 
@@ -43,6 +54,9 @@ public interface IReflectionService
     /// </summary>
     /// <param name="serviceId">Identifier of the registered <see cref="GrpcService"/>.</param>
     /// <param name="cancellationToken">Token used to cancel the operation.</param>
+    /// <returns>
+    /// A task whose result contains the refreshed reflection information for the service.
+    /// </returns>
     Task<ServiceReflectionInfo> RefreshServiceReflectionAsync(int serviceId,
         CancellationToken cancellationToken = default);
 
@@ -51,6 +65,7 @@ public interface IReflectionService
     /// and replaces the in-memory cache with the latest results.
     /// </summary>
     /// <param name="cancellationToken">Token used to cancel the operation.</param>
+    /// <returns>A task that represents the asynchronous refresh operation.</returns>
     Task RefreshAllReflectionsAsync(CancellationToken cancellationToken = default);
 }
 
