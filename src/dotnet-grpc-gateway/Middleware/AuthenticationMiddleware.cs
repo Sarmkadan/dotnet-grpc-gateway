@@ -25,6 +25,9 @@ public class ApiKeyAuthenticationHandler : AuthenticationHandler<AuthenticationS
         UrlEncoder encoder)
         : base(options, logger, encoder)
     {
+        ArgumentNullException.ThrowIfNull(options);
+        ArgumentNullException.ThrowIfNull(logger);
+        ArgumentNullException.ThrowIfNull(encoder);
     }
 
     protected override async Task<AuthenticateResult> HandleAuthenticateAsync()
