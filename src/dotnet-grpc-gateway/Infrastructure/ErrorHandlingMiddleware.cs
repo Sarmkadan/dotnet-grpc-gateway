@@ -25,8 +25,11 @@ public class ErrorHandlingMiddleware
     /// <param name="logger">The logger for error handling middleware.</param>
     public ErrorHandlingMiddleware(RequestDelegate next, ILogger<ErrorHandlingMiddleware> logger)
     {
-        _next = next ?? throw new ArgumentNullException(nameof(next));
-        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+        ArgumentNullException.ThrowIfNull(next);
+        ArgumentNullException.ThrowIfNull(logger);
+
+        _next = next;
+        _logger = logger;
     }
 
     /// <summary>
@@ -36,6 +39,8 @@ public class ErrorHandlingMiddleware
     /// <returns>A task that represents the asynchronous operation.</returns>
     public async Task InvokeAsync(HttpContext context)
     {
+        ArgumentNullException.ThrowIfNull(context);
+
         var requestId = context.TraceIdentifier;
         _logger.LogInformation("InvokeAsync called with {RequestId}", requestId);
 
