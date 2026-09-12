@@ -18,12 +18,22 @@ public class ErrorHandlingMiddleware
     private readonly RequestDelegate _next;
     private readonly ILogger<ErrorHandlingMiddleware> _logger;
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="ErrorHandlingMiddleware"/> class.
+    /// </summary>
+    /// <param name="next">The next middleware in the pipeline.</param>
+    /// <param name="logger">The logger for error handling middleware.</param>
     public ErrorHandlingMiddleware(RequestDelegate next, ILogger<ErrorHandlingMiddleware> logger)
     {
         _next = next ?? throw new ArgumentNullException(nameof(next));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
+    /// <summary>
+    /// Invokes the middleware asynchronously.
+    /// </summary>
+    /// <param name="context">The HTTP context.</param>
+    /// <returns>A task that represents the asynchronous operation.</returns>
     public async Task InvokeAsync(HttpContext context)
     {
         var requestId = context.TraceIdentifier;
@@ -110,13 +120,28 @@ public class ErrorHandlingMiddleware
 /// </summary>
 public class ErrorResponse
 {
+    /// <summary>
+    /// Gets or sets the request identifier.
+    /// </summary>
     public string RequestId { get; set; } = null!;
 
+    /// <summary>
+    /// Gets or sets the timestamp of the error.
+    /// </summary>
     public DateTime Timestamp { get; set; }
 
+    /// <summary>
+    /// Gets or sets the error message.
+    /// </summary>
     public string Message { get; set; } = null!;
 
+    /// <summary>
+    /// Gets or sets the error code.
+    /// </summary>
     public string? ErrorCode { get; set; }
 
+    /// <summary>
+    /// Gets or sets the error details.
+    /// </summary>
     public Dictionary<string, object>? Details { get; set; }
 }
