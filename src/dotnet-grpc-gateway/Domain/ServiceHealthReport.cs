@@ -11,40 +11,94 @@ namespace DotNetGrpcGateway.Domain;
 /// </summary>
 public class ServiceHealthReport
 {
+    /// <summary>
+    /// Identifier of the health report
+    /// </summary>
     public int Id { get; set; }
 
+    /// <summary>
+    /// Identifier of the service
+    /// </summary>
     public int ServiceId { get; set; }
 
+    /// <summary>
+    /// Indicates whether the service is healthy
+    /// </summary>
     public bool IsHealthy { get; set; }
 
+    /// <summary>
+    /// Current health status string
+    /// </summary>
     public string HealthStatus { get; set; } = "Unknown";
 
+    /// <summary>
+    /// Response time in milliseconds
+    /// </summary>
     public long ResponseTimeMs { get; set; } = 0;
 
+    /// <summary>
+    /// HTTP status code from the health check
+    /// </summary>
     public int HttpStatusCode { get; set; } = 0;
 
+    /// <summary>
+    /// Error message if the health check failed
+    /// </summary>
     public string? ErrorMessage { get; set; }
 
+    /// <summary>
+    /// Stack trace if the health check failed
+    /// </summary>
     public string? StackTrace { get; set; }
 
+    /// <summary>
+    /// Number of consecutive successful health checks
+    /// </summary>
     public int SuccessfulChecksInARow { get; set; } = 0;
 
+    /// <summary>
+    /// Number of consecutive failed health checks
+    /// </summary>
     public int FailedChecksInARow { get; set; } = 0;
 
+    /// <summary>
+    /// Total number of health checks performed
+    /// </summary>
     public int TotalHealthChecks { get; set; } = 0;
 
+    /// <summary>
+    /// Number of successful health checks
+    /// </summary>
     public int SuccessfulHealthChecks { get; set; } = 0;
 
+    /// <summary>
+    /// Percentage of successful health checks (0-100)
+    /// </summary>
     public double HealthCheckSuccessRate { get; set; } = 0.0;
 
+    /// <summary>
+    /// Timestamp of the last health check
+    /// </summary>
     public DateTime LastCheckAt { get; set; } = DateTime.UtcNow;
 
+    /// <summary>
+    /// Timestamp for the next scheduled health check
+    /// </summary>
     public DateTime NextCheckScheduledAt { get; set; } = DateTime.UtcNow;
 
+    /// <summary>
+    /// URL endpoint used for health checking
+    /// </summary>
     public string? HealthCheckEndpoint { get; set; }
 
+    /// <summary>
+    /// Timestamp when the report was generated
+    /// </summary>
     public DateTime ReportedAt { get; set; } = DateTime.UtcNow;
 
+    /// <summary>
+    /// List of diagnostic messages (limited to 10)
+    /// </summary>
     public List<string> DiagnosticMessages { get; set; } = new();
 
     public override string ToString()
