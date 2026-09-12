@@ -84,8 +84,11 @@ public class HttpClientProvider : IHttpClientProvider
     /// <param name="logger">The logger.</param>
     public HttpClientProvider(IHttpClientFactory httpClientFactory, ILogger<HttpClientProvider> logger)
     {
-        _httpClientFactory = httpClientFactory ?? throw new ArgumentNullException(nameof(httpClientFactory));
-        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+        ArgumentNullException.ThrowIfNull(httpClientFactory);
+        ArgumentNullException.ThrowIfNull(logger);
+
+        _httpClientFactory = httpClientFactory;
+        _logger = logger;
     }
 
     /// <summary>
@@ -98,7 +101,9 @@ public class HttpClientProvider : IHttpClientProvider
     /// <exception cref="DotnetGrpcGatewayException">Thrown when an error occurs during client creation.</exception>
     public HttpClient CreateClient(string name, HttpClientOptions? options = null)
     {
-        if (string.IsNullOrEmpty(name))
+        ArgumentNullException.ThrowIfNull(name);
+
+        if (name.Length == 0)
             throw new ArgumentException("Client name cannot be null or empty", nameof(name));
 
         options ??= new HttpClientOptions();
@@ -148,7 +153,9 @@ public class HttpClientProvider : IHttpClientProvider
     /// <exception cref="ArgumentException">Thrown when the client name is null or empty.</exception>
     public HttpClient GetClient(string name)
     {
-        if (string.IsNullOrEmpty(name))
+        ArgumentNullException.ThrowIfNull(name);
+
+        if (name.Length == 0)
             throw new ArgumentException("Client name cannot be null or empty", nameof(name));
 
         if (_clients.TryGetValue(name, out var client))
@@ -165,7 +172,9 @@ public class HttpClientProvider : IHttpClientProvider
     /// <param name="name">The name of the client to remove.</param>
     public void RemoveClient(string name)
     {
-        if (string.IsNullOrEmpty(name))
+        ArgumentNullException.ThrowIfNull(name);
+
+        if (name.Length == 0)
             return;
 
         if (_clients.Remove(name, out var client))
