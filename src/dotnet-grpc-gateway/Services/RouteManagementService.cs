@@ -41,6 +41,13 @@ public class RouteManagementService : IRouteManagementService
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
+    /// <summary>
+    /// Retrieves all routes associated with a specific service, ordered by priority in descending order.
+    /// </summary>
+    /// <param name="serviceId">The ID of the service to retrieve routes for.</param>
+    /// <param name="cancellationToken">A token to cancel the operation.</param>
+    /// <returns>A list of GatewayRoute objects for the specified service, ordered by priority (highest first).
+    /// Returns an empty list if no routes are found or an error occurs.</returns>
     public async Task<List<GatewayRoute>> GetRoutesByServiceAsync(int serviceId, CancellationToken cancellationToken = default)
     {
         try
@@ -55,6 +62,12 @@ public class RouteManagementService : IRouteManagementService
         }
     }
 
+    /// <summary>
+    /// Finds the highest-priority active route whose pattern matches the specified path.
+    /// </summary>
+    /// <param name="path">The request path to match against route patterns.</param>
+    /// <param name="cancellationToken">A token to cancel the operation.</param>
+    /// <returns>The matching GatewayRoute, or null if no route matches or an error occurs.</returns>
     public async Task<GatewayRoute?> FindMatchingRouteAsync(string path, CancellationToken cancellationToken = default)
     {
         if (string.IsNullOrEmpty(path))
@@ -84,6 +97,14 @@ public class RouteManagementService : IRouteManagementService
         }
     }
 
+    /// <summary>
+    /// Finds all routes that have patterns conflicting with the specified pattern.
+    /// Two patterns conflict if one matches the other (wildcard matching).
+    /// </summary>
+    /// <param name="pattern">The route pattern to check for conflicts against.</param>
+    /// <param name="cancellationToken">A token to cancel the operation.</param>
+    /// <returns>A list of GatewayRoute objects that conflict with the specified pattern.
+    /// Returns an empty list if no conflicts are found, the pattern is null/empty, or an error occurs.</returns>
     public async Task<List<GatewayRoute>> GetConflictingRoutesAsync(string pattern, CancellationToken cancellationToken = default)
     {
         if (string.IsNullOrEmpty(pattern))
@@ -113,6 +134,12 @@ public class RouteManagementService : IRouteManagementService
         }
     }
 
+    /// <summary>
+    /// Validates a route's configuration, including pattern, priority, rate limit, cache duration, and duplicate patterns.
+    /// </summary>
+    /// <param name="route">The route to validate.</param>
+    /// <param name="cancellationToken">A token to cancel the operation.</param>
+    /// <returns>true if the route is valid; otherwise, false.</returns>
     public async Task<bool> ValidateRouteAsync(GatewayRoute route, CancellationToken cancellationToken = default)
     {
         try
