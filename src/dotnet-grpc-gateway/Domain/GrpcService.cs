@@ -11,43 +11,100 @@ namespace DotNetGrpcGateway.Domain;
 /// </summary>
 public class GrpcService
 {
-public int Id { get; set; }
+/// <summary>
+    /// The unique identifier for the gRPC service.
+    /// </summary>
+    public int Id { get; set; }
 
-public string Name { get; set; } = null!;
+/// <summary>
+    /// The name of the gRPC service.
+    /// </summary>
+    public string Name { get; set; } = null!;
 
-public string ServiceFullName { get; set; } = null!;
+    /// <summary>
+    /// The fully qualified name of the gRPC service.
+    /// </summary>
+    public string ServiceFullName { get; set; } = null!;
 
-public string Host { get; set; } = null!;
+    /// <summary>
+    /// The host address of the gRPC service.
+    /// </summary>
+    public string Host { get; set; } = null!;
 
-public int Port { get; set; } = 5000;
+    /// <summary>
+    /// The port on which the gRPC service listens.
+    /// </summary>
+    public int Port { get; set; } = 5000;
 
-public bool UseTls { get; set; } = false;
+    /// <summary>
+    /// Indicates whether the gRPC service uses TLS.
+    /// </summary>
+    public bool UseTls { get; set; } = false;
 
-public string? Description { get; set; }
+    /// <summary>
+    /// An optional description of the gRPC service.
+    /// </summary>
+    public string? Description { get; set; }
 
-public string? ProtoPackage { get; set; }
+    /// <summary>
+    /// The optional protobuf package name of the gRPC service.
+    /// </summary>
+    public string? ProtoPackage { get; set; }
 
-public int HealthCheckIntervalSeconds { get; set; } = 30;
+    /// <summary>
+    /// The interval in seconds between health checks.
+    /// </summary>
+    public int HealthCheckIntervalSeconds { get; set; } = 30;
 
-public int MaxRetries { get; set; } = 5;
+    /// <summary>
+    /// The maximum number of retries for requests to the service.
+    /// </summary>
+    public int MaxRetries { get; set; } = 5;
 
-public bool IsHealthy { get; set; } = true;
+    /// <summary>
+    /// Indicates whether the service is currently healthy.
+    /// </summary>
+    public bool IsHealthy { get; set; } = true;
 
-public DateTime LastHealthCheckAt { get; set; }
+    /// <summary>
+    /// The timestamp of the last health check.
+    /// </summary>
+    public DateTime LastHealthCheckAt { get; set; }
 
-public string? LastHealthCheckError { get; set; }
+    /// <summary>
+    /// The error message from the last health check, if any.
+    /// </summary>
+    public string? LastHealthCheckError { get; set; }
 
-public double AverageResponseTimeMs { get; set; } = 0;
+    /// <summary>
+    /// The average response time of the service in milliseconds.
+    /// </summary>
+    public double AverageResponseTimeMs { get; set; } = 0;
 
-public long TotalRequestsProcessed { get; set; } = 0;
+    /// <summary>
+    /// The total number of requests processed by the service.
+    /// </summary>
+    public long TotalRequestsProcessed { get; set; } = 0;
 
-public long FailedRequestsCount { get; set; } = 0;
+    /// <summary>
+    /// The number of failed requests to the service.
+    /// </summary>
+    public long FailedRequestsCount { get; set; } = 0;
 
-public DateTime RegisteredAt { get; set; } = DateTime.UtcNow;
+    /// <summary>
+    /// The timestamp when the service was registered.
+    /// </summary>
+    public DateTime RegisteredAt { get; set; } = DateTime.UtcNow;
 
-public DateTime ModifiedAt { get; set; } = DateTime.UtcNow;
+    /// <summary>
+    /// The timestamp when the service was last modified.
+    /// </summary>
+    public DateTime ModifiedAt { get; set; } = DateTime.UtcNow;
 
-public bool IsActive { get; set; } = true;
+    /// <summary>
+    /// Indicates whether the service is active.
+    /// </summary>
+    public bool IsActive { get; set; } = true;
 
 /// <summary>
 /// Gets or sets the current service status.
