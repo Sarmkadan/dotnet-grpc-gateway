@@ -14,64 +14,83 @@ namespace DotNetGrpcGateway.Infrastructure;
 public interface IServiceRegistry
 {
     /// <summary>
-    /// Gets a service by ID.
+    /// Gets the service with the specified identifier.
     /// </summary>
-    /// <param name="id">The service ID.</param>
-    /// <returns>A task that represents the asynchronous operation. The task result contains the <see cref="GrpcService"/>.</returns>
+    /// <param name="id">The identifier of the service to retrieve.</param>
+    /// <returns>
+    /// A task whose result is the service with the specified identifier.
+    /// </returns>
+    /// <exception cref="KeyNotFoundException">
+    /// No service with the specified identifier is registered.
+    /// </exception>
     Task<GrpcService> GetByIdAsync(int id);
     
     /// <summary>
-    /// Gets a service by name.
+    /// Gets the service with the specified name.
     /// </summary>
-    /// <param name="serviceName">The service name.</param>
-    /// <returns>A task that represents the asynchronous operation. The task result contains the <see cref="GrpcService"/> or null if not found.</returns>
+    /// <param name="serviceName">The name of the service to retrieve.</param>
+    /// <returns>
+    /// A task whose result is the matching service, or <see langword="null"/> if no service is registered
+    /// with the specified name.
+    /// </returns>
     Task<GrpcService?> GetByNameAsync(string serviceName);
     
     /// <summary>
-    /// Gets a service by full name.
+    /// Gets the service with the specified fully qualified name.
     /// </summary>
-    /// <param name="serviceFullName">The service full name.</param>
-    /// <returns>A task that represents the asynchronous operation. The task result contains the <see cref="GrpcService"/> or null if not found.</returns>
+    /// <param name="serviceFullName">The fully qualified name of the service to retrieve.</param>
+    /// <returns>
+    /// A task whose result is the matching service, or <see langword="null"/> if no service is registered
+    /// with the specified fully qualified name.
+    /// </returns>
     Task<GrpcService?> GetByFullNameAsync(string serviceFullName);
     
     /// <summary>
-    /// Gets all services.
+    /// Gets all registered services.
     /// </summary>
-    /// <returns>A task that represents the asynchronous operation. The task result contains all services.</returns>
+    /// <returns>A task whose result contains all registered services.</returns>
     Task<List<GrpcService>> GetAllAsync();
     
     /// <summary>
-    /// Gets all active services.
+    /// Gets all registered services that are active.
     /// </summary>
-    /// <returns>A task that represents the asynchronous operation. The task result contains all active services.</returns>
+    /// <returns>A task whose result contains all active services.</returns>
     Task<List<GrpcService>> GetActiveAsync();
     
     /// <summary>
-    /// Registers a new service.
+    /// Registers a service.
     /// </summary>
     /// <param name="service">The service to register.</param>
-    /// <returns>A task that represents the asynchronous operation. The task result contains the registered <see cref="GrpcService"/>.</returns>
+    /// <returns>A task whose result is the registered service.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="service"/> is <see langword="null"/>.</exception>
+    /// <exception cref="InvalidOperationException"><paramref name="service"/> is invalid.</exception>
     Task<GrpcService> RegisterAsync(GrpcService service);
     
     /// <summary>
     /// Updates an existing service.
     /// </summary>
     /// <param name="service">The service to update.</param>
-    /// <returns>A task that represents the asynchronous operation.</returns>
+    /// <returns>A task that represents the update operation.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="service"/> is <see langword="null"/>.</exception>
+    /// <exception cref="KeyNotFoundException">The service is not registered.</exception>
+    /// <exception cref="InvalidOperationException"><paramref name="service"/> is invalid.</exception>
     Task UpdateAsync(GrpcService service);
     
     /// <summary>
-    /// Unregisters a service by ID.
+    /// Unregisters the service with the specified identifier.
     /// </summary>
-    /// <param name="id">The service ID.</param>
-    /// <returns>A task that represents the asynchronous operation.</returns>
+    /// <param name="id">The identifier of the service to unregister.</param>
+    /// <returns>A task that represents the unregister operation.</returns>
+    /// <exception cref="KeyNotFoundException">
+    /// No service with the specified identifier is registered.
+    /// </exception>
     Task UnregisterAsync(int id);
     
     /// <summary>
-    /// Finds services by host.
+    /// Finds all registered services on the specified host.
     /// </summary>
-    /// <param name="host">The host name.</param>
-    /// <returns>A task that represents the asynchronous operation. The task result contains a list of <see cref="GrpcService"/>.</returns>
+    /// <param name="host">The host name to match.</param>
+    /// <returns>A task whose result contains the services registered on the specified host.</returns>
     Task<List<GrpcService>> FindByHostAsync(string host);
 }
 
