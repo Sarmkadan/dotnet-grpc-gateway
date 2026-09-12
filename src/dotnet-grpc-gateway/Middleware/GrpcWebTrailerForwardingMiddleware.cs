@@ -34,6 +34,11 @@ public class GrpcWebTrailerForwardingMiddleware
         "grpc-accept-encoding",
     };
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="GrpcWebTrailerForwardingMiddleware"/> class.
+    /// </summary>
+    /// <param name="next">The next middleware in the request pipeline.</param>
+    /// <param name="logger">The logger used to record trailer-forwarding diagnostics.</param>
     public GrpcWebTrailerForwardingMiddleware(
         RequestDelegate next,
         ILogger<GrpcWebTrailerForwardingMiddleware> logger)
@@ -42,6 +47,11 @@ public class GrpcWebTrailerForwardingMiddleware
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
+    /// <summary>
+    /// Processes the HTTP request and forwards gRPC trailer metadata as gRPC-Web trailer frames.
+    /// </summary>
+    /// <param name="context">The HTTP context containing the request and response.</param>
+    /// <returns>A task representing the asynchronous operation.</returns>
     public async Task InvokeAsync(HttpContext context)
     {
         if (!IsGrpcWebRequest(context.Request))
