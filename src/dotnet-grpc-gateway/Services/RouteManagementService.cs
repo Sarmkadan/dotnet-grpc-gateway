@@ -142,6 +142,8 @@ public class RouteManagementService : IRouteManagementService
     /// <returns>true if the route is valid; otherwise, false.</returns>
     public async Task<bool> ValidateRouteAsync(GatewayRoute route, CancellationToken cancellationToken = default)
     {
+        ArgumentNullException.ThrowIfNull(route);
+
         try
         {
             // Validate pattern
