@@ -19,6 +19,12 @@ public class ApiKeyAuthenticationHandler : AuthenticationHandler<AuthenticationS
     private const string AuthorizationHeaderName = "Authorization";
     private const string BearerScheme = "Bearer";
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="ApiKeyAuthenticationHandler"/> class.
+    /// </summary>
+    /// <param name="options">The monitor for the authentication scheme options.</param>
+    /// <param name="logger">The logger factory used to create a logger for this handler.</param>
+    /// <param name="encoder">The URL encoder used for encoding URLs.</param>
     public ApiKeyAuthenticationHandler(
         IOptionsMonitor<AuthenticationSchemeOptions> options,
         ILoggerFactory logger,
@@ -73,6 +79,11 @@ public class ApiKeyAuthenticationHandler : AuthenticationHandler<AuthenticationS
 /// </summary>
 public static class ApiKeyAuthenticationExtensions
 {
+    /// <summary>
+    /// Adds API key authentication to the authentication builder.
+    /// </summary>
+    /// <param name="builder">The authentication builder to add the scheme to.</param>
+    /// <returns>The authentication builder for chaining.</returns>
     public static AuthenticationBuilder AddApiKeyAuthentication(this AuthenticationBuilder builder)
     {
         return builder.AddScheme<AuthenticationSchemeOptions, ApiKeyAuthenticationHandler>(
