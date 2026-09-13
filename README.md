@@ -1323,6 +1323,66 @@ var nullContext = new RequestContext { UserId = null };
 bool nullUserId = nullContext.HasUserId(); // Returns false
 ```
 
+## ErrorHandlingMiddleware
+
+`ErrorHandlingMiddleware` is the gateway's outer exception boundary. It logs the
+start and completion of each request, invokes the rest of the ASP.NET Core pipeline,
+and converts unhandled exceptions into a consistent JSON response. The response
+contains the request's `TraceIdentifier` as `requestId`, the current UTC timestamp,
+the exception message, an error code, and optional details supplied by a
+`GatewayException`.
+
+Client disconnects are treated differently from application failures. An
+`ObjectDisposedException` (for example, when a client disconnects during a stream)
+and an `OperationCanceledException` raised after `RequestAborted` is cancelled are
+logged at debug level and do not produce an error response. Other unhandled
+exceptions are logged and mapped as follows:
+
+| Exception | HTTP status | Error code | Details |
+| --- | ---: | --- | --- |
+| `GatewayException` | `HttpStatusCode`, or 500 if it is absent | The exception's `ErrorCode` | The exception's `Details` |
+| `ArgumentException` | 400 | `VALIDATION_ERROR` | None |
+| `UnauthorizedAccessException` | 401 | `UNAUTHORIZED` | None |
+| `KeyNotFoundException` | 404 | `NOT_FOUND` | None |
+| Any other exception | 500 | `INTERNAL_ERROR` | None |
+
+Error responses use the `application/json` content type and have this shape:
+
+```json
+{
+  "requestId": "0HN...",
+  "timestamp": "2026-09-13T12:00:00Z",
+  "message": "The requested route was not found.",
+  "errorCode": "NOT_FOUND",
+  "details": null
+}
+```
+
+### Configuration
+
+The middleware has no separate configuration section or options. Register it early
+in the request pipeline so that it wraps every later component whose exceptions
+should be mapped. ASP.NET Core supplies its `RequestDelegate` and
+`ILogger<ErrorHandlingMiddleware>` dependencies:
+
+```csharp
+using DotNetGrpcGateway.Infrastructure;
+
+var app = builder.Build();
+
+app.UseMiddleware<ErrorHandlingMiddleware>();
+
+// Register routing, authentication, gateway middleware, and endpoints after it.
+app.UseRouting();
+app.UseAuthentication();
+app.UseAuthorization();
+app.MapControllers();
+```
+
+Because the serialized `message` comes directly from `Exception.Message`, avoid
+putting secrets or other sensitive data in exception messages that can reach this
+middleware.
+
 ## ErrorHandlingMiddlewareTests
 
 `ErrorHandlingMiddlewareTests` is a comprehensive test class that validates the behavior of the `ErrorHandlingMiddleware` class, which handles exceptions in the gRPC gateway pipeline and maps them to appropriate HTTP status codes. The tests cover successful requests, specific exception types (ObjectDisposedException, OperationCanceledException, GatewayException, ArgumentException, UnauthorizedAccessException, KeyNotFoundException, generic Exception), and constructor argument validation.
