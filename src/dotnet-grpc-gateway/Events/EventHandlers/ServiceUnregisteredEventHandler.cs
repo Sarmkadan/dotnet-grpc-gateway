@@ -20,6 +20,7 @@ public class ServiceUnregisteredEventHandler : EventHandlerBase<ServiceUnregiste
     public ServiceUnregisteredEventHandler(ILogger<ServiceUnregisteredEventHandler> logger)
         : base(logger)
     {
+        ArgumentNullException.ThrowIfNull(logger);
     }
 
     /// <summary>
@@ -29,6 +30,8 @@ public class ServiceUnregisteredEventHandler : EventHandlerBase<ServiceUnregiste
     /// <exception cref="ArgumentNullException">Thrown when the event is null.</exception>
     public async Task HandleAsync(ServiceUnregisteredEvent @event)
     {
+        ArgumentNullException.ThrowIfNull(@event);
+
         ValidateEvent(@event);
 
         SafeLog(
