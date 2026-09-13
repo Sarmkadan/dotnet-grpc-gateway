@@ -15,6 +15,19 @@ namespace DotNetGrpcGateway.Infrastructure;
 /// </summary>
 public class ErrorHandlingMiddleware
 {
+    private const int DefaultGatewayErrorStatusCode = (int)HttpStatusCode.InternalServerError;
+    private const string JsonContentType = "application/json";
+    private const string ValidationErrorCode = "VALIDATION_ERROR";
+    private const string UnauthorizedErrorCode = "UNAUTHORIZED";
+    private const string NotFoundErrorCode = "NOT_FOUND";
+    private const string InternalErrorCode = "INTERNAL_ERROR";
+    private const string InvocationStartedLogMessage = "InvokeAsync called with {RequestId}";
+    private const string ClientDisconnectedLogMessage = "Client disconnected before stream completed (request {RequestId})";
+    private const string ClientCancellationLogMessage = "Request {RequestId} was cancelled by the client";
+    private const string UnexpectedExceptionLogMessage = "Handling unexpected exception {ExceptionType} for request {RequestId}";
+    private const string UnhandledExceptionLogMessage = "Unhandled exception: {Message}";
+    private const string InvocationCompletedLogMessage = "InvokeAsync completed with {RequestId}";
+
     private readonly RequestDelegate _next;
     private readonly ILogger<ErrorHandlingMiddleware> _logger;
 
@@ -42,7 +55,7 @@ public class ErrorHandlingMiddleware
         ArgumentNullException.ThrowIfNull(context);
 
         var requestId = context.TraceIdentifier;
-        _logger.LogInformation("InvokeAsync called with {RequestId}", requestId);
+        _logger.LogInformation(InvocationStartedLogMessage, requestId);
 
         try
         {
@@ -55,7 +68,7 @@ public class ErrorHandlingMiddleware
             // a 500 error log entry.
             _logger.LogDebug(
                 ex,
-                "Client disconnected before stream completed (request {RequestId})",
+                ClientDisconnectedLogMessage,
                 requestId);
         }
         catch (OperationCanceledException ex) when (context.RequestAborted.IsCancellationRequested)
@@ -63,22 +76,22 @@ public class ErrorHandlingMiddleware
             // Client cancelled the request (e.g. closed the browser tab).
             _logger.LogDebug(
                 ex,
-                "Request {RequestId} was cancelled by the client",
+                ClientCancellationLogMessage,
                 requestId);
         }
         catch (Exception ex)
         {
-            _logger.LogWarning("Handling unexpected exception {ExceptionType} for request {RequestId}", ex.GetType().Name, requestId);
-            _logger.LogError(ex, "Unhandled exception: {Message}", ex.Message);
+            _logger.LogWarning(UnexpectedExceptionLogMessage, ex.GetType().Name, requestId);
+            _logger.LogError(ex, UnhandledExceptionLogMessage, ex.Message);
             await HandleExceptionAsync(context, ex, requestId);
         }
 
-        _logger.LogInformation("InvokeAsync completed with {RequestId}", requestId);
+        _logger.LogInformation(InvocationCompletedLogMessage, requestId);
     }
 
     private static Task HandleExceptionAsync(HttpContext context, Exception exception, string requestId)
     {
-        context.Response.ContentType = "application/json";
+        context.Response.ContentType = JsonContentType;
 
         var response = new ErrorResponse
         {
@@ -90,29 +103,29 @@ public class ErrorHandlingMiddleware
         switch (exception)
         {
             case GatewayException ex:
-                context.Response.StatusCode = ex.HttpStatusCode ?? 500;
+                context.Response.StatusCode = ex.HttpStatusCode ?? DefaultGatewayErrorStatusCode;
                 response.ErrorCode = ex.ErrorCode;
                 response.Details = ex.Details;
                 break;
 
             case ArgumentException:
                 context.Response.StatusCode = (int)HttpStatusCode.BadRequest;
-                response.ErrorCode = "VALIDATION_ERROR";
+                response.ErrorCode = ValidationErrorCode;
                 break;
 
             case UnauthorizedAccessException:
                 context.Response.StatusCode = (int)HttpStatusCode.Unauthorized;
-                response.ErrorCode = "UNAUTHORIZED";
+                response.ErrorCode = UnauthorizedErrorCode;
                 break;
 
             case KeyNotFoundException:
                 context.Response.StatusCode = (int)HttpStatusCode.NotFound;
-                response.ErrorCode = "NOT_FOUND";
+                response.ErrorCode = NotFoundErrorCode;
                 break;
 
             default:
                 context.Response.StatusCode = (int)HttpStatusCode.InternalServerError;
-                response.ErrorCode = "INTERNAL_ERROR";
+                response.ErrorCode = InternalErrorCode;
                 break;
         }
 
