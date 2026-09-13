@@ -32,10 +32,15 @@ public class ServiceDiscoveryController : ControllerBase
         IRouteManagementService routeManagementService,
         ILogger<ServiceDiscoveryController> logger)
     {
-        _gatewayService = gatewayService ?? throw new ArgumentNullException(nameof(gatewayService));
-        _discoveryService = discoveryService ?? throw new ArgumentNullException(nameof(discoveryService));
-        _routeManagementService = routeManagementService ?? throw new ArgumentNullException(nameof(routeManagementService));
-        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+        ArgumentNullException.ThrowIfNull(gatewayService);
+        ArgumentNullException.ThrowIfNull(discoveryService);
+        ArgumentNullException.ThrowIfNull(routeManagementService);
+        ArgumentNullException.ThrowIfNull(logger);
+
+        _gatewayService = gatewayService;
+        _discoveryService = discoveryService;
+        _routeManagementService = routeManagementService;
+        _logger = logger;
     }
 
     /// <summary>
