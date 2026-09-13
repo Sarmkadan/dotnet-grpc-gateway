@@ -121,6 +121,9 @@ public class RequestMetric
     /// </summary>
     public DateTime RecordedAt { get; set; } = DateTime.UtcNow;
 
+    public override string ToString() =>
+        $"RequestMetric {{ Id = {Id}, RequestId = {RequestId}, ServiceName = {ServiceName}, MethodName = {MethodName}, RouteId = {RouteId}, DurationMs = {DurationMs}, HttpStatusCode = {HttpStatusCode}, GrpcStatusCode = {GrpcStatusCode}, IsSuccessful = {IsSuccessful} }}";
+
     public void Validate()
     {
         if (string.IsNullOrWhiteSpace(ServiceName))
