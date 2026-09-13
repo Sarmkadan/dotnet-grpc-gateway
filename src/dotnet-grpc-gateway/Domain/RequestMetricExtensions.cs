@@ -42,6 +42,19 @@ namespace DotNetGrpcGateway.Domain
         }
 
         /// <summary>
+        /// Calculates the total number of bytes transferred for the request and response.
+        /// </summary>
+        /// <param name="metric">The request metric to analyze.</param>
+        /// <returns>The combined request and response size in bytes.</returns>
+        /// <exception cref="ArgumentNullException">Thrown when <paramref name="metric"/> is null.</exception>
+        public static long GetTotalBytesTransferred(this RequestMetric metric)
+        {
+            ArgumentNullException.ThrowIfNull(metric);
+
+            return metric.RequestSizeBytes + metric.ResponseSizeBytes;
+        }
+
+        /// <summary>
         /// Creates a formatted error report if the request failed
         /// </summary>
         /// <param name="metric">The request metric to analyze.</param>
