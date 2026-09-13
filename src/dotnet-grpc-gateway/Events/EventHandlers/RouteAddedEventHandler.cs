@@ -20,6 +20,7 @@ public class RouteAddedEventHandler : EventHandlerBase<RouteAddedEvent>, IEventH
     public RouteAddedEventHandler(ILogger<RouteAddedEventHandler> logger)
         : base(logger)
     {
+        ArgumentNullException.ThrowIfNull(logger);
     }
 
     /// <summary>
@@ -29,6 +30,7 @@ public class RouteAddedEventHandler : EventHandlerBase<RouteAddedEvent>, IEventH
     /// <exception cref="ArgumentNullException">Thrown when the event is null.</exception>
     public async Task HandleAsync(RouteAddedEvent @event)
     {
+        ArgumentNullException.ThrowIfNull(@event);
         ValidateEvent(@event);
 
         SafeLog(
