@@ -102,7 +102,7 @@ public class ServiceHealthReport
     public List<string> DiagnosticMessages { get; set; } = new();
 
     public override string ToString()
-        => $"ServiceHealthReport {{ Id = {Id}, ServiceId = {ServiceId}, IsHealthy = {IsHealthy}, HealthStatus = {HealthStatus}, ResponseTimeMs = {ResponseTimeMs}, HttpStatusCode = {HttpStatusCode} }}";
+        => $"ServiceHealthReport {{ Id = {Id}, ServiceId = {ServiceId}, IsHealthy = {IsHealthy}, HealthStatus = {HealthStatus}, ResponseTimeMs = {ResponseTimeMs}, HttpStatusCode = {HttpStatusCode}, ErrorMessage = {ErrorMessage}, LastCheckAt = {LastCheckAt}, HealthCheckSuccessRate = {HealthCheckSuccessRate} }}";
 
     public void Validate()
     {
