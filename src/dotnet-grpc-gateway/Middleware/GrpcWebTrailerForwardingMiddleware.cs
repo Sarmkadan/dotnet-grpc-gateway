@@ -24,14 +24,22 @@ public class GrpcWebTrailerForwardingMiddleware
     // gRPC-Web trailer frame: first byte has bit 7 set
     private const byte TrailerFrameFlag = 0x80;
 
+    private const string GrpcHeaderPrefix = "grpc-";
+    private const string GrpcWebContentType = "application/grpc-web";
+    private const string GrpcStatusTrailerName = "grpc-status";
+    private const string GrpcMessageTrailerName = "grpc-message";
+    private const string GrpcStatusDetailsTrailerName = "grpc-status-details-bin";
+    private const string GrpcEncodingTrailerName = "grpc-encoding";
+    private const string GrpcAcceptEncodingTrailerName = "grpc-accept-encoding";
+
     // Headers that carry gRPC status and error detail trailers
     private static readonly string[] GrpcTrailerNames =
     {
-        "grpc-status",
-        "grpc-message",
-        "grpc-status-details-bin",
-        "grpc-encoding",
-        "grpc-accept-encoding",
+        GrpcStatusTrailerName,
+        GrpcMessageTrailerName,
+        GrpcStatusDetailsTrailerName,
+        GrpcEncodingTrailerName,
+        GrpcAcceptEncodingTrailerName,
     };
 
     /// <summary>
@@ -81,7 +89,7 @@ public class GrpcWebTrailerForwardingMiddleware
         // trailer frame appended to the body.
         var trailers = context.Response.Headers
             .Where(h => GrpcTrailerNames.Contains(h.Key, StringComparer.OrdinalIgnoreCase)
-                     || h.Key.StartsWith("grpc-", StringComparison.OrdinalIgnoreCase))
+                     || h.Key.StartsWith(GrpcHeaderPrefix, StringComparison.OrdinalIgnoreCase))
             .ToList();
 
         buffer.Seek(0, SeekOrigin.Begin);
@@ -119,6 +127,6 @@ public class GrpcWebTrailerForwardingMiddleware
     private static bool IsGrpcWebRequest(HttpRequest request)
     {
         var contentType = request.ContentType ?? string.Empty;
-        return contentType.StartsWith("application/grpc-web", StringComparison.OrdinalIgnoreCase);
+        return contentType.StartsWith(GrpcWebContentType, StringComparison.OrdinalIgnoreCase);
     }
 }
