@@ -1,74 +1,88 @@
-# ErrorHandlingMiddleware
+# Error handling middleware
 
-The `ErrorHandlingMiddleware` class is designed to intercept exceptions within the gRPC gateway request pipeline, providing a mechanism for centralized, consistent error response formatting and logging. It ensures that internal exceptions are translated into structured, client-friendly error objects, facilitating better error visibility and debugging across the system.
+`ErrorHandlingMiddleware` is the outer exception boundary for the gateway's ASP.NET Core request pipeline. It records the request trace identifier, invokes the next component, and translates unhandled application exceptions into JSON error responses.
 
-## API
+## Pipeline behavior
 
-### Constructors
-*   `public ErrorHandlingMiddleware()`
-    Initializes a new instance of the `ErrorHandlingMiddleware` class.
+For every request, `InvokeAsync(HttpContext)`:
 
-### Methods
-*   `public async Task InvokeAsync(HttpContext context)`
-    Asynchronously intercepts the HTTP request and processes potential exceptions occurring during downstream execution.
+1. Reads `HttpContext.TraceIdentifier` as the request ID and logs that invocation has started.
+2. Calls the next `RequestDelegate` in the pipeline.
+3. Handles any exception raised by downstream middleware or endpoints.
+4. Logs that invocation has completed.
 
-### Properties
-*   `public string RequestId`
-    A unique identifier associated with the request that triggered the error, useful for correlation and tracing.
-*   `public DateTime Timestamp`
-    The UTC date and time when the error was recorded.
-*   `public string Message`
-    A descriptive, human-readable summary of the error condition.
-*   `public string? ErrorCode`
-    An optional, machine-readable code that categorizes the specific type of error encountered.
-*   `public Dictionary<string, object>? Details`
-    An optional collection of additional, context-specific metadata or diagnostic information related to the error.
-
-## Usage
-
-### Registering the Middleware
-
-To include the middleware in the request processing pipeline, register it within the application configuration:
+Register the middleware before every component whose exceptions it should handle. The application currently places it near the start of the pipeline:
 
 ```csharp
-var builder = WebApplication.CreateBuilder(args);
+using DotNetGrpcGateway.Infrastructure;
+
 var app = builder.Build();
 
-// Register ErrorHandlingMiddleware early in the pipeline
 app.UseMiddleware<ErrorHandlingMiddleware>();
 
-app.MapGrpcService<MyService>();
-app.Run();
+// Routing, authentication, other middleware, and endpoints follow.
 ```
 
-### Accessing Error Details
+ASP.NET Core supplies the constructor's `RequestDelegate` and `ILogger<ErrorHandlingMiddleware>` dependencies. Both constructor arguments, and the `HttpContext` passed to `InvokeAsync`, are required and are checked for `null`.
 
-When an exception is caught, the middleware utilizes its properties to construct an error response:
+### Client disconnects and cancellation
 
-```csharp
-// Inside the InvokeAsync implementation
-try
+Two exception paths do not create an error response:
+
+- `ObjectDisposedException` is treated as a client disconnect during streaming and logged at `Debug` level.
+- `OperationCanceledException` is treated as client cancellation only when `HttpContext.RequestAborted` is already cancelled. It is also logged at `Debug` level.
+
+In both cases the exception is consumed and response status and body are left unchanged by this middleware. An `OperationCanceledException` raised while `RequestAborted` is not cancelled follows the normal unhandled-exception path and maps to a 500 response.
+
+### Unhandled exceptions
+
+All other exceptions are logged at `Warning` level with their type and request ID, then at `Error` level with the exception and its message. The middleware sets the response content type to `application/json`, selects a status and error code, and writes an `ErrorResponse` as JSON.
+
+Exception matching follows the order shown below. Because `GatewayException` is checked first, its own status, code, and details take precedence over the general mappings.
+
+| Exception | HTTP status | `errorCode` | `details` |
+| --- | ---: | --- | --- |
+| `GatewayException` | `HttpStatusCode`, or 500 when it is `null` | Exception's `ErrorCode` | Exception's `Details` |
+| `ArgumentException` | 400 Bad Request | `VALIDATION_ERROR` | `null` |
+| `UnauthorizedAccessException` | 401 Unauthorized | `UNAUTHORIZED` | `null` |
+| `KeyNotFoundException` | 404 Not Found | `NOT_FOUND` | `null` |
+| Any other exception | 500 Internal Server Error | `INTERNAL_ERROR` | `null` |
+
+## Response format
+
+The response body is the JSON serialization of `ErrorResponse`. With ASP.NET Core's web JSON naming convention, its fields are:
+
+| Field | JSON type | Source |
+| --- | --- | --- |
+| `requestId` | string | `HttpContext.TraceIdentifier` |
+| `timestamp` | string | `DateTime.UtcNow`, serialized in ISO 8601 format |
+| `message` | string | `Exception.Message` |
+| `errorCode` | string or `null` | Mapping above |
+| `details` | object or `null` | `GatewayException.Details`; otherwise `null` |
+
+Example response for a missing item:
+
+```http
+HTTP/1.1 404 Not Found
+Content-Type: application/json
+```
+
+```json
 {
-    await _next(context);
-}
-catch (Exception ex)
-{
-    var error = new ErrorHandlingMiddleware
-    {
-        RequestId = context.TraceIdentifier,
-        Timestamp = DateTime.UtcNow,
-        Message = ex.Message,
-        ErrorCode = "INTERNAL_SERVER_ERROR",
-        Details = new Dictionary<string, object> { { "Type", ex.GetType().Name } }
-    };
-    
-    // Logic to serialize and write the 'error' object to the response body
-    await context.Response.WriteAsJsonAsync(error);
+  "requestId": "0HN7Q5J6P4A2C:00000001",
+  "timestamp": "2026-09-13T12:00:00Z",
+  "message": "Item not found",
+  "errorCode": "NOT_FOUND",
+  "details": null
 }
 ```
 
-## Notes
+A `GatewayException` can provide its own client-facing status, code, and structured details. For example, a `ServiceNotFoundException` produces a 404 response with error code `SERVICE_NOT_FOUND` and a `service_name` entry in `details`.
 
-*   **Thread Safety**: The `ErrorHandlingMiddleware` is typically registered as a singleton within the ASP.NET Core pipeline. If the middleware instance is used to hold state (such as the `RequestId` or `Message` properties) for a specific request, it must be handled carefully. To ensure thread safety, state should be scoped correctly per request rather than stored directly on the middleware instance. It is recommended to use local variables within `InvokeAsync` or a dedicated error model class to store these details.
-*   **Pipeline Ordering**: This middleware should be registered as early as possible in the middleware pipeline to ensure all subsequent exceptions are intercepted.
-*   **Exception Handling**: The `InvokeAsync` method should safely handle exceptions that might occur while writing the error response itself to prevent infinite exception loops.
+## Operational considerations
+
+- The middleware only catches exceptions from components registered after it.
+- Successful requests pass through unchanged apart from the start and completion information logs.
+- The response exposes `Exception.Message` to clients. Exception messages should not contain credentials, tokens, internal connection strings, or other sensitive data.
+- If the HTTP response has already started when an exception occurs, changing its status or writing the JSON body may fail; the middleware does not contain a separate `Response.HasStarted` path.
+- JSON property naming and null-value inclusion can be affected by the application's ASP.NET Core JSON configuration.
