@@ -124,7 +124,7 @@ public int DrainTimeoutSeconds { get; set; } = 30;
 
 public string GetEndpointUri() => $"{(UseTls ? "https" : "http")}://{Host}:{Port}";
 
-public override string ToString() => $"GrpcService {{ Id = {Id}, Name = {Name}, ServiceFullName = {ServiceFullName}, Host = {Host}, Port = {Port}, UseTls = {UseTls} }}";
+public override string ToString() => $"GrpcService {{ Id = {Id}, Name = {Name}, ServiceFullName = {ServiceFullName}, Host = {Host}, Port = {Port}, UseTls = {UseTls}, Status = {Status}, IsHealthy = {IsHealthy} }}";
 
 public void Validate()
 {
