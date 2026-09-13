@@ -24,6 +24,18 @@ namespace DotNetGrpcGateway.Domain
         }
 
         /// <summary>
+        /// Determines whether the service is available to accept requests.
+        /// </summary>
+        /// <param name="service">The service to check.</param>
+        /// <returns><see langword="true"/> when the service is active, healthy, and accepting requests; otherwise, <see langword="false"/>.</returns>
+        /// <exception cref="ArgumentNullException"><paramref name="service"/> is <see langword="null"/>.</exception>
+        public static bool IsAvailable(this GrpcService service)
+        {
+            ArgumentNullException.ThrowIfNull(service);
+            return service.IsActive && service.IsHealthy && service.Status == ServiceStatus.Active;
+        }
+
+        /// <summary>
         /// Returns the full URI that can be used to perform a health‑check on the service.
         /// </summary>
         public static string GetHealthCheckUri(this GrpcService service)
