@@ -23,6 +23,7 @@ public class RequestThrottledEventHandler : EventHandlerBase<RequestThrottledEve
     public RequestThrottledEventHandler(ILogger<RequestThrottledEventHandler> logger)
         : base(logger)
     {
+        ArgumentNullException.ThrowIfNull(logger);
     }
 
     /// <summary>
@@ -32,6 +33,8 @@ public class RequestThrottledEventHandler : EventHandlerBase<RequestThrottledEve
     /// <exception cref="ArgumentNullException">Thrown when the event is null.</exception>
     public async Task HandleAsync(RequestThrottledEvent @event)
     {
+        ArgumentNullException.ThrowIfNull(@event);
+
         ValidateEvent(@event);
 
         SafeLog(
