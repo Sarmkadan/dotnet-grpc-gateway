@@ -12,9 +12,24 @@ namespace DotNetGrpcGateway.Events;
 /// </summary>
 public abstract class GatewayEvent
 {
+    /// <summary>
+    /// Gets the unique identifier of the event.
+    /// </summary>
     public string EventId { get; } = Guid.NewGuid().ToString();
+
+    /// <summary>
+    /// Gets the UTC timestamp when the event occurred.
+    /// </summary>
     public DateTime OccurredAt { get; } = DateTime.UtcNow;
+
+    /// <summary>
+    /// Gets or sets the correlation identifier used to trace related events.
+    /// </summary>
     public string? CorrelationId { get; set; }
+
+    /// <summary>
+    /// Gets or sets the identifier of the event that caused this event, if any.
+    /// </summary>
     public string? CausedBy { get; set; }
 
     protected GatewayEvent()
@@ -33,10 +48,29 @@ public abstract class GatewayEvent
 /// </summary>
 public class ServiceRegisteredEvent : GatewayEvent
 {
+    /// <summary>
+    /// Gets or sets the unique identifier of the service.
+    /// </summary>
     public int ServiceId { get; set; }
+
+    /// <summary>
+    /// Gets or sets the name of the service.
+    /// </summary>
     public string ServiceName { get; set; } = null!;
+
+    /// <summary>
+    /// Gets or sets the full name of the service (including namespace).
+    /// </summary>
     public string ServiceFullName { get; set; } = null!;
+
+    /// <summary>
+    /// Gets or sets the host where the service is running.
+    /// </summary>
     public string Host { get; set; } = null!;
+
+    /// <summary>
+    /// Gets or sets the port on which the service is listening.
+    /// </summary>
     public int Port { get; set; }
 
     public ServiceRegisteredEvent() { }
@@ -57,7 +91,14 @@ public class ServiceRegisteredEvent : GatewayEvent
 /// </summary>
 public class ServiceUnregisteredEvent : GatewayEvent
 {
+    /// <summary>
+    /// Gets or sets the unique identifier of the service.
+    /// </summary>
     public int ServiceId { get; set; }
+
+    /// <summary>
+    /// Gets or sets the name of the service.
+    /// </summary>
     public string ServiceName { get; set; } = null!;
 
     public ServiceUnregisteredEvent() { }
@@ -74,8 +115,19 @@ public class ServiceUnregisteredEvent : GatewayEvent
 /// </summary>
 public class RouteAddedEvent : GatewayEvent
 {
+    /// <summary>
+    /// Gets or sets the unique identifier of the route.
+    /// </summary>
     public int RouteId { get; set; }
+
+    /// <summary>
+    /// Gets or sets the route pattern.
+    /// </summary>
     public string Pattern { get; set; } = null!;
+
+    /// <summary>
+    /// Gets or sets the identifier of the service the route targets.
+    /// </summary>
     public int TargetServiceId { get; set; }
 
     public RouteAddedEvent() { }
@@ -93,7 +145,14 @@ public class RouteAddedEvent : GatewayEvent
 /// </summary>
 public class RouteRemovedEvent : GatewayEvent
 {
+    /// <summary>
+    /// Gets or sets the unique identifier of the route.
+    /// </summary>
     public int RouteId { get; set; }
+
+    /// <summary>
+    /// Gets or sets the route pattern.
+    /// </summary>
     public string Pattern { get; set; } = null!;
 
     public RouteRemovedEvent() { }
@@ -110,8 +169,19 @@ public class RouteRemovedEvent : GatewayEvent
 /// </summary>
 public class ServiceHealthCheckFailedEvent : GatewayEvent
 {
+    /// <summary>
+    /// Gets or sets the unique identifier of the service.
+    /// </summary>
     public int ServiceId { get; set; }
+
+    /// <summary>
+    /// Gets or sets the name of the service.
+    /// </summary>
     public string ServiceName { get; set; } = null!;
+
+    /// <summary>
+    /// Gets or sets the error message associated with the health check failure.
+    /// </summary>
     public string? ErrorMessage { get; set; }
 
     public ServiceHealthCheckFailedEvent() { }
@@ -130,6 +200,9 @@ public class ServiceHealthCheckFailedEvent : GatewayEvent
 /// </summary>
 public class ConfigurationUpdatedEvent : GatewayEvent
 {
+    /// <summary>
+    /// Gets or sets the dictionary of configuration changes.
+    /// </summary>
     public Dictionary<string, object?> Changes { get; set; } = new();
 
     public ConfigurationUpdatedEvent() { }
@@ -145,8 +218,19 @@ public class ConfigurationUpdatedEvent : GatewayEvent
 /// </summary>
 public class RequestThrottledEvent : GatewayEvent
 {
+    /// <summary>
+    /// Gets or sets the IP address of the client that was throttled.
+    /// </summary>
     public string ClientIp { get; set; } = null!;
+
+    /// <summary>
+    /// Gets or sets the path of the request that was throttled.
+    /// </summary>
     public string RequestPath { get; set; } = null!;
+
+    /// <summary>
+    /// Gets or sets the rate limit per window that was exceeded.
+    /// </summary>
     public int RateLimitPerWindow { get; set; }
 
     public RequestThrottledEvent() { }
