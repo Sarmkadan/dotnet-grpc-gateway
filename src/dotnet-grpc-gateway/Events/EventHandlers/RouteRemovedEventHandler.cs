@@ -20,6 +20,7 @@ public class RouteRemovedEventHandler : EventHandlerBase<RouteRemovedEvent>, IEv
     public RouteRemovedEventHandler(ILogger<RouteRemovedEventHandler> logger)
         : base(logger)
     {
+        ArgumentNullException.ThrowIfNull(logger);
     }
 
     /// <summary>
@@ -29,6 +30,8 @@ public class RouteRemovedEventHandler : EventHandlerBase<RouteRemovedEvent>, IEv
     /// <exception cref="ArgumentNullException">Thrown when the event is null.</exception>
     public async Task HandleAsync(RouteRemovedEvent @event)
     {
+        ArgumentNullException.ThrowIfNull(@event);
+
         ValidateEvent(@event);
 
         SafeLog(
