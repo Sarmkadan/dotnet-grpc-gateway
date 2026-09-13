@@ -11,6 +11,60 @@ persistence trade-offs and extension points - see
 [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md). The rest of this file is per-type 
 API reference.
 
+## AuthenticationMiddleware
+
+`AuthenticationMiddleware.cs` provides the gateway's API-key authentication handler.
+It integrates with ASP.NET Core authentication under the `ApiKey` scheme, accepts a
+UUID-formatted token from the `Authorization` header, and creates an authenticated
+principal for downstream authorization and request handling. It validates only the
+token's format; it does not look up, revoke, expire, or cryptographically verify the
+token.
+
+### Authentication Flow
+
+1. Requests whose path starts with `/health` return `NoResult`, allowing the health
+   endpoint to proceed without an authentication identity from this handler.
+2. All other requests must include an `Authorization` header whose value starts with
+   `Bearer` (the comparison is case-insensitive).
+3. The handler removes the seven-character bearer prefix, trims the remaining value,
+   and rejects an empty token.
+4. The token must parse as a `Guid`. A missing or malformed header, an empty token, or
+   a non-UUID token produces a failed authentication result.
+5. On success, the handler creates an authentication ticket containing these claims:
+   `ClaimTypes.NameIdentifier` is the supplied token, and `token_type` is `api_key`.
+
+Clients should send requests in this form:
+
+```http
+Authorization: Bearer 550e8400-e29b-41d4-a716-446655440000
+```
+
+### Configuration
+
+Register `ApiKey` as the default authentication scheme, add the handler with
+`AddApiKeyAuthentication()`, and place authentication before authorization in the
+middleware pipeline:
+
+```csharp
+using DotNetGrpcGateway.Middleware;
+
+builder.Services
+    .AddAuthentication("ApiKey")
+    .AddApiKeyAuthentication();
+builder.Services.AddAuthorization();
+
+// After building the application:
+app.UseAuthentication();
+app.UseAuthorization();
+```
+
+The extension registers a standard `AuthenticationSchemeOptions` instance without
+custom values. The scheme name (`ApiKey`), accepted header scheme (`Bearer`), health
+path (`/health`), UUID token format, and generated claims are fixed by the current
+implementation and are not configurable through `appsettings.json`. To require an
+authenticated user for an endpoint, apply the usual ASP.NET Core authorization
+policy or endpoint authorization metadata.
+
 ## RouteManagementService
 
 `RouteManagementService` provides repository-backed route lookup, matching, conflict
