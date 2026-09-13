@@ -23,6 +23,7 @@ public class CircuitBreakerStateChangedEventHandler : EventHandlerBase<CircuitBr
     public CircuitBreakerStateChangedEventHandler(ILogger<CircuitBreakerStateChangedEventHandler> logger)
         : base(logger)
     {
+        ArgumentNullException.ThrowIfNull(logger);
     }
 
     /// <summary>
@@ -32,6 +33,8 @@ public class CircuitBreakerStateChangedEventHandler : EventHandlerBase<CircuitBr
     /// <exception cref="ArgumentNullException">Thrown when the event is null.</exception>
     public async Task HandleAsync(CircuitBreakerStateChangedEvent @event)
     {
+        ArgumentNullException.ThrowIfNull(@event);
+
         ValidateEvent(@event);
 
         var stateChangeMessage = @event.NewState switch
