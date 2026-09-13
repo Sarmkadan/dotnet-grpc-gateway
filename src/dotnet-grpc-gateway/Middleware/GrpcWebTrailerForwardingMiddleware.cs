@@ -54,6 +54,8 @@ public class GrpcWebTrailerForwardingMiddleware
     /// <returns>A task representing the asynchronous operation.</returns>
     public async Task InvokeAsync(HttpContext context)
     {
+        ArgumentNullException.ThrowIfNull(context);
+
         if (!IsGrpcWebRequest(context.Request))
         {
             await _next(context);
