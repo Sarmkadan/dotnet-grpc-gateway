@@ -11,6 +11,65 @@ persistence trade-offs and extension points - see
 [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md). The rest of this file is per-type 
 API reference.
 
+## RouteManagementService
+
+`RouteManagementService` provides repository-backed route lookup, matching, conflict
+detection, and validation. It is exposed through `IRouteManagementService` and is
+registered as a scoped service by the gateway. Matching considers active routes and
+returns the highest-priority wildcard match. Repository failures are logged and
+produce an empty list, `null`, or `false`, depending on the method.
+
+### Key Methods
+
+- `GetRoutesByServiceAsync(serviceId)` returns routes for a target service, ordered
+  from highest to lowest priority.
+- `FindMatchingRouteAsync(path)` returns the highest-priority active route whose
+  pattern wildcard-matches the path, or `null` when no route matches.
+- `GetConflictingRoutesAsync(pattern)` returns routes whose patterns overlap the
+  supplied pattern in either wildcard-matching direction. An identical pattern is
+  excluded from this conflict result.
+- `ValidateRouteAsync(route)` checks that the pattern is present, priority is from
+  `0` through `1000`, rate limit is non-negative, an enabled cache has a
+  non-negative duration, and no other route has the same pattern.
+
+### Example Usage
+
+```csharp
+using DotNetGrpcGateway.Domain;
+using DotNetGrpcGateway.Services;
+
+public sealed class RouteInspector(IRouteManagementService routeManagement)
+{
+    public async Task InspectAsync(CancellationToken cancellationToken)
+    {
+        var serviceRoutes = await routeManagement.GetRoutesByServiceAsync(
+            serviceId: 12,
+            cancellationToken);
+
+        var match = await routeManagement.FindMatchingRouteAsync(
+            "/api/orders/42",
+            cancellationToken);
+
+        var conflicts = await routeManagement.GetConflictingRoutesAsync(
+            "/api/orders/*",
+            cancellationToken);
+
+        var candidate = new GatewayRoute
+        {
+            Pattern = "/api/customers/*",
+            TargetServiceId = 15,
+            Priority = 200,
+            RateLimitPerMinute = 500
+        };
+
+        if (await routeManagement.ValidateRouteAsync(candidate, cancellationToken))
+        {
+            // The candidate can now be passed to the route repository for creation.
+        }
+    }
+}
+```
+
 ## RequestMetricTests
 
 `RequestMetricTests` is a comprehensive test class that validates the behavior of the `RequestMetric` class, which tracks and validates request metrics including validation rules, helper methods, and default state. The tests cover validation scenarios (empty/null required fields, negative values), slow request detection, error recording, retry tracking, cache status management, and default constructor initialization. Each test verifies that the metric class maintains data integrity and provides accurate information for monitoring and observability purposes.
