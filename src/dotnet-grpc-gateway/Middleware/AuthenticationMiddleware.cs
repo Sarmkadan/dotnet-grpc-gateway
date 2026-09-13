@@ -6,6 +6,7 @@
 
 using System.Security.Claims;
 using System.Text.Encodings.Web;
+using DotNetGrpcGateway.Constants;
 using Microsoft.AspNetCore.Authentication;
 
 namespace DotNetGrpcGateway.Middleware;
@@ -16,8 +17,14 @@ namespace DotNetGrpcGateway.Middleware;
 /// </summary>
 public class ApiKeyAuthenticationHandler : AuthenticationHandler<AuthenticationSchemeOptions>
 {
-    private const string AuthorizationHeaderName = "Authorization";
-    private const string BearerScheme = "Bearer";
+    private const string HealthCheckPath = "/health";
+    private const string MissingAuthorizationHeaderMessage = "Missing Authorization header";
+    private const string InvalidAuthorizationHeaderFormatMessage = "Invalid Authorization header format";
+    private const string MissingTokenMessage = "Missing token";
+    private const string InvalidTokenFormatMessage = "Invalid token format";
+    private const string TokenTypeClaimName = "token_type";
+    private const string ApiKeyTokenType = "api_key";
+    private const int BearerTokenPrefixLength = 7;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="ApiKeyAuthenticationHandler"/> class.
@@ -39,31 +46,31 @@ public class ApiKeyAuthenticationHandler : AuthenticationHandler<AuthenticationS
     protected override async Task<AuthenticateResult> HandleAuthenticateAsync()
     {
         // Skip authentication for health check endpoint
-        if (Request.Path.StartsWithSegments("/health"))
+        if (Request.Path.StartsWithSegments(HealthCheckPath))
             return AuthenticateResult.NoResult();
 
-        if (!Request.Headers.TryGetValue(AuthorizationHeaderName, out var authHeader))
-            return AuthenticateResult.Fail("Missing Authorization header");
+        if (!Request.Headers.TryGetValue(GatewayConstants.HeaderAuthorization, out var authHeader))
+            return AuthenticateResult.Fail(MissingAuthorizationHeaderMessage);
 
         var headerValue = authHeader.ToString();
 
-        if (!headerValue.StartsWith(BearerScheme, StringComparison.OrdinalIgnoreCase))
-            return AuthenticateResult.Fail("Invalid Authorization header format");
+        if (!headerValue.StartsWith(GatewayConstants.AuthenticationScheme, StringComparison.OrdinalIgnoreCase))
+            return AuthenticateResult.Fail(InvalidAuthorizationHeaderFormatMessage);
 
-        var token = headerValue[($"{BearerScheme} ".Length)..].Trim();
+        var token = headerValue[BearerTokenPrefixLength..].Trim();
 
         if (string.IsNullOrEmpty(token))
-            return AuthenticateResult.Fail("Missing token");
+            return AuthenticateResult.Fail(MissingTokenMessage);
 
         // Validate token format (simple UUID check; extend with actual token validation)
         if (!Guid.TryParse(token, out _))
-            return AuthenticateResult.Fail("Invalid token format");
+            return AuthenticateResult.Fail(InvalidTokenFormatMessage);
 
         // Create principal with token as claim
         var claims = new[]
         {
             new Claim(ClaimTypes.NameIdentifier, token),
-            new Claim("token_type", "api_key")
+            new Claim(TokenTypeClaimName, ApiKeyTokenType)
         };
 
         var identity = new ClaimsIdentity(claims, Scheme.Name);
@@ -79,6 +86,8 @@ public class ApiKeyAuthenticationHandler : AuthenticationHandler<AuthenticationS
 /// </summary>
 public static class ApiKeyAuthenticationExtensions
 {
+    private const string ApiKeyAuthenticationScheme = "ApiKey";
+
     /// <summary>
     /// Adds API key authentication to the authentication builder.
     /// </summary>
@@ -87,6 +96,6 @@ public static class ApiKeyAuthenticationExtensions
     public static AuthenticationBuilder AddApiKeyAuthentication(this AuthenticationBuilder builder)
     {
         return builder.AddScheme<AuthenticationSchemeOptions, ApiKeyAuthenticationHandler>(
-            "ApiKey", options => { });
+            ApiKeyAuthenticationScheme, options => { });
     }
 }
