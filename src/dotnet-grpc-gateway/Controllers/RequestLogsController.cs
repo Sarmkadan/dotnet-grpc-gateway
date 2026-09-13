@@ -23,8 +23,10 @@ public class RequestLogsController : ControllerBase
 
     public RequestLogsController(IRequestLogService logService, ILogger<RequestLogsController> logger)
     {
-        _logService = logService ?? throw new ArgumentNullException(nameof(logService));
-        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+        ArgumentNullException.ThrowIfNull(logService);
+        ArgumentNullException.ThrowIfNull(logger);
+        _logService = logService;
+        _logger = logger;
     }
 
     /// <summary>
