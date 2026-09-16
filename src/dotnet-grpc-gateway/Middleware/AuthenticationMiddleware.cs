@@ -4,10 +4,10 @@
 // CTO & Software Architect
 // =============================================================================
 
-using System.Security.Claims;
-using System.Text.Encodings.Web;
 using DotNetGrpcGateway.Constants;
 using Microsoft.AspNetCore.Authentication;
+using System.Security.Claims;
+using System.Text.Encodings.Web;
 
 namespace DotNetGrpcGateway.Middleware;
 
@@ -47,24 +47,34 @@ public class ApiKeyAuthenticationHandler : AuthenticationHandler<AuthenticationS
     {
         // Skip authentication for health check endpoint
         if (Request.Path.StartsWithSegments(HealthCheckPath))
+        {
             return AuthenticateResult.NoResult();
+        }
 
         if (!Request.Headers.TryGetValue(GatewayConstants.HeaderAuthorization, out var authHeader))
+        {
             return AuthenticateResult.Fail(MissingAuthorizationHeaderMessage);
+        }
 
         var headerValue = authHeader.ToString();
 
         if (!headerValue.StartsWith(GatewayConstants.AuthenticationScheme, StringComparison.OrdinalIgnoreCase))
+        {
             return AuthenticateResult.Fail(InvalidAuthorizationHeaderFormatMessage);
+        }
 
         var token = headerValue[BearerTokenPrefixLength..].Trim();
 
         if (string.IsNullOrEmpty(token))
+        {
             return AuthenticateResult.Fail(MissingTokenMessage);
+        }
 
         // Validate token format (simple UUID check; extend with actual token validation)
         if (!Guid.TryParse(token, out _))
+        {
             return AuthenticateResult.Fail(InvalidTokenFormatMessage);
+        }
 
         // Create principal with token as claim
         var claims = new[]
