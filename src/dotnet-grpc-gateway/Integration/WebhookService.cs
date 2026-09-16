@@ -56,12 +56,18 @@ public class WebhookService : IWebhookService
 
     public WebhookService(HttpClient httpClient, ILogger<WebhookService> logger)
     {
-        _httpClient = httpClient ?? throw new ArgumentNullException(nameof(httpClient));
-        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+        ArgumentNullException.ThrowIfNull(httpClient);
+        ArgumentNullException.ThrowIfNull(logger);
+
+        _httpClient = httpClient;
+        _logger = logger;
     }
 
     public async Task<WebhookResult> SendWebhookAsync(string url, object payload, CancellationToken cancellationToken = default)
     {
+        ArgumentNullException.ThrowIfNull(url);
+        ArgumentNullException.ThrowIfNull(payload);
+
         if (!ValidationUtility.IsValidUri(url))
         {
             _logger.LogWarning("Invalid webhook URL: {Url}", StringUtility.MaskSensitiveData(url));
@@ -180,6 +186,8 @@ public class WebhookService : IWebhookService
 
     public async Task<List<WebhookDelivery>> GetDeliveryHistoryAsync(string url)
     {
+        ArgumentNullException.ThrowIfNull(url);
+
         return await Task.FromResult(
             _history.Where(h => h.Url.Equals(url, StringComparison.OrdinalIgnoreCase))
                    .OrderByDescending(h => h.DeliveredAt)
