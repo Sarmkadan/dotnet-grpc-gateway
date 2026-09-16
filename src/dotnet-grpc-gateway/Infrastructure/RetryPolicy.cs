@@ -53,6 +53,7 @@ public class RetryPolicy : IRetryPolicy
     public async Task<T> ExecuteAsync<T>(Func<CancellationToken, Task<T>> operation, string operationName, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(operation);
+        ArgumentNullException.ThrowIfNull(operationName);
         ArgumentException.ThrowIfNullOrEmpty(operationName);
 
         using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
@@ -96,6 +97,7 @@ public class RetryPolicy : IRetryPolicy
     public async Task ExecuteAsync(Func<CancellationToken, Task> operation, string operationName, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(operation);
+        ArgumentNullException.ThrowIfNull(operationName);
         ArgumentException.ThrowIfNullOrEmpty(operationName);
 
         await ExecuteAsync<object?>(async token =>
