@@ -27,6 +27,23 @@ public interface IRouteManagementService
 /// </summary>
 public class RouteManagementService : IRouteManagementService
 {
+    private const int MinimumPriority = 0;
+    private const int MaximumPriority = 1000;
+    private const int MinimumRateLimitPerMinute = 0;
+    private const int MinimumCacheDurationSeconds = 0;
+
+    private const string RoutesRetrievalErrorMessage = "Error retrieving routes for service {ServiceId}";
+    private const string MatchingRouteFoundMessage = "Found matching route for path {Path}: {Pattern}";
+    private const string MatchingRouteErrorMessage = "Error finding matching route for path {Path}";
+    private const string ConflictingRoutesFoundMessage = "Found {Count} conflicting routes for pattern {Pattern}";
+    private const string ConflictingRoutesErrorMessage = "Error finding conflicting routes for pattern {Pattern}";
+    private const string EmptyPatternWarningMessage = "Route validation failed - Pattern is empty (RouteId: {RouteId})";
+    private const string InvalidPriorityWarningMessage = "Route validation failed - Priority {Priority} is out of valid range (RouteId: {RouteId})";
+    private const string NegativeRateLimitWarningMessage = "Route validation failed - Rate limit cannot be negative (RouteId: {RouteId})";
+    private const string NegativeCacheDurationWarningMessage = "Route validation failed - Cache duration cannot be negative (RouteId: {RouteId})";
+    private const string DuplicatePatternWarningMessage = "Route pattern {Pattern} already exists (ID: {DuplicateId})";
+    private const string RouteValidationErrorMessage = "Error validating route";
+
     private readonly IRouteRepository _routeRepository;
     private readonly IEventPublisher _eventPublisher;
     private readonly ILogger<RouteManagementService> _logger;
@@ -57,7 +74,7 @@ public class RouteManagementService : IRouteManagementService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving routes for service {ServiceId}", serviceId);
+            _logger.LogError(ex, RoutesRetrievalErrorMessage, serviceId);
             return new List<GatewayRoute>();
         }
     }
@@ -84,14 +101,14 @@ public class RouteManagementService : IRouteManagementService
                 .FirstOrDefault();
 
             if (matchingRoute is not null)
-                _logger.LogDebug("Found matching route for path {Path}: {Pattern}",
+                _logger.LogDebug(MatchingRouteFoundMessage,
                     StringUtility.MaskSensitiveData(path), matchingRoute.Pattern);
 
             return matchingRoute;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error finding matching route for path {Path}",
+            _logger.LogError(ex, MatchingRouteErrorMessage,
                 StringUtility.MaskSensitiveData(path));
             return null;
         }
@@ -121,14 +138,14 @@ public class RouteManagementService : IRouteManagementService
                  StringUtility.MatchesWildcardPattern(r.Pattern, pattern)))
                 .ToList();
 
-            _logger.LogDebug("Found {Count} conflicting routes for pattern {Pattern}",
+            _logger.LogDebug(ConflictingRoutesFoundMessage,
                 conflicting.Count, StringUtility.MaskSensitiveData(pattern));
 
             return conflicting;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error finding conflicting routes for pattern {Pattern}",
+            _logger.LogError(ex, ConflictingRoutesErrorMessage,
                 StringUtility.MaskSensitiveData(pattern));
             return new List<GatewayRoute>();
         }
@@ -149,28 +166,28 @@ public class RouteManagementService : IRouteManagementService
             // Validate pattern
             if (string.IsNullOrWhiteSpace(route.Pattern))
             {
-                _logger.LogWarning("Route validation failed - Pattern is empty (RouteId: {RouteId})", route.Id);
+                _logger.LogWarning(EmptyPatternWarningMessage, route.Id);
                 return false;
             }
 
             // Validate priority
-            if (route.Priority < 0 || route.Priority > 1000)
+            if (route.Priority < MinimumPriority || route.Priority > MaximumPriority)
             {
-                _logger.LogWarning("Route validation failed - Priority {Priority} is out of valid range (RouteId: {RouteId})", route.Priority, route.Id);
+                _logger.LogWarning(InvalidPriorityWarningMessage, route.Priority, route.Id);
                 return false;
             }
 
             // Validate rate limit
-            if (route.RateLimitPerMinute < 0)
+            if (route.RateLimitPerMinute < MinimumRateLimitPerMinute)
             {
-                _logger.LogWarning("Route validation failed - Rate limit cannot be negative (RouteId: {RouteId})", route.Id);
+                _logger.LogWarning(NegativeRateLimitWarningMessage, route.Id);
                 return false;
             }
 
             // Validate cache duration
-            if (route.EnableCaching && route.CacheDurationSeconds < 0)
+            if (route.EnableCaching && route.CacheDurationSeconds < MinimumCacheDurationSeconds)
             {
-                _logger.LogWarning("Route validation failed - Cache duration cannot be negative (RouteId: {RouteId})", route.Id);
+                _logger.LogWarning(NegativeCacheDurationWarningMessage, route.Id);
                 return false;
             }
 
@@ -180,7 +197,7 @@ public class RouteManagementService : IRouteManagementService
 
             if (duplicate is not null)
             {
-                _logger.LogWarning("Route pattern {Pattern} already exists (ID: {DuplicateId})",
+                _logger.LogWarning(DuplicatePatternWarningMessage,
                     StringUtility.MaskSensitiveData(route.Pattern), duplicate.Id);
                 return false;
             }
@@ -189,7 +206,7 @@ public class RouteManagementService : IRouteManagementService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error validating route");
+            _logger.LogError(ex, RouteValidationErrorMessage);
             return false;
         }
     }
