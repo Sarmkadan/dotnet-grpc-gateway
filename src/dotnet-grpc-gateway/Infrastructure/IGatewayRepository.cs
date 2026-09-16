@@ -22,6 +22,7 @@ public interface IGatewayRepository
     /// <returns>A task that represents the asynchronous operation. The task result contains the gateway configuration.</returns>
     /// <exception cref="ArgumentOutOfRangeException">Thrown when <paramref name="id"/> is less than or equal to zero.</exception>
     /// <exception cref="NotFoundException">Thrown when a gateway configuration with the specified <paramref name="id"/> is not found.</exception>
+    /// <exception cref="OperationCanceledException">Thrown when <paramref name="cancellationToken"/> is canceled.</exception>
     Task<GatewayConfiguration> GetByIdAsync(int id, CancellationToken cancellationToken = default);
 
     /// <summary>
@@ -29,6 +30,7 @@ public interface IGatewayRepository
     /// </summary>
     /// <param name="cancellationToken">A cancellation token.</param>
     /// <returns>A task that represents the asynchronous operation. The task result contains a list of gateway configurations.</returns>
+    /// <exception cref="OperationCanceledException">Thrown when <paramref name="cancellationToken"/> is canceled.</exception>
     Task<List<GatewayConfiguration>> GetAllAsync(CancellationToken cancellationToken = default);
 
     /// <summary>
@@ -36,6 +38,7 @@ public interface IGatewayRepository
     /// </summary>
     /// <param name="cancellationToken">A cancellation token.</param>
     /// <returns>A task that represents the asynchronous operation. The task result contains a list of active gateway configurations.</returns>
+    /// <exception cref="OperationCanceledException">Thrown when <paramref name="cancellationToken"/> is canceled.</exception>
     Task<List<GatewayConfiguration>> GetActiveAsync(CancellationToken cancellationToken = default);
 
     /// <summary>
@@ -45,6 +48,7 @@ public interface IGatewayRepository
     /// <param name="cancellationToken">A cancellation token.</param>
     /// <returns>A task that represents the asynchronous operation. The task result contains the created gateway configuration.</returns>
     /// <exception cref="ArgumentNullException">Thrown when <paramref name="config"/> is null.</exception>
+    /// <exception cref="OperationCanceledException">Thrown when <paramref name="cancellationToken"/> is canceled.</exception>
     Task<GatewayConfiguration> CreateAsync(GatewayConfiguration config, CancellationToken cancellationToken = default);
 
     /// <summary>
@@ -55,6 +59,7 @@ public interface IGatewayRepository
     /// <returns>A task that represents the asynchronous operation.</returns>
     /// <exception cref="ArgumentNullException">Thrown when <paramref name="config"/> is null.</exception>
     /// <exception cref="NotFoundException">Thrown when a gateway configuration with the specified identifier is not found.</exception>
+    /// <exception cref="OperationCanceledException">Thrown when <paramref name="cancellationToken"/> is canceled.</exception>
     Task UpdateAsync(GatewayConfiguration config, CancellationToken cancellationToken = default);
 
     /// <summary>
@@ -65,6 +70,7 @@ public interface IGatewayRepository
     /// <returns>A task that represents the asynchronous operation.</returns>
     /// <exception cref="ArgumentOutOfRangeException">Thrown when <paramref name="id"/> is less than or equal to zero.</exception>
     /// <exception cref="NotFoundException">Thrown when a gateway configuration with the specified <paramref name="id"/> is not found.</exception>
+    /// <exception cref="OperationCanceledException">Thrown when <paramref name="cancellationToken"/> is canceled.</exception>
     Task DeleteAsync(int id, CancellationToken cancellationToken = default);
 
     /// <summary>
@@ -72,6 +78,7 @@ public interface IGatewayRepository
     /// </summary>
     /// <param name="cancellationToken">A cancellation token.</param>
     /// <returns>A task that represents the asynchronous operation. The task result contains the count of gateway configurations.</returns>
+    /// <exception cref="OperationCanceledException">Thrown when <paramref name="cancellationToken"/> is canceled.</exception>
     Task<int> CountAsync(CancellationToken cancellationToken = default);
 }
 
