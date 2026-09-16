@@ -65,6 +65,35 @@ implementation and are not configurable through `appsettings.json`. To require a
 authenticated user for an endpoint, apply the usual ASP.NET Core authorization
 policy or endpoint authorization metadata.
 
+## GrpcWebTrailerForwardingMiddleware
+
+`GrpcWebTrailerForwardingMiddleware.cs` lets browser clients receive the full gRPC
+trailer metadata that a gRPC-Web response carries. gRPC-Web encodes trailers as a
+special data frame appended to the response body, because HTTP/1.1 clients -
+including browsers - cannot observe the HTTP/2 trailers that a native gRPC response
+would otherwise surface. This middleware collects those trailers and forwards them
+as a gRPC-Web trailer frame so the client sees status, message, and error-detail
+information.
+
+### How it forwards trailers
+
+1. The middleware only acts on gRPC-Web requests, detected by a `Content-Type`
+   starting with `application/grpc-web` (case-insensitive). All other requests pass
+   straight through to the next middleware.
+2. For a gRPC-Web request it swaps the response body for an in-memory buffer, runs
+   the rest of the pipeline, then restores the original body.
+3. It scans the response headers for gRPC trailer names - `grpc-status`,
+   `grpc-message`, `grpc-status-details-bin`, `grpc-encoding`,
+   `grpc-accept-encoding` - or any header whose name starts with `grpc-`.
+4. If any trailers are present, it serializes them as `key: value\r\n` pairs, wraps
+   them in a 5-byte gRPC-Web frame header (`0x80` flags byte followed by a 4-byte
+   big-endian length), and appends the frame to the response body after the payload.
+5. When no trailers are present, the buffered response body is written through
+   unchanged.
+
+The frame layout follows the gRPC-Web spec: the first byte has bit 7 set to mark the
+frame as a trailer frame, and the next four bytes hold the big-endian payload length.
+
 ## RouteManagementService
 
 `RouteManagementService` provides repository-backed route lookup, matching, conflict
