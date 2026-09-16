@@ -236,6 +236,122 @@ fields include `id`, `pattern`, `targetServiceId`, `priority`, `matchType`
 `responseTransformationScript`, `enableCompression`, `channelOptions`, `createdAt`,
 `modifiedAt`, and `isActive`.
 
+## RequestLogsController
+
+`RequestLogsController` exposes the gateway's structured request/response log store
+as a REST API. It is an `[ApiController]` routed at `api/RequestLogs` and produces
+`application/json`. It delegates to `IRequestLogService`, a thread-safe, fixed-capacity
+ring buffer that drops the oldest entries when full (default capacity 10,000). All
+endpoints return `IReadOnlyList<RequestLogEntry>` or `RequestLogSummary` directly.
+
+### Endpoints
+
+#### GET api/RequestLogs
+
+Returns the most recent log entries, newest first.
+
+Query parameters:
+
+| Parameter | Type | Default | Notes |
+| --- | --- | --- | --- |
+| `limit` | `int` | `50` | Maximum entries to return. Values outside `1`–`1000` are reset to `50`. |
+
+- **200 OK** — `IReadOnlyList<RequestLogEntry>` (see the `RequestLogEntry` shape below).
+
+#### GET api/RequestLogs/search
+
+Searches log entries by method, status code, or time range.
+
+Query parameters:
+
+| Parameter | Type | Default | Notes |
+| --- | --- | --- | --- |
+| `method` | `string?` | `null` | Optional gRPC method substring to match. |
+| `statusCode` | `int?` | `null` | Optional response status code to match. |
+| `from` | `DateTime?` | `null` | Optional earliest timestamp to include. |
+| `to` | `DateTime?` | `null` | Optional latest timestamp to include. |
+| `limit` | `int` | `50` | Maximum entries to return. Values outside `1`–`1000` are reset to `50`. |
+
+- **200 OK** — `IReadOnlyList<RequestLogEntry>`.
+- **400 Bad Request** — when both `from` and `to` are supplied and `from` is after
+  `to`; the body is `'from' must be before 'to'`.
+
+Example:
+
+```http
+GET /api/RequestLogs/search?method=GetUser&statusCode=200&from=2026-09-01T00:00:00Z&to=2026-09-15T00:00:00Z&limit=20
+```
+
+#### GET api/RequestLogs/summary
+
+Returns aggregate statistics over all retained log entries.
+
+- **200 OK** — `RequestLogSummary`:
+
+```json
+{
+  "totalEntries": 842,
+  "successCount": 810,
+  "errorCount": 32,
+  "successRatePct": 96.2,
+  "averageDurationMs": 45.7,
+  "minDurationMs": 1,
+  "maxDurationMs": 3120,
+  "oldestEntry": "2026-09-01T08:00:00Z",
+  "newestEntry": "2026-09-15T17:30:00Z"
+}
+```
+
+#### DELETE api/RequestLogs
+
+Clears all retained log entries.
+
+- **204 No Content** — the log store was cleared.
+
+### Response Models
+
+`RequestLogEntry` — a single recorded request/response entry:
+
+| Field | Type | Notes |
+| --- | --- | --- |
+| `id` | `Guid` | Entry identifier |
+| `timestamp` | `DateTime` | When the entry was recorded (UTC) |
+| `logLevel` | `string?` | `INFO`/`WARN`/`ERROR`; derived from state when not set |
+| `message` | `string?` | Human-readable summary; composed from state when not set |
+| `requestId` | `string?` | Request identifier |
+| `correlationId` | `string?` | Correlation ID from the incoming request |
+| `serviceName` | `string?` | Service name |
+| `methodName` | `string?` | Method name |
+| `method` | `string` | HTTP method (`POST` for gRPC) |
+| `path` | `string` | Request path (e.g. `/package.Service/Method`) |
+| `grpcMethod` | `string` | Resolved gRPC method name derived from the path |
+| `httpStatusCode` | `int` | Response HTTP status code |
+| `durationMs` | `long` | Total processing duration in milliseconds |
+| `clientIp` | `string?` | Client IP address |
+| `upstreamAddress` | `string?` | Upstream service address the request was forwarded to |
+| `requestHeaders` | `Dictionary<string,string>` | Request headers (sensitive values redacted) |
+| `requestSizeBytes` | `long` | Request body size in bytes |
+| `responseSizeBytes` | `long` | Response body size in bytes |
+| `errorMessage` | `string?` | Error message if the request failed |
+| `isSuccessful` | `bool` | Whether the request completed successfully (status < 400) |
+| `cacheHit` | `bool` | Whether the request was served from cache |
+| `retryCount` | `int` | Number of retry attempts |
+| `stackTrace` | `string?` | Stack trace of any exception during processing |
+
+`RequestLogSummary` — aggregate statistics over retained entries:
+
+| Field | Type | Notes |
+| --- | --- | --- |
+| `totalEntries` | `int` | Total retained entries |
+| `successCount` | `int` | Successful entries |
+| `errorCount` | `int` | Failed entries |
+| `successRatePct` | `double` | Success rate as a percentage |
+| `averageDurationMs` | `double` | Average duration in milliseconds |
+| `minDurationMs` | `long` | Minimum duration in milliseconds |
+| `maxDurationMs` | `long` | Maximum duration in milliseconds |
+| `oldestEntry` | `DateTime?` | Timestamp of the oldest retained entry |
+| `newestEntry` | `DateTime?` | Timestamp of the newest retained entry |
+
 ## RequestMetricTests
 
 `RequestMetricTests` is a comprehensive test class that validates the behavior of the `RequestMetric` class, which tracks and validates request metrics including validation rules, helper methods, and default state. The tests cover validation scenarios (empty/null required fields, negative values), slow request detection, error recording, retry tracking, cache status management, and default constructor initialization. Each test verifies that the metric class maintains data integrity and provides accurate information for monitoring and observability purposes.
