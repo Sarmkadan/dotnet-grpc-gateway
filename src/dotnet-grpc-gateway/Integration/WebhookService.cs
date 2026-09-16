@@ -104,6 +104,15 @@ public class WebhookService : IWebhookService
     private readonly List<WebhookDelivery> _history = new();
     private const int MaxRetries = 3;
     private const int TimeoutSeconds = 10;
+    private const int ServerErrorStatusCode = 500;
+    private const int RetryDelayMs = 1000;
+    private const int BackoffBase = 2;
+    private const int BackoffBaseMs = 1000;
+    private const int MaxHistoryEntries = 1000;
+    private const int HistoryTrimCount = 100;
+    private const string InvalidUrlMessage = "Invalid URL";
+    private const string RequestTimeoutMessage = "Request timeout";
+    private const string UnknownErrorMessage = "Unknown error";
 
     /// <summary>
     /// Initializes a new instance of the <see cref="WebhookService"/> class.
@@ -128,7 +137,7 @@ public class WebhookService : IWebhookService
         if (!ValidationUtility.IsValidUri(url))
         {
             _logger.LogWarning("Invalid webhook URL: {Url}", StringUtility.MaskSensitiveData(url));
-            return new WebhookResult { Success = false, Message = "Invalid URL" };
+            return new WebhookResult { Success = false, Message = InvalidUrlMessage };
         }
 
         var startTime = DateTime.UtcNow;
@@ -164,14 +173,14 @@ public class WebhookService : IWebhookService
                 }
 
                 // Retry on server errors (5xx) but not client errors (4xx)
-                if ((int)response.StatusCode < 500)
+                if ((int)response.StatusCode < ServerErrorStatusCode)
                 {
                     break;
                 }
 
                 if (attempt < MaxRetries)
                 {
-                    var delayMs = (int)Math.Pow(2, attempt - 1) * 1000; // Exponential backoff
+                    var delayMs = (int)Math.Pow(BackoffBase, attempt - 1) * BackoffBaseMs; // Exponential backoff
                     _logger.LogWarning("Webhook delivery failed with {StatusCode}, retrying in {DelayMs}ms",
                         response.StatusCode, delayMs);
                     await Task.Delay(delayMs, cancellationToken);
@@ -185,14 +194,14 @@ public class WebhookService : IWebhookService
 
                 if (attempt < MaxRetries)
                 {
-                    await Task.Delay(1000, cancellationToken);
+                    await Task.Delay(RetryDelayMs, cancellationToken);
                     continue;
                 }
 
                 result = new WebhookResult
                 {
                     Success = false,
-                    Message = "Request timeout",
+                    Message = RequestTimeoutMessage,
                     DeliveredAt = DateTime.UtcNow,
                     DurationMs = (long)duration
                 };
@@ -206,7 +215,7 @@ public class WebhookService : IWebhookService
 
                 if (attempt < MaxRetries)
                 {
-                    await Task.Delay(1000, cancellationToken);
+                    await Task.Delay(RetryDelayMs, cancellationToken);
                     continue;
                 }
 
@@ -234,11 +243,11 @@ public class WebhookService : IWebhookService
             });
 
             // Keep only recent history (last 1000 deliveries)
-            if (_history.Count > 1000)
-                _history.RemoveRange(0, 100);
+            if (_history.Count > MaxHistoryEntries)
+                _history.RemoveRange(0, HistoryTrimCount);
         }
 
-        return result ?? new WebhookResult { Success = false, Message = "Unknown error" };
+        return result ?? new WebhookResult { Success = false, Message = UnknownErrorMessage };
     }
 
     /// <inheritdoc/>
