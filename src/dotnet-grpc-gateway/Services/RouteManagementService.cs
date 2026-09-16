@@ -88,7 +88,9 @@ public class RouteManagementService : IRouteManagementService
     public async Task<GatewayRoute?> FindMatchingRouteAsync(string path, CancellationToken cancellationToken = default)
     {
         if (string.IsNullOrEmpty(path))
+        {
             return null;
+        }
 
         try
         {
@@ -101,14 +103,20 @@ public class RouteManagementService : IRouteManagementService
                 .FirstOrDefault();
 
             if (matchingRoute is not null)
-                _logger.LogDebug(MatchingRouteFoundMessage,
-                    StringUtility.MaskSensitiveData(path), matchingRoute.Pattern);
+            {
+                _logger.LogDebug(
+                    MatchingRouteFoundMessage,
+                    StringUtility.MaskSensitiveData(path),
+                    matchingRoute.Pattern);
+            }
 
             return matchingRoute;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, MatchingRouteErrorMessage,
+            _logger.LogError(
+                ex,
+                MatchingRouteErrorMessage,
                 StringUtility.MaskSensitiveData(path));
             return null;
         }
@@ -125,7 +133,9 @@ public class RouteManagementService : IRouteManagementService
     public async Task<List<GatewayRoute>> GetConflictingRoutesAsync(string pattern, CancellationToken cancellationToken = default)
     {
         if (string.IsNullOrEmpty(pattern))
+        {
             return new List<GatewayRoute>();
+        }
 
         try
         {
@@ -138,14 +148,18 @@ public class RouteManagementService : IRouteManagementService
                  StringUtility.MatchesWildcardPattern(r.Pattern, pattern)))
                 .ToList();
 
-            _logger.LogDebug(ConflictingRoutesFoundMessage,
-                conflicting.Count, StringUtility.MaskSensitiveData(pattern));
+            _logger.LogDebug(
+                ConflictingRoutesFoundMessage,
+                conflicting.Count,
+                StringUtility.MaskSensitiveData(pattern));
 
             return conflicting;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, ConflictingRoutesErrorMessage,
+            _logger.LogError(
+                ex,
+                ConflictingRoutesErrorMessage,
                 StringUtility.MaskSensitiveData(pattern));
             return new List<GatewayRoute>();
         }
@@ -197,8 +211,10 @@ public class RouteManagementService : IRouteManagementService
 
             if (duplicate is not null)
             {
-                _logger.LogWarning(DuplicatePatternWarningMessage,
-                    StringUtility.MaskSensitiveData(route.Pattern), duplicate.Id);
+                _logger.LogWarning(
+                    DuplicatePatternWarningMessage,
+                    StringUtility.MaskSensitiveData(route.Pattern),
+                    duplicate.Id);
                 return false;
             }
 
