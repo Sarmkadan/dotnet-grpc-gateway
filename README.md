@@ -124,6 +124,118 @@ public sealed class RouteInspector(IRouteManagementService routeManagement)
 }
 ```
 
+## ServiceDiscoveryController
+
+`ServiceDiscoveryController` exposes the gateway's service discovery operations as a
+REST API. It is an `[ApiController]` routed at `api/ServiceDiscovery` and produces
+`application/json`. It delegates to three services: `IGatewayService` (service
+metadata), `IServiceDiscoveryService`, and `IRouteManagementService` (route lookup,
+matching, and conflict detection). All endpoints catch unexpected exceptions and
+return `500 Internal Server Error`.
+
+### Endpoints
+
+#### GET api/ServiceDiscovery/services
+
+Returns all registered services with their metadata.
+
+- **200 OK** — `List<ServiceInfo>`:
+
+```json
+[
+  {
+    "id": 1,
+    "name": "orders",
+    "serviceFullName": "OrdersService",
+    "host": "localhost",
+    "port": 50051,
+    "useTls": true,
+    "isActive": true
+  }
+]
+```
+
+#### GET api/ServiceDiscovery/services/{serviceId}/routes
+
+Returns the routes registered for a specific service.
+
+- **200 OK** — `List<GatewayRoute>` (see the `GatewayRoute` shape below).
+- **404 Not Found** — when no service exists for `serviceId`; the body is
+  `Service {serviceId} not found`.
+
+#### POST api/ServiceDiscovery/route-match
+
+Finds the highest-priority active route whose pattern matches the supplied path.
+
+Request body — `RouteMatchRequest`:
+
+```json
+{ "path": "/api/orders/42" }
+```
+
+- **400 Bad Request** — when `path` is missing or empty; the body is
+  `Path is required`.
+- **200 OK** — `RouteMatchResult`:
+
+```json
+{
+  "routeId": 7,
+  "pattern": "/api/orders/*",
+  "serviceId": 1,
+  "serviceName": "orders",
+  "priority": 200
+}
+```
+
+- **404 Not Found** — when no route matches; the body is `No matching route found`.
+
+#### POST api/ServiceDiscovery/route-conflicts
+
+Returns routes whose patterns overlap the supplied pattern in either
+wildcard-matching direction.
+
+Request body — `RoutePatternRequest`:
+
+```json
+{ "pattern": "/api/orders/*" }
+```
+
+- **400 Bad Request** — when `pattern` is missing or empty; the body is
+  `Pattern is required`.
+- **200 OK** — `List<GatewayRoute>`.
+
+### Response Models
+
+`ServiceInfo` — service metadata:
+
+| Field | Type | Notes |
+| --- | --- | --- |
+| `id` | `int` | Service identifier |
+| `name` | `string?` | Service name |
+| `serviceFullName` | `string?` | Fully-qualified service name |
+| `host` | `string?` | Service host |
+| `port` | `int` | Service port |
+| `useTls` | `bool` | Whether the service uses TLS |
+| `isActive` | `bool` | Whether the service is active |
+
+`RouteMatchResult` — result of a route match:
+
+| Field | Type | Notes |
+| --- | --- | --- |
+| `routeId` | `int` | Matched route identifier |
+| `pattern` | `string?` | Matched route pattern |
+| `serviceId` | `int` | Target service identifier (`0` when the service is unknown) |
+| `serviceName` | `string?` | Target service name |
+| `priority` | `int` | Matched route priority |
+
+`GatewayRoute` — a routing rule returned by the routes and conflict endpoints. Key
+fields include `id`, `pattern`, `targetServiceId`, `priority`, `matchType`
+(`ExactMatch`/`Prefix`/`Regex`), `description`, `headers`, `metadata`,
+`requiresAuthentication`, `authorizationPolicy`, `rateLimitPerMinute`,
+`enableCaching`, `cacheDurationSeconds`, `requestTransformationScript`,
+`responseTransformationScript`, `enableCompression`, `channelOptions`, `createdAt`,
+`modifiedAt`, and `isActive`.
+
 ## RequestMetricTests
 
 `RequestMetricTests` is a comprehensive test class that validates the behavior of the `RequestMetric` class, which tracks and validates request metrics including validation rules, helper methods, and default state. The tests cover validation scenarios (empty/null required fields, negative values), slow request detection, error recording, retry tracking, cache status management, and default constructor initialization. Each test verifies that the metric class maintains data integrity and provides accurate information for monitoring and observability purposes.
