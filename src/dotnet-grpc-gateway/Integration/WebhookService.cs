@@ -15,7 +15,20 @@ namespace DotNetGrpcGateway.Integration;
 /// </summary>
 public interface IWebhookService
 {
+    /// <summary>
+    /// Sends a webhook payload to the specified URL.
+    /// </summary>
+    /// <param name="url">The URL to which the webhook is sent.</param>
+    /// <param name="payload">The payload to send.</param>
+    /// <param name="cancellationToken">A token that can be used to cancel the operation.</param>
+    /// <returns>A task that represents the asynchronous operation and contains the delivery result.</returns>
     Task<WebhookResult> SendWebhookAsync(string url, object payload, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Gets the delivery history for the specified webhook URL.
+    /// </summary>
+    /// <param name="url">The webhook URL whose delivery history is retrieved.</param>
+    /// <returns>A task that represents the asynchronous operation and contains the delivery records.</returns>
     Task<List<WebhookDelivery>> GetDeliveryHistoryAsync(string url);
 }
 
@@ -24,10 +37,29 @@ public interface IWebhookService
 /// </summary>
 public class WebhookResult
 {
+    /// <summary>
+    /// Gets or sets a value indicating whether the webhook was delivered successfully.
+    /// </summary>
     public bool Success { get; set; }
+
+    /// <summary>
+    /// Gets or sets the HTTP status code returned by the endpoint, if available.
+    /// </summary>
     public int? StatusCode { get; set; }
+
+    /// <summary>
+    /// Gets or sets a message describing the delivery result.
+    /// </summary>
     public string? Message { get; set; }
+
+    /// <summary>
+    /// Gets or sets the date and time at which the delivery completed.
+    /// </summary>
     public DateTime DeliveredAt { get; set; }
+
+    /// <summary>
+    /// Gets or sets the delivery duration, in milliseconds.
+    /// </summary>
     public long DurationMs { get; set; }
 }
 
@@ -36,10 +68,29 @@ public class WebhookResult
 /// </summary>
 public class WebhookDelivery
 {
+    /// <summary>
+    /// Gets or sets the webhook URL.
+    /// </summary>
     public string Url { get; set; } = null!;
+
+    /// <summary>
+    /// Gets or sets the date and time at which the delivery completed.
+    /// </summary>
     public DateTime DeliveredAt { get; set; }
+
+    /// <summary>
+    /// Gets or sets a value indicating whether the webhook was delivered successfully.
+    /// </summary>
     public bool Success { get; set; }
+
+    /// <summary>
+    /// Gets or sets the HTTP status code returned by the endpoint, if available.
+    /// </summary>
     public int? StatusCode { get; set; }
+
+    /// <summary>
+    /// Gets or sets the error message associated with the delivery, if any.
+    /// </summary>
     public string? ErrorMessage { get; set; }
 }
 
@@ -54,6 +105,11 @@ public class WebhookService : IWebhookService
     private const int MaxRetries = 3;
     private const int TimeoutSeconds = 10;
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="WebhookService"/> class.
+    /// </summary>
+    /// <param name="httpClient">The HTTP client used to send webhook requests.</param>
+    /// <param name="logger">The logger used to record webhook delivery activity.</param>
     public WebhookService(HttpClient httpClient, ILogger<WebhookService> logger)
     {
         ArgumentNullException.ThrowIfNull(httpClient);
@@ -63,6 +119,7 @@ public class WebhookService : IWebhookService
         _logger = logger;
     }
 
+    /// <inheritdoc/>
     public async Task<WebhookResult> SendWebhookAsync(string url, object payload, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(url);
@@ -184,6 +241,7 @@ public class WebhookService : IWebhookService
         return result ?? new WebhookResult { Success = false, Message = "Unknown error" };
     }
 
+    /// <inheritdoc/>
     public async Task<List<WebhookDelivery>> GetDeliveryHistoryAsync(string url)
     {
         ArgumentNullException.ThrowIfNull(url);
