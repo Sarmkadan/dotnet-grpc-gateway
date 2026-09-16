@@ -592,6 +592,40 @@ public class ServiceHealthReportTestsExample
 }
 ```
 
+## CircuitBreakerOptions
+
+`CircuitBreakerOptions` holds the configuration for an individual circuit breaker
+instance. It is a plain options class in the `DotNetGrpcGateway.Infrastructure`
+namespace and is typically supplied to the `CircuitBreaker` constructor. All
+properties are read/write and come with sensible defaults, so an instance can be
+used as-is or tuned per service.
+
+### Properties
+
+| Property | Type | Default | Notes |
+| --- | --- | --- | --- |
+| `FailureThreshold` | `int` | `3` | Number of consecutive failures required to open the circuit. |
+| `OpenDuration` | `TimeSpan` | `30` seconds | Duration the circuit stays open before entering the half-open state. |
+| `HalfOpenSuccessThreshold` | `int` | `2` | Number of successful calls in the half-open state required to close the circuit. |
+
+### Example Usage
+
+```csharp
+using DotNetGrpcGateway.Infrastructure;
+
+// 1. Use the built-in defaults
+var defaultOptions = new CircuitBreakerOptions();
+// FailureThreshold = 3, OpenDuration = 30s, HalfOpenSuccessThreshold = 2
+
+// 2. Tune the behavior for a specific service
+var customOptions = new CircuitBreakerOptions
+{
+    FailureThreshold = 5,
+    OpenDuration = TimeSpan.FromMinutes(2),
+    HalfOpenSuccessThreshold = 3
+};
+```
+
 ## CircuitBreakerTests
 
 `CircuitBreakerTests` is a comprehensive test class that validates the behavior of the `CircuitBreaker` class, which implements the circuit breaker pattern to prevent cascading failures in distributed systems. The tests cover state transitions (closed → open → half-open → closed), failure threshold tracking, request allowance control, and circuit reset functionality. Each test verifies that the circuit breaker correctly manages service availability based on failure patterns.
