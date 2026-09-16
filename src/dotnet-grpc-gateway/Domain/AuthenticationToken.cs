@@ -99,4 +99,18 @@ public class AuthenticationToken
 
         return allowedIps.Contains(ipAddress);
     }
+
+    public override string ToString()
+    {
+        var expiry = ExpiresAt.HasValue
+            ? ExpiresAt.Value.ToString("yyyy-MM-dd HH:mm:ss 'UTC'")
+            : "never";
+
+        var state = IsRevoked ? "revoked" : IsExpired ? "expired" : IsActive ? "active" : "inactive";
+
+        return $"AuthenticationToken {{ Id = {Id}, ClientName = {ClientName}, ClientId = {ClientId}, " +
+               $"TokenType = {TokenType}, Scopes = [{string.Join(", ", Scopes)}], " +
+               $"ExpiresAt = {expiry}, State = {state}, UsageCount = {UsageCount}, " +
+               $"AllowAllServices = {AllowAllServices} }}";
+    }
 }
