@@ -17,10 +17,26 @@ namespace DotNetGrpcGateway.Controllers;
 /// Provides endpoints for service registration, discovery, and dynamic configuration.
 /// </summary>
 [ApiController]
-[Route("api/[controller]")]
-[Produces("application/json")]
+[Route(ApiRoute)]
+[Produces(JsonContentType)]
 public class ServiceDiscoveryController : ControllerBase
 {
+    private const string ApiRoute = "api/[controller]";
+    private const string JsonContentType = "application/json";
+    private const string ServicesRoute = "services";
+    private const string ServiceRoutesRoute = "services/{serviceId}/routes";
+    private const string RouteMatchRoute = "route-match";
+    private const string RouteConflictsRoute = "route-conflicts";
+    private const string ServiceNotFoundMessageFormat = "Service {0} not found";
+    private const string PathRequiredMessage = "Path is required";
+    private const string NoMatchingRouteMessage = "No matching route found";
+    private const string PatternRequiredMessage = "Pattern is required";
+    private const string RetrievingServicesErrorMessage = "Error retrieving services";
+    private const string RetrievingRoutesErrorMessage = "Error retrieving routes for service {ServiceId}";
+    private const string FindingRouteErrorMessage = "Error finding matching route for path {Path}";
+    private const string CheckingRouteConflictsErrorMessage = "Error checking for conflicting routes";
+    private const int UnknownServiceId = 0;
+
     private readonly IGatewayService _gatewayService;
     private readonly IServiceDiscoveryService _discoveryService;
     private readonly IRouteManagementService _routeManagementService;
@@ -46,7 +62,7 @@ public class ServiceDiscoveryController : ControllerBase
     /// <summary>
     /// Gets all registered services with their metadata.
     /// </summary>
-    [HttpGet("services")]
+    [HttpGet(ServicesRoute)]
     [ProducesResponseType(typeof(List<ServiceInfo>), StatusCodes.Status200OK)]
     public async Task<ActionResult<List<ServiceInfo>>> GetAllServices()
     {
@@ -68,7 +84,7 @@ public class ServiceDiscoveryController : ControllerBase
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving services");
+            _logger.LogError(ex, RetrievingServicesErrorMessage);
             return StatusCode(StatusCodes.Status500InternalServerError);
         }
     }
@@ -76,7 +92,7 @@ public class ServiceDiscoveryController : ControllerBase
     /// <summary>
     /// Gets routes for a specific service.
     /// </summary>
-    [HttpGet("services/{serviceId}/routes")]
+    [HttpGet(ServiceRoutesRoute)]
     [ProducesResponseType(typeof(List<GatewayRoute>), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<ActionResult<List<GatewayRoute>>> GetServiceRoutes(int serviceId)
@@ -85,7 +101,7 @@ public class ServiceDiscoveryController : ControllerBase
         {
             var service = await _gatewayService.GetServiceAsync(serviceId);
             if (service is null)
-                return NotFound($"Service {serviceId} not found");
+                return NotFound(string.Format(ServiceNotFoundMessageFormat, serviceId));
 
             var routes = await _routeManagementService.GetRoutesByServiceAsync(serviceId);
             return Ok(routes);
@@ -96,7 +112,7 @@ public class ServiceDiscoveryController : ControllerBase
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving routes for service {ServiceId}", serviceId);
+            _logger.LogError(ex, RetrievingRoutesErrorMessage, serviceId);
             return StatusCode(StatusCodes.Status500InternalServerError);
         }
     }
@@ -104,19 +120,19 @@ public class ServiceDiscoveryController : ControllerBase
     /// <summary>
     /// Gets the matching route for a given path.
     /// </summary>
-    [HttpPost("route-match")]
+    [HttpPost(RouteMatchRoute)]
     [ProducesResponseType(typeof(RouteMatchResult), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<ActionResult<RouteMatchResult>> FindMatchingRoute([FromBody] RouteMatchRequest request)
     {
         if (string.IsNullOrEmpty(request?.Path))
-            return BadRequest("Path is required");
+            return BadRequest(PathRequiredMessage);
 
         try
         {
             var route = await _routeManagementService.FindMatchingRouteAsync(request.Path);
             if (route is null)
-                return NotFound("No matching route found");
+                return NotFound(NoMatchingRouteMessage);
 
             var service = await _gatewayService.GetServiceAsync(route.TargetServiceId);
 
@@ -124,14 +140,14 @@ public class ServiceDiscoveryController : ControllerBase
             {
                 RouteId = route.Id,
                 Pattern = route.Pattern,
-                ServiceId = service?.Id ?? 0,
+                ServiceId = service?.Id ?? UnknownServiceId,
                 ServiceName = service?.Name,
                 Priority = route.Priority
             });
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error finding matching route for path {Path}", request.Path);
+            _logger.LogError(ex, FindingRouteErrorMessage, request.Path);
             return StatusCode(StatusCodes.Status500InternalServerError);
         }
     }
@@ -139,12 +155,12 @@ public class ServiceDiscoveryController : ControllerBase
     /// <summary>
     /// Gets conflicting routes that might affect a given pattern.
     /// </summary>
-    [HttpPost("route-conflicts")]
+    [HttpPost(RouteConflictsRoute)]
     [ProducesResponseType(typeof(List<GatewayRoute>), StatusCodes.Status200OK)]
     public async Task<ActionResult<List<GatewayRoute>>> GetConflictingRoutes([FromBody] RoutePatternRequest request)
     {
         if (string.IsNullOrEmpty(request?.Pattern))
-            return BadRequest("Pattern is required");
+            return BadRequest(PatternRequiredMessage);
 
         try
         {
@@ -153,7 +169,7 @@ public class ServiceDiscoveryController : ControllerBase
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error checking for conflicting routes");
+            _logger.LogError(ex, CheckingRouteConflictsErrorMessage);
             return StatusCode(StatusCodes.Status500InternalServerError);
         }
     }
@@ -164,6 +180,8 @@ public class ServiceDiscoveryController : ControllerBase
 /// </summary>
 public class ServiceInfo
 {
+    private const string StringRepresentationFormat = "ServiceInfo {{ Id = {0}, Name = {1}, ServiceFullName = {2}, Host = {3}, Port = {4}, UseTls = {5} }}";
+
     public int Id { get; set; }
     public string? Name { get; set; }
     public string? ServiceFullName { get; set; }
@@ -172,7 +190,14 @@ public class ServiceInfo
     public bool UseTls { get; set; }
     public bool IsActive { get; set; }
 
-    public override string ToString() => $"ServiceInfo {{ Id = {Id}, Name = {Name}, ServiceFullName = {ServiceFullName}, Host = {Host}, Port = {Port}, UseTls = {UseTls} }}";
+    public override string ToString() => string.Format(
+        StringRepresentationFormat,
+        Id,
+        Name,
+        ServiceFullName,
+        Host,
+        Port,
+        UseTls);
 }
 
 /// <summary>
