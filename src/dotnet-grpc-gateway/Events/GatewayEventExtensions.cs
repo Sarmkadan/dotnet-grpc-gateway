@@ -43,6 +43,23 @@ public static class GatewayEventExtensions
     }
 
     /// <summary>
+    /// Gets the route pattern if the event is route-related.
+    /// </summary>
+    /// <param name="event">The event to check.</param>
+    /// <returns>The route pattern from <see cref="RouteAddedEvent"/> or <see cref="RouteRemovedEvent"/>; otherwise, <see langword="null"/>.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="event"/> is <see langword="null"/>.</exception>
+    public static string? GetRoutePatternIfAvailable(this GatewayEvent @event)
+    {
+        ArgumentNullException.ThrowIfNull(@event);
+        return @event switch
+        {
+            RouteAddedEvent e => e.Pattern,
+            RouteRemovedEvent e => e.Pattern,
+            _ => null
+        };
+    }
+
+    /// <summary>
     /// Converts the event to a summary string for logging or auditing.
     /// </summary>
     /// <param name="event">The event to summarize.</param>
