@@ -32,4 +32,7 @@ public class RetryPolicyOptions
     /// <summary>Maximum random jitter fraction (0.0-1.0) applied on top of each computed backoff delay.</summary>
     /// <value>The maximum jitter fraction.</value>
     public double JitterFactor { get; set; } = 0.25;
+
+    /// <inheritdoc />
+    public override string ToString() => $"RetryPolicyOptions {{ MaxAttempts = {MaxAttempts}, BaseDelay = {BaseDelay}, MaxDelay = {MaxDelay}, TotalTimeout = {TotalTimeout}, JitterFactor = {JitterFactor} }}";
 }
