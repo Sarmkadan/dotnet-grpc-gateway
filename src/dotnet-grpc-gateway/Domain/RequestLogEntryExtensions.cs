@@ -127,6 +127,18 @@ public static class RequestLogEntryExtensions
     }
 
     /// <summary>
+    /// Determines whether the request exceeded the slow request threshold (1 second).
+    /// </summary>
+    /// <param name="entry">The log entry.</param>
+    /// <returns>True if the request duration is greater than or equal to 1 second; otherwise false.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="entry"/> is <see langword="null"/>.</exception>
+    public static bool IsSlowRequest(this RequestLogEntry entry)
+    {
+        ArgumentNullException.ThrowIfNull(entry);
+        return entry.DurationMs >= 1000;
+    }
+
+    /// <summary>
     /// Gets a summary of the request for display purposes.
     /// </summary>
     /// <param name="entry">The log entry.</param>
