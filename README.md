@@ -1666,6 +1666,68 @@ if (faultedResult.Result is OkObjectResult faultedOkResult)
 }
 ```
 
+## CircuitBreakerController
+
+`CircuitBreakerController` exposes the gateway's per-service circuit breakers as a
+REST API. It is an `[ApiController]` routed at `api/CircuitBreaker` and produces
+`application/json`. It delegates to `ICircuitBreakerRegistry` to inspect the state
+of all registered breakers, inspect a single breaker, and manually reset a breaker
+to the `Closed` state. Each endpoint logs its activity through
+`ILogger<CircuitBreakerController>`.
+
+### Endpoints
+
+#### GET api/CircuitBreaker
+
+Returns the state of all registered circuit breakers.
+
+- **200 OK** — `IReadOnlyDictionary<int, string>` mapping each `serviceId` to its
+  breaker state (`Closed`, `Open`, or `HalfOpen`):
+
+```json
+{
+  "1": "Closed",
+  "2": "Open",
+  "3": "HalfOpen"
+}
+```
+
+#### GET api/CircuitBreaker/services/{serviceId}
+
+Returns the status of the circuit breaker for a specific service.
+
+- **200 OK** — an object with the breaker's current state, consecutive failure
+  count, and the time it opened:
+
+```json
+{
+  "serviceId": 2,
+  "state": "Open",
+  "consecutiveFailures": 5,
+  "openedAt": "2026-09-15T14:30:00Z"
+}
+```
+
+- **404 Not Found** — when no circuit breaker is registered for `serviceId`; the
+  body is `No circuit breaker registered for service {serviceId}`.
+
+#### POST api/CircuitBreaker/services/{serviceId}/reset
+
+Manually resets the circuit breaker for a service to the `Closed` state, clearing
+its consecutive failure count.
+
+- **200 OK** — an object confirming the reset:
+
+```json
+{
+  "serviceId": 2,
+  "state": "Closed"
+}
+```
+
+- **404 Not Found** — when no circuit breaker is registered for `serviceId`; the
+  body is `No circuit breaker registered for service {serviceId}`.
+
 ## RequestLogServiceTests
 
 `RequestLogServiceTests` is a comprehensive test class that validates the behavior of request logging functionality in the gRPC gateway. It tests various scenarios including successful requests, failed requests, slow requests, large payloads, cache hits/misses, and retry behavior. The tests ensure that log entries are created with appropriate log levels (INFO, WARN, ERROR) and contain the expected message patterns and metadata for different request outcomes.
