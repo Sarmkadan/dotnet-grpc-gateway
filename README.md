@@ -153,6 +153,115 @@ public sealed class RouteInspector(IRouteManagementService routeManagement)
 }
 ```
 
+## WebhookService
+
+`WebhookService` provides functionality for sending webhooks to external endpoints with
+retry logic, timeout management, and delivery tracking. It implements the `IWebhookService`
+interface and handles exponential backoff for failed deliveries.
+
+### Purpose
+
+The WebhookService is responsible for:
+- Sending HTTP POST requests with JSON payloads to configured webhook URLs
+- Implementing retry logic with exponential backoff for failed deliveries (up to 3 attempts)
+- Managing request timeouts (10 seconds per attempt)
+- Tracking delivery history for monitoring and debugging
+- Distinguishing between client errors (4xx) which are not retried and server errors (5xx) which are retried
+- Masking sensitive URL data in logs for security
+
+### Delivery/Retry Behavior
+
+The service implements the following delivery semantics:
+
+1. **Retry Logic**: Failed deliveries are retried up to 3 times total
+2. **Backoff Strategy**: Exponential backoff starting at 1 second, doubling each attempt (1s, 2s, 4s)
+3. **Error Classification**: 
+   - Client errors (HTTP 4xx) are not retried as they indicate permanent failures
+   - Server errors (HTTP 5xx) and timeouts are retried with backoff
+   - Network exceptions are retried with backoff
+4. **Timeout Handling**: Each attempt has a 10-second timeout; timeouts trigger retries
+5. **History Tracking**: Successful and failed deliveries are recorded in memory (last 1000 entries)
+
+### Configuration
+
+The WebhookService is configured through dependency injection with the following defaults:
+- `MaxRetries`: 3 attempts
+- `TimeoutSeconds`: 10 seconds per attempt
+- `RetryDelayMs`: 1 second base delay for exponential backoff
+- `MaxHistoryEntries`: 1000 delivery records kept in memory
+- `HistoryTrimCount`: 100 entries removed when history exceeds max size
+
+To register the service in your application:
+
+```csharp
+using DotNetGrpcGateway.Integration;
+
+builder.Services.AddHttpClient<IWebhookService, WebhookService>();
+```
+
+### Example Usage
+
+```csharp
+using DotNetGrpcGateway.Integration;
+using System.Threading;
+using System.Threading.Tasks;
+
+public class WebhookSender
+{
+    private readonly IWebhookService _webhookService;
+
+    public WebhookSender(IWebhookService webhookService)
+    {
+        _webhookService = webhookService;
+    }
+
+    public async Task SendNotificationAsync(string webhookUrl, object notificationData, CancellationToken cancellationToken = default)
+    {
+        // Send the webhook with automatic retry handling
+        var result = await _webhookService.SendWebhookAsync(webhookUrl, notificationData, cancellationToken);
+
+        if (result.Success)
+        {
+            // Webhook delivered successfully
+            Console.WriteLine($"Webhook delivered at {result.DeliveredAt} (status: {result.StatusCode})");
+        }
+        else
+        {
+            // Handle delivery failure
+            Console.WriteLine($"Webhook delivery failed: {result.Message}");
+        }
+    }
+
+    public async Task<List<WebhookDelivery>> GetWebhookHistoryAsync(string webhookUrl)
+    {
+        // Retrieve delivery history for monitoring/debugging
+        return await _webhookService.GetDeliveryHistoryAsync(webhookUrl);
+    }
+}
+```
+
+### Response Models
+
+`WebhookResult` — result of a webhook delivery attempt:
+
+| Property | Type | Description |
+|----------|------|-------------|
+| `Success` | `bool` | Indicates whether the webhook was delivered successfully |
+| `StatusCode` | `int?` | HTTP status code returned by the endpoint, if available |
+| `Message` | `string?` | Message describing the delivery result (reason phrase or error) |
+| `DeliveredAt` | `DateTime` | Timestamp when delivery completed |
+| `DurationMs` | `long` | Delivery duration in milliseconds |
+
+`WebhookDelivery` — historical record of a webhook delivery:
+
+| Property | Type | Description |
+|----------|------|-------------|
+| `Url` | `string` | The webhook URL that was called |
+| `DeliveredAt` | `DateTime` | Timestamp when delivery completed |
+| `Success` | `bool` | Whether the delivery was successful |
+| `StatusCode` | `int?` | HTTP status code returned by the endpoint, if available |
+| `ErrorMessage` | `string?` | Error message if delivery failed, null if successful |
+
 ## ServiceDiscoveryController
 
 `ServiceDiscoveryController` exposes the gateway's service discovery operations as a
