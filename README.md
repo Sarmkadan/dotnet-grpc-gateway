@@ -626,6 +626,40 @@ var customOptions = new CircuitBreakerOptions
 };
 ```
 
+## RetryPolicyOptions
+
+`RetryPolicyOptions` holds the configuration for retrying transient repository/upstream failures with exponential backoff and jitter. It sits alongside `CircuitBreakerOptions` as shared resilience configuration. All properties are read/write and come with sensible defaults, so an instance can be used as-is or tuned per service.
+
+### Properties
+
+| Property | Type | Default | Notes |
+| --- | --- | --- | --- |
+| `MaxAttempts` | `int` | `3` | Maximum number of attempts, including the initial one, before giving up. |
+| `BaseDelay` | `TimeSpan` | `100` milliseconds | Base delay used to compute the exponential backoff for the first retry. |
+| `MaxDelay` | `TimeSpan` | `5` seconds | Upper bound applied to the computed backoff delay for any single attempt. |
+| `TotalTimeout` | `TimeSpan` | `30` seconds | Maximum wall-clock time allowed across all attempts before the operation is abandoned. |
+| `JitterFactor` | `double` | `0.25` | Maximum random jitter fraction (0.0-1.0) applied on top of each computed backoff delay. |
+
+### Example Usage
+
+```csharp
+using DotNetGrpcGateway.Infrastructure;
+
+// 1. Use the built-in defaults
+var defaultOptions = new RetryPolicyOptions();
+// MaxAttempts = 3, BaseDelay = 100ms, MaxDelay = 5s, TotalTimeout = 30s, JitterFactor = 0.25
+
+// 2. Tune the behavior for a specific service
+var customOptions = new RetryPolicyOptions
+{
+    MaxAttempts = 5,
+    BaseDelay = TimeSpan.FromMilliseconds(200),
+    MaxDelay = TimeSpan.FromSeconds(10),
+    TotalTimeout = TimeSpan.FromMinutes(1),
+    JitterFactor = 0.1
+};
+```
+
 ## CircuitBreakerTests
 
 `CircuitBreakerTests` is a comprehensive test class that validates the behavior of the `CircuitBreaker` class, which implements the circuit breaker pattern to prevent cascading failures in distributed systems. The tests cover state transitions (closed → open → half-open → closed), failure threshold tracking, request allowance control, and circuit reset functionality. Each test verifies that the circuit breaker correctly manages service availability based on failure patterns.
