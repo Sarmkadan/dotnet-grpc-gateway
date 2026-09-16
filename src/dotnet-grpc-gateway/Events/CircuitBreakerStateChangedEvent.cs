@@ -55,4 +55,7 @@ public class CircuitBreakerStateChangedEvent : GatewayEvent
         ConsecutiveFailures = consecutiveFailures;
         OpenedAt = openedAt;
     }
+
+    public override string ToString() =>
+        $"CircuitBreakerStateChangedEvent {{ ServiceId = {ServiceId}, ServiceName = {ServiceName}, PreviousState = {PreviousState}, NewState = {NewState}, ConsecutiveFailures = {ConsecutiveFailures}, OpenedAt = {OpenedAt} }}";
 }
