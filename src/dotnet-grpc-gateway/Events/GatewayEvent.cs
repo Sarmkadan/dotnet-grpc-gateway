@@ -41,6 +41,9 @@ public abstract class GatewayEvent
         CorrelationId = correlationId;
         CausedBy = causedBy;
     }
+
+    public override string ToString() =>
+        $"GatewayEvent {{ EventId = {EventId}, OccurredAt = {OccurredAt}, CorrelationId = {CorrelationId}, CausedBy = {CausedBy} }}";
 }
 
 /// <summary>
