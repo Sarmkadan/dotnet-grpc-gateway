@@ -11,9 +11,24 @@ namespace DotNetGrpcGateway.Infrastructure;
 /// </summary>
 public interface IUnitOfWork : IDisposable, IAsyncDisposable
 {
+    /// <summary>
+    /// Gets the repository for managing gateway data.
+    /// </summary>
     IGatewayRepository Gateways { get; }
+
+    /// <summary>
+    /// Gets the registry for managing services.
+    /// </summary>
     IServiceRegistry Services { get; }
+
+    /// <summary>
+    /// Gets the repository for managing route data.
+    /// </summary>
     IRouteRepository Routes { get; }
+
+    /// <summary>
+    /// Gets the repository for managing metrics data.
+    /// </summary>
     IMetricsRepository Metrics { get; }
 
     /// <summary>
