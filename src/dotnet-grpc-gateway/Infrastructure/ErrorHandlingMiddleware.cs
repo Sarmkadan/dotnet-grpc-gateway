@@ -4,9 +4,9 @@
 // CTO & Software Architect
 // =============================================================================
 
-using DotNetGrpcGateway.Exceptions;
 using System.Net;
 using System.Text.Json;
+using DotNetGrpcGateway.Exceptions;
 
 namespace DotNetGrpcGateway.Infrastructure;
 
