@@ -48,4 +48,17 @@ public static class ServiceHealthReportExtensions
             ? $"Healthy ({report.SuccessfulHealthChecks} successful checks)"
             : $"Unhealthy ({report.FailedChecksInARow} failed checks in a row)";
     }
+
+    /// <summary>
+    /// Determines whether the next scheduled health check is overdue.
+    /// </summary>
+    /// <param name="report">The health report to analyze. Cannot be null.</param>
+    /// <returns>True if the next scheduled health check is in the past; otherwise false.</returns>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="report"/> is null.</exception>
+    public static bool IsHealthCheckOverdue(this ServiceHealthReport report)
+    {
+        ArgumentNullException.ThrowIfNull(report);
+
+        return report.NextCheckScheduledAt < DateTime.UtcNow;
+    }
 }
