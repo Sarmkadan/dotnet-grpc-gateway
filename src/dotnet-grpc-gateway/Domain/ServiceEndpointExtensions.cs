@@ -44,6 +44,25 @@ namespace DotNetGrpcGateway.Domain
         }
 
         /// <summary>
+        /// Calculates the failure rate of the endpoint based on handled requests.
+        /// </summary>
+        /// <param name="endpoint">The endpoint to calculate failure rate for.</param>
+        /// <returns>The failure rate as a value between 0 and 1, where 1 represents 100% failure.</returns>
+        /// <exception cref="ArgumentNullException"><paramref name="endpoint"/> is <see langword="null"/>.</exception>
+        public static double GetFailureRate(this ServiceEndpoint endpoint)
+        {
+            ArgumentNullException.ThrowIfNull(endpoint);
+
+            if (endpoint.TotalRequestsHandled == 0)
+            {
+                return 0;
+            }
+
+            var failed = Math.Clamp(endpoint.FailedRequestsCount, 0, endpoint.TotalRequestsHandled);
+            return (double)failed / endpoint.TotalRequestsHandled;
+        }
+
+        /// <summary>
         /// Determines whether the endpoint was recently used within the specified time threshold.
         /// </summary>
         /// <param name="endpoint">The endpoint to check.</param>
