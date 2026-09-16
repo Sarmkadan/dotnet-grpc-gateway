@@ -157,6 +157,7 @@ public class PerformanceMonitor : IPerformanceMonitor
     // Uptime tracking
     private readonly Stopwatch _uptime = Stopwatch.StartNew();
 
+    /// <inheritdoc />
     public void RecordRequestDuration(string path, long durationMs)
     {
         ArgumentNullException.ThrowIfNull(path);
@@ -177,11 +178,13 @@ public class PerformanceMonitor : IPerformanceMonitor
         sketch.Add(durationMs);
     }
 
+    /// <inheritdoc />
     public async Task<PerformanceMetrics> GetMetricsAsync()
     {
         return await Task.FromResult(CreateMetricsSnapshot());
     }
 
+    /// <inheritdoc />
     public async Task ResetAsync()
     {
         _totalRequests.Reset();
