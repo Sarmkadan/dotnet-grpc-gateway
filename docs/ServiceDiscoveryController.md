@@ -1,53 +1,136 @@
 # ServiceDiscoveryController
-The `ServiceDiscoveryController` class is a crucial component in the `dotnet-grpc-gateway` project, responsible for managing service discovery and routing. It provides a set of APIs to retrieve information about available services, their routes, and conflicting routes, as well as to find matching routes. This controller is essential for enabling efficient and scalable service discovery and routing in a microservices architecture.
 
-## API
-The `ServiceDiscoveryController` class exposes the following public members:
-* `GetAllServices`: Retrieves a list of all available services. Returns an `ActionResult` containing a `List<ServiceInfo>`. Throws if an error occurs during service discovery.
-* `GetServiceRoutes`: Retrieves a list of routes for a specific service. Returns an `ActionResult` containing a `List<GatewayRoute>`. Throws if an error occurs during route retrieval.
-* `FindMatchingRoute`: Finds a matching route based on the provided parameters. Returns an `ActionResult` containing a `RouteMatchResult`. Throws if an error occurs during route matching.
-* `GetConflictingRoutes`: Retrieves a list of conflicting routes. Returns an `ActionResult` containing a `List<GatewayRoute>`. Throws if an error occurs during conflict detection.
-* `Id`: Gets the identifier of the controller.
-* `Name`: Gets the name of the controller.
-* `ServiceFullName`: Gets the full name of the service.
-* `Host`: Gets the host of the service.
-* `Port`: Gets the port of the service.
-* `UseTls`: Gets a value indicating whether to use TLS.
-* `IsActive`: Gets a value indicating whether the controller is active.
-* `Path`: Gets the path of the route.
-* `RouteId`: Gets the identifier of the route.
-* `Pattern`: Gets the pattern of the route.
-* `ServiceId`: Gets the identifier of the service.
-* `ServiceName`: Gets the name of the service.
-* `Priority`: Gets the priority of the route.
+REST API controller for service discovery operations in the dotnet-grpc-gateway project. Provides endpoints for service registration, discovery, route matching, and dynamic configuration management.
 
-## Usage
-Here are two examples of using the `ServiceDiscoveryController` class:
-```csharp
-// Example 1: Retrieving all available services
-var controller = new ServiceDiscoveryController();
-var services = await controller.GetAllServices();
-foreach (var service in services.Value)
-{
-    Console.WriteLine($"Service Name: {service.Name}, Service Full Name: {service.FullName}");
-}
+## Endpoints
 
-// Example 2: Finding a matching route
-var controller = new ServiceDiscoveryController();
-var routeMatchResult = await controller.FindMatchingRoute();
-if (routeMatchResult.Value.IsMatch)
+### Get All Services
+```
+GET /api/servicediscovery/services
+```
+
+Retrieves all registered services with their metadata.
+
+**Response:**
+- `200 OK` - Returns `List<ServiceInfo>` containing service details
+- `500 Internal Server Error` - If an error occurs during service retrieval
+
+**Response Body (ServiceInfo):**
+```json
 {
-    Console.WriteLine($"Matching Route Found: {routeMatchResult.Value.Route}");
-}
-else
-{
-    Console.WriteLine("No matching route found");
+  "id": 0,
+  "name": "string",
+  "serviceFullName": "string",
+  "host": "string",
+  "port": 0,
+  "useTls": true,
+  "isActive": true
 }
 ```
 
-## Notes
-When using the `ServiceDiscoveryController` class, consider the following edge cases and thread-safety remarks:
-* The `GetAllServices`, `GetServiceRoutes`, `FindMatchingRoute`, and `GetConflictingRoutes` methods are asynchronous and may throw exceptions if errors occur during service discovery, route retrieval, or conflict detection.
-* The `Id`, `Name`, `ServiceFullName`, `Host`, `Port`, `UseTls`, `IsActive`, `Path`, `RouteId`, `Pattern`, `ServiceId`, `ServiceName`, and `Priority` properties are read-only and may be accessed concurrently by multiple threads.
-* The `ServiceDiscoveryController` class is not designed to be thread-safe for modification. If you need to modify the controller's state, ensure that you synchronize access to the controller instance.
-* The `ServiceDiscoveryController` class may cache results from previous service discovery and route retrieval operations. If you need to ensure that the latest information is retrieved, consider using the `GetAllServices` or `GetServiceRoutes` methods with a cache-busting mechanism.
+### Get Service Routes
+```
+GET /api/servicediscovery/services/{serviceId}/routes
+```
+
+Retrieves all routes configured for a specific service.
+
+**Parameters:**
+- `serviceId` (path, integer) - The ID of the service
+
+**Response:**
+- `200 OK` - Returns `List<GatewayRoute>` containing route details
+- `404 Not Found` - If the service is not found
+- `500 Internal Server Error` - If an error occurs during route retrieval
+
+### Find Matching Route
+```
+POST /api/servicediscovery/route-match
+```
+
+Finds the matching route for a given request path.
+
+**Request Body:**
+```json
+{
+  "path": "string"
+}
+```
+
+**Response:**
+- `200 OK` - Returns `RouteMatchResult` with matching route details
+- `400 Bad Request` - If path is null or empty
+- `404 Not Found` - If no matching route is found
+- `500 Internal Server Error` - If an error occurs during route matching
+
+**Response Body (RouteMatchResult):**
+```json
+{
+  "routeId": 0,
+  "pattern": "string",
+  "serviceId": 0,
+  "serviceName": "string",
+  "priority": 0
+}
+```
+
+### Get Conflicting Routes
+```
+POST /api/servicediscovery/route-conflicts
+```
+
+Retrieves routes that might conflict with a given pattern.
+
+**Request Body:**
+```json
+{
+  "pattern": "string"
+}
+```
+
+**Response:**
+- `200 OK` - Returns `List<GatewayRoute>` containing conflicting routes
+- `400 Bad Request` - If pattern is null or empty
+- `500 Internal Server Error` - If an error occurs during conflict detection
+
+## Data Models
+
+### ServiceInfo
+Contains metadata about a registered service:
+- `id`: Unique service identifier
+- `name`: Service name
+- `serviceFullName`: Fully qualified service name
+- `host`: Service host address
+- `port`: Service port number
+- `useTls`: Whether TLS is used for communication
+- `isActive`: Whether the service is currently active
+
+### RouteMatchRequest
+Request model for finding matching routes:
+- `path`: The request path to match against registered routes
+
+### RouteMatchResult
+Result of a route matching operation:
+- `routeId`: ID of the matched route
+- `pattern`: URL pattern of the matched route
+- `serviceId`: ID of the target service
+- `serviceName`: Name of the target service
+- `priority`: Priority level of the matched route
+
+### RoutePatternRequest
+Request model for checking route conflicts:
+- `pattern`: URL pattern to check for conflicts
+
+## Error Handling
+All endpoints follow consistent error handling:
+- Validation errors return `400 Bad Request` with descriptive messages
+- Not found conditions return `404 Not Found`
+- Unexpected errors return `500 Internal Server Error` and are logged
+- All responses use JSON content type
+
+## Dependencies
+The controller depends on several services injected via constructor:
+- `IGatewayService`: Core gateway operations
+- `IServiceDiscoveryService`: Service discovery functionality
+- `IRouteManagementService`: Route management operations
+- `ILogger<ServiceDiscoveryController>`: Logging functionality
