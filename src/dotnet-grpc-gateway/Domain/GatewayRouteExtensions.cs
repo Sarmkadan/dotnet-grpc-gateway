@@ -32,6 +32,14 @@ public static class GatewayRouteExtensions
     }
 
     /// <summary>
+    /// Checks if the route is active and matches the given request path.
+    /// </summary>
+    public static bool CanRoutePath(this GatewayRoute route, string path)
+    {
+        return route.IsActive && route.MatchesPath(path);
+    }
+
+    /// <summary>
     /// Returns a string representation of the route for display purposes.
     /// </summary>
     public static string ToDisplayString(this GatewayRoute route)
