@@ -14,10 +14,20 @@ namespace DotNetGrpcGateway.Controllers;
 /// REST API for querying the structured request/response log store.
 /// </summary>
 [ApiController]
-[Route("api/[controller]")]
-[Produces("application/json")]
+[Route(ControllerRouteTemplate)]
+[Produces(JsonContentType)]
 public class RequestLogsController : ControllerBase
 {
+    private const string ControllerRouteTemplate = "api/[controller]";
+    private const string JsonContentType = "application/json";
+    private const string SearchRouteTemplate = "search";
+    private const string SummaryRouteTemplate = "summary";
+    private const string InvalidTimeRangeMessage = "'from' must be before 'to'";
+    private const string LogStoreClearedMessage = "Request log store cleared via API";
+    private const int DefaultLimit = 50;
+    private const int MinimumLimit = 1;
+    private const int MaximumLimit = 1000;
+
     private readonly IRequestLogService _logService;
     private readonly ILogger<RequestLogsController> _logger;
 
@@ -36,10 +46,10 @@ public class RequestLogsController : ControllerBase
     /// <returns>The most recent retained request log entries.</returns>
     [HttpGet]
     [ProducesResponseType(typeof(IReadOnlyList<RequestLogEntry>), StatusCodes.Status200OK)]
-    public ActionResult<IReadOnlyList<RequestLogEntry>> GetRecent([FromQuery] int limit = 50)
+    public ActionResult<IReadOnlyList<RequestLogEntry>> GetRecent([FromQuery] int limit = DefaultLimit)
     {
-        if (limit < 1 || limit > 1000)
-            limit = 50;
+        if (limit < MinimumLimit || limit > MaximumLimit)
+            limit = DefaultLimit;
 
         return Ok(_logService.GetRecent(limit));
     }
@@ -53,7 +63,7 @@ public class RequestLogsController : ControllerBase
     /// <param name="to">The optional latest timestamp to include.</param>
     /// <param name="limit">The maximum number of entries to return.</param>
     /// <returns>The matching request log entries, or a bad request result when the time range is invalid.</returns>
-    [HttpGet("search")]
+    [HttpGet(SearchRouteTemplate)]
     [ProducesResponseType(typeof(IReadOnlyList<RequestLogEntry>), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public ActionResult<IReadOnlyList<RequestLogEntry>> Search(
@@ -61,10 +71,10 @@ public class RequestLogsController : ControllerBase
         [FromQuery] int? statusCode = null,
         [FromQuery] DateTime? from = null,
         [FromQuery] DateTime? to = null,
-        [FromQuery] int limit = 50)
+        [FromQuery] int limit = DefaultLimit)
     {
         if (from.HasValue && to.HasValue && from > to)
-            return BadRequest("'from' must be before 'to'");
+            return BadRequest(InvalidTimeRangeMessage);
 
         return Ok(_logService.Search(method, statusCode, from, to, limit));
     }
@@ -73,7 +83,7 @@ public class RequestLogsController : ControllerBase
     /// Returns aggregate statistics over retained log entries.
     /// </summary>
     /// <returns>Aggregate statistics for the retained request log entries.</returns>
-    [HttpGet("summary")]
+    [HttpGet(SummaryRouteTemplate)]
     [ProducesResponseType(typeof(RequestLogSummary), StatusCodes.Status200OK)]
     public ActionResult<RequestLogSummary> GetSummary() =>
         Ok(_logService.GetSummary());
@@ -87,7 +97,7 @@ public class RequestLogsController : ControllerBase
     public ActionResult Clear()
     {
         _logService.Clear();
-        _logger.LogInformation("Request log store cleared via API");
+        _logger.LogInformation(LogStoreClearedMessage);
         return NoContent();
     }
 }
