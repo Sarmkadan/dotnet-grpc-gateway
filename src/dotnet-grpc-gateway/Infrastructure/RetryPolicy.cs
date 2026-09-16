@@ -36,7 +36,20 @@ public class RetryPolicy : IRetryPolicy
         _logger = logger;
     }
 
-    /// <inheritdoc />
+    /// <summary>
+    /// Executes an operation that returns a value, retrying transient failures according to
+    /// the configured retry policy.
+    /// </summary>
+    /// <typeparam name="T">The type of value returned by the operation.</typeparam>
+    /// <param name="operation">The asynchronous operation to execute.</param>
+    /// <param name="operationName">The name used to identify the operation in diagnostic messages.</param>
+    /// <param name="cancellationToken">A token that can be used to cancel the operation.</param>
+    /// <returns>The value returned by the successfully completed operation.</returns>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="operation"/> is <see langword="null"/>.</exception>
+    /// <exception cref="ArgumentException">Thrown when <paramref name="operationName"/> is <see langword="null"/> or empty.</exception>
+    /// <exception cref="OperationCanceledException">
+    /// Thrown when cancellation is requested or the total retry timeout is exceeded.
+    /// </exception>
     public async Task<T> ExecuteAsync<T>(Func<CancellationToken, Task<T>> operation, string operationName, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(operation);
@@ -68,7 +81,18 @@ public class RetryPolicy : IRetryPolicy
         }
     }
 
-    /// <inheritdoc />
+    /// <summary>
+    /// Executes an operation, retrying transient failures according to the configured retry policy.
+    /// </summary>
+    /// <param name="operation">The asynchronous operation to execute.</param>
+    /// <param name="operationName">The name used to identify the operation in diagnostic messages.</param>
+    /// <param name="cancellationToken">A token that can be used to cancel the operation.</param>
+    /// <returns>A task that represents the asynchronous operation.</returns>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="operation"/> is <see langword="null"/>.</exception>
+    /// <exception cref="ArgumentException">Thrown when <paramref name="operationName"/> is <see langword="null"/> or empty.</exception>
+    /// <exception cref="OperationCanceledException">
+    /// Thrown when cancellation is requested or the total retry timeout is exceeded.
+    /// </exception>
     public async Task ExecuteAsync(Func<CancellationToken, Task> operation, string operationName, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(operation);
