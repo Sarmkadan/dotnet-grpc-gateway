@@ -63,5 +63,23 @@ namespace DotNetGrpcGateway.Domain
 
             return token.ExpiresAt.HasValue && token.ExpiresAt.Value - DateTime.UtcNow <= threshold;
         }
+
+        /// <summary>
+        /// Returns the remaining lifetime of the token before it expires.
+        /// </summary>
+        /// <param name="token">The authentication token to inspect. Cannot be <c>null</c>.</param>
+        /// <returns>
+        /// The time remaining until <c>ExpiresAt</c> if the token defines an expiration value;
+        /// otherwise, <see cref="TimeSpan.MaxValue"/> to indicate the token does not expire.
+        /// </returns>
+        /// <exception cref="ArgumentNullException"><paramref name="token"/> is <c>null</c>.</exception>
+        public static TimeSpan RemainingLifetime(this AuthenticationToken token)
+        {
+            ArgumentNullException.ThrowIfNull(token);
+
+            return token.ExpiresAt.HasValue
+                ? token.ExpiresAt.Value - DateTime.UtcNow
+                : TimeSpan.MaxValue;
+        }
     }
 }
