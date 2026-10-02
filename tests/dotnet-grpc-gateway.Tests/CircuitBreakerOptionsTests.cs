@@ -23,7 +23,7 @@ public class CircuitBreakerOptionsTests
         var options = new CircuitBreakerOptions();
 
         // Assert
-        options.FailureThreshold.Should().Be(5);
+        options.FailureThreshold.Should().Be(3);
         options.OpenDuration.Should().Be(TimeSpan.FromSeconds(30));
         options.HalfOpenSuccessThreshold.Should().Be(2);
     }

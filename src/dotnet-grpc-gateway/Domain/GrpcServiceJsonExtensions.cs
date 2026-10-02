@@ -12,6 +12,7 @@ public static class GrpcServiceJsonExtensions
 {
     private static readonly JsonSerializerOptions _jsonSerializerOptions = new JsonSerializerOptions
     {
+        PropertyNameCaseInsensitive = true,
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
         WriteIndented = false,
         DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
@@ -59,11 +60,9 @@ public static class GrpcServiceJsonExtensions
     /// <param name="value">Output parameter for the deserialized <see cref="GrpcService"/>.</param>
     /// <returns>True if deserialization succeeded, false otherwise.</returns>
     /// <exception cref="ArgumentNullException"><paramref name="json"/> is <see langword="null"/>.</exception>
-    public static bool TryFromJson(string json, out GrpcService? value)
+    public static bool TryFromJson(string? json, out GrpcService? value)
     {
         value = null;
-
-        ArgumentNullException.ThrowIfNull(json);
 
         if (string.IsNullOrWhiteSpace(json))
         {

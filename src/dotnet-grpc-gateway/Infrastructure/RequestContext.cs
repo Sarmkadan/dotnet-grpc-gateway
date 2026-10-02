@@ -114,9 +114,10 @@ public class RequestContext
     /// <param name="key">The property key</param>
     /// <param name="value">The property value (null removes the property)</param>
     /// <exception cref="ArgumentNullException">Thrown when <paramref name="key"/> is null or empty</exception>
-    public void SetProperty(string key, object? value)
+    public void SetProperty(string? key, object? value)
     {
-        ArgumentException.ThrowIfNullOrEmpty(key);
+        if (string.IsNullOrEmpty(key))
+            return;
 
         if (value is null)
             Properties.Remove(key);
@@ -131,9 +132,10 @@ public class RequestContext
     /// <param name="key">The property key</param>
     /// <returns>The property value, or default(T) if not found</returns>
     /// <exception cref="ArgumentNullException">Thrown when <paramref name="key"/> is null or empty</exception>
-    public T? GetProperty<T>(string key)
+    public T? GetProperty<T>(string? key)
     {
-        ArgumentException.ThrowIfNullOrEmpty(key);
+        if (string.IsNullOrEmpty(key))
+            return default;
 
         if (Properties.TryGetValue(key, out var value))
             return (T?)value;

@@ -41,9 +41,10 @@ public static class GatewayUtilities
     /// <summary>
     /// Deserializes JSON to an object
     /// </summary>
-    public static T? FromJson<T>(string json)
+    public static T? FromJson<T>(string? json)
     {
-        ArgumentException.ThrowIfNullOrEmpty(json);
+        if (string.IsNullOrWhiteSpace(json))
+            return default;
 
         try
         {
@@ -148,10 +149,10 @@ public static class GatewayUtilities
     /// <summary>
     /// Safely gets a value from a dictionary
     /// </summary>
-    public static T? SafeGetValue<T>(Dictionary<string, T> dict, string key)
+    public static T? SafeGetValue<T>(Dictionary<string, T>? dict, string key)
     {
-        ArgumentNullException.ThrowIfNull(dict);
-        ArgumentException.ThrowIfNullOrEmpty(key);
+        if (dict is null || string.IsNullOrEmpty(key))
+            return default;
 
         dict.TryGetValue(key, out var value);
         return value;

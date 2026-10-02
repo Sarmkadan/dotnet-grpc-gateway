@@ -37,10 +37,22 @@ public class RequestThrottledEventHandler : EventHandlerBase<RequestThrottledEve
 
         ValidateEvent(@event);
 
-        SafeLog(
-            LogLevel.Warning,
-            "Request throttled - ClientIp: {ClientIp}, Path: {Path}, RateLimit: {RateLimit}, EventId: {@EventId}",
-            @event.ClientIp ?? "unknown", @event.RequestPath ?? "/unknown", @event.RateLimitPerWindow, @event.EventId);
+        var clientIpDisplay = @event.ClientIp is null ? "null" : (@event.ClientIp.Length == 0 ? "empty" : @event.ClientIp);
+
+        if (!string.IsNullOrEmpty(@event.CorrelationId))
+        {
+            SafeLog(
+                LogLevel.Warning,
+                "Request throttled - ClientIp: {ClientIp}, Path: {Path}, RateLimit: {RateLimit}, EventId: {@EventId}, correlation: {CorrelationId}",
+                clientIpDisplay, @event.RequestPath ?? "/unknown", @event.RateLimitPerWindow, @event.EventId, @event.CorrelationId);
+        }
+        else
+        {
+            SafeLog(
+                LogLevel.Warning,
+                "Request throttled - ClientIp: {ClientIp}, Path: {Path}, RateLimit: {RateLimit}, EventId: {@EventId}",
+                clientIpDisplay, @event.RequestPath ?? "/unknown", @event.RateLimitPerWindow, @event.EventId);
+        }
 
         // Track throttling per IP to detect potential abuse
         lock (_lock)

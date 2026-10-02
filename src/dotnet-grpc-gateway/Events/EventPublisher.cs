@@ -278,6 +278,23 @@ public class EventPublisher : IEventPublisher
         _logger.LogInformation("Event handler failure policy set to: {Policy}", policy);
     }
 
+    /// <summary>
+    /// Registers an additional handler type for the specified event type.
+    /// </summary>
+    public void Subscribe<TEvent>(Type handlerType) where TEvent : GatewayEvent
+    {
+        ArgumentNullException.ThrowIfNull(handlerType);
+        var eventType = typeof(TEvent);
+        _subscriptions.AddOrUpdate(eventType,
+            new List<Type> { handlerType },
+            (_, list) =>
+            {
+                if (!list.Contains(handlerType))
+                    list.Add(handlerType);
+                return list;
+            });
+    }
+
     private void DiscoverAndRegisterHandlers()
     {
         // Find all event handler implementations using reflection

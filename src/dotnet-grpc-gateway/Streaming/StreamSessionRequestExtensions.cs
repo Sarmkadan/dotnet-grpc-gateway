@@ -31,7 +31,9 @@ public static class StreamSessionRequestExtensions
     public static IReadOnlyDictionary<string, string> GetValidHeaders(this StreamSessionRequest request)
     {
         ArgumentNullException.ThrowIfNull(request);
-        ArgumentNullException.ThrowIfNull(request.Headers);
+
+        if (request.Headers is null)
+            return new Dictionary<string, string>();
 
         var validHeaders = new Dictionary<string, string>(request.Headers.Count);
         foreach (var header in request.Headers)

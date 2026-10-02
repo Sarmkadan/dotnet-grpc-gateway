@@ -34,10 +34,20 @@ public class ServiceUnregisteredEventHandler : EventHandlerBase<ServiceUnregiste
 
         ValidateEvent(@event);
 
-        SafeLog(
-            LogLevel.Warning,
-            "Service unregistered - ServiceId: {ServiceId}, ServiceName: {ServiceName}, EventId: {@EventId}",
-            @event.ServiceId, @event.ServiceName, @event.EventId);
+        if (!string.IsNullOrEmpty(@event.CorrelationId))
+        {
+            SafeLog(
+                LogLevel.Warning,
+                "Service unregistered - ServiceId: {ServiceId}, ServiceName: {ServiceName}, EventId: {@EventId}, correlation: {CorrelationId}",
+                @event.ServiceId, @event.ServiceName, @event.EventId, @event.CorrelationId);
+        }
+        else
+        {
+            SafeLog(
+                LogLevel.Warning,
+                "Service unregistered - ServiceId: {ServiceId}, ServiceName: {ServiceName}, EventId: {@EventId}",
+                @event.ServiceId, @event.ServiceName, @event.EventId);
+        }
 
         // In a real scenario, this would:
         // 1. Remove all routes pointing to this service

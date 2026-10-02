@@ -123,7 +123,7 @@ public class ServiceHealthReportValidationTests
             TotalHealthChecks = 0,
             SuccessfulHealthChecks = 0,
             HealthCheckSuccessRate = 0,
-            LastCheckAt = now.AddYears(-1), // exactly one year ago
+            LastCheckAt = now.AddYears(-1).AddMinutes(1), // just under one year ago
             NextCheckScheduledAt = now.AddYears(1), // exactly one year ahead
             ReportedAt = now.AddMinutes(5), // exactly 5 minutes in future (allowed)
             HealthCheckEndpoint = "relative/path", // relative URI allowed

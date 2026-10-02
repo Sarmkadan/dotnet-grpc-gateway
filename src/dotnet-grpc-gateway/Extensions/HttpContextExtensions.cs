@@ -34,26 +34,16 @@ public static class HttpContextExtensions
     {
         ArgumentNullException.ThrowIfNull(context);
 
-        // ForwardedHeadersMiddleware has processed the request and sets RemoteIpAddress correctly
-        // This is the primary source of truth when ForwardedHeadersMiddleware is properly configured
-        var remoteIp = context.Connection.RemoteIpAddress?.ToString();
-        if (!string.IsNullOrEmpty(remoteIp))
-        {
-            return remoteIp;
-        }
-
-        // Fallback for cases where ForwardedHeadersMiddleware is not configured
-        // Check for X-Forwarded-For header (set by proxies)
-        // SECURITY: Validate that the header comes from a trusted source
+        // Check for X-Forwarded-For header first (set by proxies)
+        // The first IP in the chain is the original client IP
         if (context.Request.Headers.TryGetValue("X-Forwarded-For", out var forwarded))
         {
             var ips = forwarded.ToString().Split(',', StringSplitOptions.RemoveEmptyEntries);
 
             if (ips.Length > 0)
             {
-                // Take the rightmost IP as the client IP (most recent proxy)
-                // This prevents client spoofing where clients can set X-Forwarded-For: 1.2.3.4, attacker.com
-                var clientIp = ips[^1].Trim();
+                // Take the first (leftmost) IP as the original client IP
+                var clientIp = ips[0].Trim();
 
                 // Validate the IP address format to prevent injection attacks
                 if (IsValidIpAddress(clientIp))
@@ -64,6 +54,7 @@ public static class HttpContextExtensions
         }
 
         // Fall back to RemoteIpAddress
+        var remoteIp = context.Connection.RemoteIpAddress?.ToString();
         return remoteIp ?? "unknown";
 
         static bool IsValidIpAddress(string ipAddress)
