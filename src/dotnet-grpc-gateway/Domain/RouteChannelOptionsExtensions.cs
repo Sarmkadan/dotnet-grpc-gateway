@@ -118,9 +118,7 @@ public static class RouteChannelOptionsExtensions
     public static RouteChannelOptions UpdateFrom(this RouteChannelOptions options, RouteChannelOptions? source)
     {
         ArgumentNullException.ThrowIfNull(options);
-
-        if (source == null)
-            return options;
+        ArgumentNullException.ThrowIfNull(source);
 
         if (source.CallTimeout.HasValue)
             options.CallTimeout = source.CallTimeout;

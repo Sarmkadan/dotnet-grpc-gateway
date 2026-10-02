@@ -43,6 +43,8 @@ public class EventPublisherFailureTests
         var secondHandler = new SecondServiceRegisteredEventHandler(_mockSecondLogger.Object);
         var serviceProvider = new TestServiceProvider(failingHandler, secondHandler);
         var publisher = new EventPublisher(serviceProvider, _mockLogger.Object);
+        publisher.Subscribe<ServiceRegisteredEvent>(typeof(FailingServiceRegisteredEventHandler));
+        publisher.Subscribe<ServiceRegisteredEvent>(typeof(SecondServiceRegisteredEventHandler));
 
         var @event = new ServiceRegisteredEvent(1, "TestService", "Test.Service.V1", "localhost", 50051);
 
@@ -68,6 +70,7 @@ public class EventPublisherFailureTests
         var failingHandler = new FailingServiceRegisteredEventHandler(_mockFailingLogger.Object);
         var serviceProvider = new TestServiceProvider(failingHandler, failingHandler);
         var publisher = new EventPublisher(serviceProvider, _mockLogger.Object);
+        publisher.Subscribe<ServiceRegisteredEvent>(typeof(FailingServiceRegisteredEventHandler));
 
         var @event = new ServiceRegisteredEvent(1, "TestService", "Test.Service.V1", "localhost", 50051);
 
@@ -83,6 +86,7 @@ public class EventPublisherFailureTests
         var failingHandler = new FailingServiceRegisteredEventHandler(_mockFailingLogger.Object);
         var serviceProvider = new TestServiceProvider(failingHandler, failingHandler);
         var publisher = new EventPublisher(serviceProvider, _mockLogger.Object);
+        publisher.Subscribe<ServiceRegisteredEvent>(typeof(FailingServiceRegisteredEventHandler));
 
         var @event = new ServiceRegisteredEvent(1, "TestService", "Test.Service.V1", "localhost", 50051);
 
@@ -99,6 +103,8 @@ public class EventPublisherFailureTests
         var secondHandler = new SecondServiceRegisteredEventHandler(_mockSecondLogger.Object);
         var serviceProvider = new TestServiceProvider(failingHandler, secondHandler);
         var publisher = new EventPublisher(serviceProvider, _mockLogger.Object, EventHandlerFailurePolicy.ContinueOnFailure);
+        publisher.Subscribe<ServiceRegisteredEvent>(typeof(FailingServiceRegisteredEventHandler));
+        publisher.Subscribe<ServiceRegisteredEvent>(typeof(SecondServiceRegisteredEventHandler));
 
         var @event = new ServiceRegisteredEvent(1, "TestService", "Test.Service.V1", "localhost", 50051);
 
@@ -124,6 +130,8 @@ public class EventPublisherFailureTests
         var secondHandler = new SecondServiceRegisteredEventHandler(_mockSecondLogger.Object);
         var serviceProvider = new TestServiceProvider(failingHandler, secondHandler);
         var publisher = new EventPublisher(serviceProvider, _mockLogger.Object, EventHandlerFailurePolicy.RetryThenContinue);
+        publisher.Subscribe<ServiceRegisteredEvent>(typeof(FailingServiceRegisteredEventHandler));
+        publisher.Subscribe<ServiceRegisteredEvent>(typeof(SecondServiceRegisteredEventHandler));
 
         var @event = new ServiceRegisteredEvent(1, "TestService", "Test.Service.V1", "localhost", 50051);
 
@@ -148,6 +156,7 @@ public class EventPublisherFailureTests
         var failingHandler = new FailingServiceRegisteredEventHandler(_mockFailingLogger.Object);
         var serviceProvider = new TestServiceProvider(failingHandler, failingHandler);
         var publisher = new EventPublisher(serviceProvider, _mockLogger.Object, EventHandlerFailurePolicy.DeadLetterOnFailure);
+        publisher.Subscribe<ServiceRegisteredEvent>(typeof(FailingServiceRegisteredEventHandler));
 
         var @event = new ServiceRegisteredEvent(1, "TestService", "Test.Service.V1", "localhost", 50051);
 

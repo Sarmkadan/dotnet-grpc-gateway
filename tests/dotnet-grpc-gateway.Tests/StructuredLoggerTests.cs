@@ -8,200 +8,163 @@ using Xunit;
 
 namespace DotNetGrpcGateway.Tests
 {
-    /// <summary>
-    /// Test class for <see cref="StructuredLogger"/>.
-    /// </summary>
     public class StructuredLoggerTests
     {
-    /// <summary>
-    /// Verifies that the StructuredLogger.LogRequestStart method LogsRequestStart in the HappyPath scenario.
-    /// </summary>
         [Fact]
         public void LogRequestStart_HappyPath_LogsRequestStart()
         {
-            // Arrange
             var loggerMock = new Mock<ILogger>();
-            var requestId = "requestId";
-            var path = "/path";
-            var method = "GET";
-            var clientIp = "192.168.1.1";
+            StructuredLogger.LogRequestStart(loggerMock.Object, "requestId", "/path", "GET", "192.168.1.1");
 
-            // Act
-            StructuredLogger.LogRequestStart(loggerMock.Object, requestId, path, method, clientIp);
-
-            // Assert
-            loggerMock.Verify(l => l.LogInformation(It.IsAny<string>(), requestId, path, method, clientIp), Times.Once);
+            loggerMock.Verify(
+                x => x.Log(
+                    LogLevel.Information,
+                    It.IsAny<EventId>(),
+                    It.Is<It.IsAnyType>((v, t) => v.ToString()!.Contains("Request started")),
+                    It.IsAny<Exception>(),
+                    It.IsAny<Func<It.IsAnyType, Exception, string>>()),
+                Times.Once);
         }
 
-    /// <summary>
-    /// Verifies that the StructuredLogger.LogRequestComplete method LogsRequestComplete in the HappyPath scenario.
-    /// </summary>
         [Fact]
         public void LogRequestComplete_HappyPath_LogsRequestComplete()
         {
-            // Arrange
             var loggerMock = new Mock<ILogger>();
-            var requestId = "requestId";
-            var path = "/path";
-            var statusCode = 200;
-            var durationMs = 100;
+            StructuredLogger.LogRequestComplete(loggerMock.Object, "requestId", "/path", 200, 100);
 
-            // Act
-            StructuredLogger.LogRequestComplete(loggerMock.Object, requestId, path, statusCode, durationMs);
-
-            // Assert
-            loggerMock.Verify(l => l.LogInformation(It.IsAny<string>(), requestId, path, statusCode, durationMs), Times.Once);
+            loggerMock.Verify(
+                x => x.Log(
+                    LogLevel.Information,
+                    It.IsAny<EventId>(),
+                    It.Is<It.IsAnyType>((v, t) => v.ToString()!.Contains("Request completed")),
+                    It.IsAny<Exception>(),
+                    It.IsAny<Func<It.IsAnyType, Exception, string>>()),
+                Times.Once);
         }
 
-    /// <summary>
-    /// Verifies that the StructuredLogger.LogServiceDiscovery method LogsServiceDiscovery in the HappyPath scenario.
-    /// </summary>
         [Fact]
         public void LogServiceDiscovery_HappyPath_LogsServiceDiscovery()
         {
-            // Arrange
             var loggerMock = new Mock<ILogger>();
-            var serviceId = 1;
-            var serviceName = "serviceName";
-            var healthy = true;
+            StructuredLogger.LogServiceDiscovery(loggerMock.Object, 1, "serviceName", true);
 
-            // Act
-            StructuredLogger.LogServiceDiscovery(loggerMock.Object, serviceId, serviceName, healthy);
-
-            // Assert
-            loggerMock.Verify(l => l.LogInformation(It.IsAny<string>(), serviceId, serviceName, healthy), Times.Once);
+            loggerMock.Verify(
+                x => x.Log(
+                    LogLevel.Information,
+                    It.IsAny<EventId>(),
+                    It.Is<It.IsAnyType>((v, t) => v.ToString()!.Contains("Service discovery")),
+                    It.IsAny<Exception>(),
+                    It.IsAny<Func<It.IsAnyType, Exception, string>>()),
+                Times.Once);
         }
 
-    /// <summary>
-    /// Verifies that the StructuredLogger.LogCacheOperation method LogsCacheOperation in the HappyPath scenario.
-    /// </summary>
         [Fact]
         public void LogCacheOperation_HappyPath_LogsCacheOperation()
         {
-            // Arrange
             var loggerMock = new Mock<ILogger>();
-            var operation = "operation";
-            var key = "key";
-            var hit = true;
+            StructuredLogger.LogCacheOperation(loggerMock.Object, "operation", "key", true);
 
-            // Act
-            StructuredLogger.LogCacheOperation(loggerMock.Object, operation, key, hit);
-
-            // Assert
-            loggerMock.Verify(l => l.LogDebug(It.IsAny<string>(), operation, key, hit), Times.Once);
+            loggerMock.Verify(
+                x => x.Log(
+                    LogLevel.Debug,
+                    It.IsAny<EventId>(),
+                    It.Is<It.IsAnyType>((v, t) => v.ToString()!.Contains("Cache operation")),
+                    It.IsAny<Exception>(),
+                    It.IsAny<Func<It.IsAnyType, Exception, string>>()),
+                Times.Once);
         }
 
-    /// <summary>
-    /// Verifies that the StructuredLogger.LogRouteResolution method LogsRouteResolution in the HappyPath scenario.
-    /// </summary>
         [Fact]
         public void LogRouteResolution_HappyPath_LogsRouteResolution()
         {
-            // Arrange
             var loggerMock = new Mock<ILogger>();
-            var path = "/path";
-            var routePattern = "routePattern";
-            var targetServiceId = 1;
+            StructuredLogger.LogRouteResolution(loggerMock.Object, "/path", "routePattern", 1);
 
-            // Act
-            StructuredLogger.LogRouteResolution(loggerMock.Object, path, routePattern, targetServiceId);
-
-            // Assert
-            loggerMock.Verify(l => l.LogInformation(It.IsAny<string>(), path, routePattern, targetServiceId), Times.Once);
+            loggerMock.Verify(
+                x => x.Log(
+                    LogLevel.Information,
+                    It.IsAny<EventId>(),
+                    It.Is<It.IsAnyType>((v, t) => v.ToString()!.Contains("Route resolved")),
+                    It.IsAny<Exception>(),
+                    It.IsAny<Func<It.IsAnyType, Exception, string>>()),
+                Times.Once);
         }
 
-    /// <summary>
-    /// Verifies that the StructuredLogger.LogRateLimit method LogsRateLimit in the HappyPath scenario.
-    /// </summary>
         [Fact]
         public void LogRateLimit_HappyPath_LogsRateLimit()
         {
-            // Arrange
             var loggerMock = new Mock<ILogger>();
-            var clientIp = "192.168.1.1";
-            var path = "/path";
-            var limit = 100;
+            StructuredLogger.LogRateLimit(loggerMock.Object, "192.168.1.1", "/path", 100);
 
-            // Act
-            StructuredLogger.LogRateLimit(loggerMock.Object, clientIp, path, limit);
-
-            // Assert
-            loggerMock.Verify(l => l.LogWarning(It.IsAny<string>(), clientIp, path, limit), Times.Once);
+            loggerMock.Verify(
+                x => x.Log(
+                    LogLevel.Warning,
+                    It.IsAny<EventId>(),
+                    It.Is<It.IsAnyType>((v, t) => v.ToString()!.Contains("Rate limit")),
+                    It.IsAny<Exception>(),
+                    It.IsAny<Func<It.IsAnyType, Exception, string>>()),
+                Times.Once);
         }
 
-    /// <summary>
-    /// Verifies that the StructuredLogger.LogAuthentication method LogsAuthentication in the HappyPath scenario.
-    /// </summary>
         [Fact]
         public void LogAuthentication_HappyPath_LogsAuthentication()
         {
-            // Arrange
             var loggerMock = new Mock<ILogger>();
-            var userId = "userId";
-            var success = true;
+            StructuredLogger.LogAuthentication(loggerMock.Object, "userId", true);
 
-            // Act
-            StructuredLogger.LogAuthentication(loggerMock.Object, userId, success);
-
-            // Assert
-            loggerMock.Verify(l => l.LogInformation(It.IsAny<string>(), userId, success, It.IsAny<string>()), Times.Once);
+            loggerMock.Verify(
+                x => x.Log(
+                    LogLevel.Information,
+                    It.IsAny<EventId>(),
+                    It.Is<It.IsAnyType>((v, t) => v.ToString()!.Contains("Authentication")),
+                    It.IsAny<Exception>(),
+                    It.IsAny<Func<It.IsAnyType, Exception, string>>()),
+                Times.Once);
         }
 
-    /// <summary>
-    /// Verifies that the StructuredLogger.LogCriticalError method LogsCriticalError in the HappyPath scenario.
-    /// </summary>
         [Fact]
         public void LogCriticalError_HappyPath_LogsCriticalError()
         {
-            // Arrange
             var loggerMock = new Mock<ILogger>();
             var ex = new Exception("exception");
-            var context = "context";
+            StructuredLogger.LogCriticalError(loggerMock.Object, ex, "context");
 
-            // Act
-            StructuredLogger.LogCriticalError(loggerMock.Object, ex, context);
-
-            // Assert
-            loggerMock.Verify(l => l.LogError(It.IsAny<Exception>(), It.IsAny<string>(), context, It.IsAny<object>()), Times.Once);
+            loggerMock.Verify(
+                x => x.Log(
+                    LogLevel.Error,
+                    It.IsAny<EventId>(),
+                    It.Is<It.IsAnyType>((v, t) => v.ToString()!.Contains("Critical error")),
+                    It.IsAny<Exception>(),
+                    It.IsAny<Func<It.IsAnyType, Exception, string>>()),
+                Times.Once);
         }
 
-    /// <summary>
-    /// Verifies that the StructuredLogger.LogPerformanceMetrics method LogsPerformanceMetrics in the HappyPath scenario.
-    /// </summary>
         [Fact]
         public void LogPerformanceMetrics_HappyPath_LogsPerformanceMetrics()
         {
-            // Arrange
             var loggerMock = new Mock<ILogger>();
-            var operation = "operation";
-            var durationMs = 100;
+            StructuredLogger.LogPerformanceMetrics(loggerMock.Object, "operation", 100);
 
-            // Act
-            StructuredLogger.LogPerformanceMetrics(loggerMock.Object, operation, durationMs);
-
-            // Assert
-            loggerMock.Verify(l => l.LogInformation(It.IsAny<string>(), operation, durationMs), Times.Once);
+            loggerMock.Verify(
+                x => x.Log(
+                    LogLevel.Information,
+                    It.IsAny<EventId>(),
+                    It.Is<It.IsAnyType>((v, t) => v.ToString()!.Contains("Performance")),
+                    It.IsAny<Exception>(),
+                    It.IsAny<Func<It.IsAnyType, Exception, string>>()),
+                Times.Once);
         }
 
-    /// <summary>
-    /// Verifies that the StructuredLogger.LogRequestStart method ThrowsArgumentNullException in the NullLogger scenario.
-    /// </summary>
         [Fact]
         public void LogRequestStart_NullLogger_ThrowsArgumentNullException()
         {
-            // Act and Assert
-            Assert.Throws<ArgumentNullException>(() => StructuredLogger.LogRequestStart(null, "requestId", "/path", "GET", "192.168.1.1"));
+            Assert.Throws<ArgumentNullException>(() => StructuredLogger.LogRequestStart(null!, "requestId", "/path", "GET", "192.168.1.1"));
         }
 
-    /// <summary>
-    /// Verifies that the StructuredLogger.LogRequestComplete method ThrowsArgumentNullException in the NullLogger scenario.
-    /// </summary>
         [Fact]
         public void LogRequestComplete_NullLogger_ThrowsArgumentNullException()
         {
-            // Act and Assert
-            Assert.Throws<ArgumentNullException>(() => StructuredLogger.LogRequestComplete(null, "requestId", "/path", 200, 100));
+            Assert.Throws<ArgumentNullException>(() => StructuredLogger.LogRequestComplete(null!, "requestId", "/path", 200, 100));
         }
     }
 }
-

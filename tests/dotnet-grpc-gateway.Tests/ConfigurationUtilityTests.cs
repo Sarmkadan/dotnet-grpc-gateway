@@ -209,13 +209,13 @@ public class ConfigurationUtilityTests
     {
         IConfiguration? nullConfig = null;
 
-        Assert.Throws<NullReferenceException>(() => ConfigurationUtility.GetConfigValue<int>(nullConfig!, "key", 0));
-        Assert.Throws<NullReferenceException>(() => ConfigurationUtility.GetBoolValue(nullConfig!, "key"));
-        Assert.Throws<NullReferenceException>(() => ConfigurationUtility.GetIntValue(nullConfig!, "key"));
-        Assert.Throws<NullReferenceException>(() => ConfigurationUtility.GetTimeSpanValue(nullConfig!, "key", TimeSpan.Zero));
-        Assert.Throws<NullReferenceException>(() => ConfigurationUtility.GetSection<object>(nullConfig!, "section"));
-        Assert.Throws<NullReferenceException>(() => ConfigurationUtility.ValidateRequiredKey(nullConfig!, "key"));
-        Assert.Throws<NullReferenceException>(() => ConfigurationUtility.GetKeysMatchingPattern(nullConfig!, "pattern"));
-        Assert.Throws<NullReferenceException>(() => ConfigurationUtility.GetAllKeys(nullConfig!));
+        Assert.Throws<ArgumentNullException>(() => ConfigurationUtility.GetConfigValue<int>(nullConfig!, "key", 0));
+        Assert.Throws<ArgumentNullException>(() => ConfigurationUtility.GetBoolValue(nullConfig!, "key"));
+        Assert.Throws<ArgumentNullException>(() => ConfigurationUtility.GetIntValue(nullConfig!, "key"));
+        Assert.Throws<ArgumentNullException>(() => ConfigurationUtility.GetTimeSpanValue(nullConfig!, "key", TimeSpan.Zero));
+        Assert.Throws<ArgumentNullException>(() => ConfigurationUtility.GetSection<object>(nullConfig!, "section"));
+        Assert.Throws<ArgumentNullException>(() => ConfigurationUtility.ValidateRequiredKey(nullConfig!, "key"));
+        Assert.Throws<ArgumentNullException>(() => ConfigurationUtility.GetKeysMatchingPattern(nullConfig!, "pattern"));
+        Assert.Throws<ArgumentNullException>(() => ConfigurationUtility.GetAllKeys(nullConfig!));
     }
 }

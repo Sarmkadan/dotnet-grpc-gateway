@@ -290,92 +290,102 @@ public class PerformanceMonitor : IPerformanceMonitor
         // Ring buffer with fixed capacity for memory-bound percentile tracking
         private const int MaxSamples = 1024;
         private readonly long[] _samples = new long[MaxSamples];
+        private readonly object _lock = new();
         private int _head = 0;
         private int _count = 0;
         private long _sum = 0;
         private long _min = long.MaxValue;
         private long _max = long.MinValue;
 
-        public int Count => _count;
-        public double AverageDurationMs => _count > 0 ? (double)_sum / _count : 0;
-        public long MinDurationMs => _count > 0 ? _min : 0;
-        public long MaxDurationMs => _count > 0 ? _max : 0;
+        public int Count { get { lock (_lock) { return _count; } } }
+        public double AverageDurationMs { get { lock (_lock) { return _count > 0 ? (double)_sum / _count : 0; } } }
+        public long MinDurationMs { get { lock (_lock) { return _count > 0 ? _min : 0; } } }
+        public long MaxDurationMs { get { lock (_lock) { return _count > 0 ? _max : 0; } } }
 
         public void Add(long durationMs)
         {
-            // Update counters
-            _sum += durationMs;
-            _min = Math.Min(_min, durationMs);
-            _max = Math.Max(_max, durationMs);
-
-            // Add to ring buffer
-            _samples[_head] = durationMs;
-            _head = (_head + 1) % MaxSamples;
-
-            // Update count (handles wrap-around)
-            if (_count < MaxSamples)
+            lock (_lock)
             {
-                _count++;
+                // When buffer is full, subtract the sample being overwritten
+                if (_count >= MaxSamples)
+                {
+                    _sum -= _samples[_head];
+                }
+
+                // Update counters
+                _sum += durationMs;
+                _min = Math.Min(_min, durationMs);
+                _max = Math.Max(_max, durationMs);
+
+                // Add to ring buffer
+                _samples[_head] = durationMs;
+                _head = (_head + 1) % MaxSamples;
+
+                // Update count (handles wrap-around)
+                if (_count < MaxSamples)
+                {
+                    _count++;
+                }
             }
         }
 
         public double GetPercentile(double percentile)
         {
-            if (_count == 0)
+            lock (_lock)
             {
-                return 0;
-            }
-
-            // Copy samples to temporary array for sorting
-            var samplesToSort = new long[_count];
-            if (_head == 0)
-            {
-                Array.Copy(_samples, samplesToSort, _count);
-            }
-            else
-            {
-                // Handle wrap-around case - FIXED: cap firstPart to _count
-                var firstPart = Math.Min(MaxSamples - _head, _count);
-                Array.Copy(_samples, _head, samplesToSort, 0, firstPart);
-                var secondPart = _count - firstPart;
-                if (secondPart > 0)
+                if (_count == 0)
                 {
-                    Array.Copy(_samples, 0, samplesToSort, firstPart, secondPart);
+                    return 0;
                 }
+
+                // Copy samples to temporary array for sorting
+                var samplesToSort = new long[_count];
+                if (_count < MaxSamples)
+                {
+                    // Buffer has not wrapped - data is from 0 to _count-1
+                    Array.Copy(_samples, samplesToSort, _count);
+                }
+                else
+                {
+                    // Handle wrap-around case
+                    var firstPart = MaxSamples - _head;
+                    Array.Copy(_samples, _head, samplesToSort, 0, firstPart);
+                    var secondPart = _count - firstPart;
+                    if (secondPart > 0)
+                    {
+                        Array.Copy(_samples, 0, samplesToSort, firstPart, secondPart);
+                    }
+                }
+
+                Array.Sort(samplesToSort);
+
+                var index = (int)((_count - 1) * percentile);
+                return samplesToSort[Math.Max(0, Math.Min(index, _count - 1))];
             }
-
-            Array.Sort(samplesToSort);
-
-            var index = (int)((_count - 1) * percentile);
-            return samplesToSort[Math.Max(0, Math.Min(index, _count - 1))];
         }
 
         public IEnumerable<long> GetAllSamples()
         {
-            if (_count == 0)
+            lock (_lock)
             {
-                yield break;
-            }
+                if (_count == 0)
+                {
+                    return Array.Empty<long>();
+                }
 
-            if (_head == 0)
-            {
-                for (int i = 0; i < _count; i++)
+                var result = new long[_count];
+                if (_count < MaxSamples)
                 {
-                    yield return _samples[i];
+                    Array.Copy(_samples, result, _count);
                 }
-            }
-            else
-            {
-                // Handle wrap-around case
-                var firstPart = MaxSamples - _head;
-                for (int i = 0; i < firstPart; i++)
+                else
                 {
-                    yield return _samples[_head + i];
+                    for (int i = 0; i < MaxSamples; i++)
+                    {
+                        result[i] = _samples[(_head + i) % MaxSamples];
+                    }
                 }
-                for (int i = 0; i < _head; i++)
-                {
-                    yield return _samples[i];
-                }
+                return result;
             }
         }
     }

@@ -72,12 +72,12 @@ public static class ConfigurationUtility
         if (string.IsNullOrEmpty(value))
             return defaultValue;
 
-        if (TimeSpan.TryParse(value, out var result))
-            return result;
-
-        // Try to parse as seconds
+        // Try to parse as seconds first (bare numbers)
         if (int.TryParse(value, out var seconds))
             return TimeSpan.FromSeconds(seconds);
+
+        if (TimeSpan.TryParse(value, out var result))
+            return result;
 
         return defaultValue;
     }
@@ -121,6 +121,7 @@ public static class ConfigurationUtility
     /// </summary>
     public static IEnumerable<string> GetKeysMatchingPattern(IConfiguration config, string pattern)
     {
+        ArgumentNullException.ThrowIfNull(config);
         return GetAllKeys(config).Where(k => k.Contains(pattern, StringComparison.OrdinalIgnoreCase));
     }
 
@@ -129,6 +130,7 @@ public static class ConfigurationUtility
     /// </summary>
     public static IEnumerable<string> GetAllKeys(IConfiguration config)
     {
+        ArgumentNullException.ThrowIfNull(config);
         var keys = new List<string>();
 
         foreach (var child in config.GetChildren())

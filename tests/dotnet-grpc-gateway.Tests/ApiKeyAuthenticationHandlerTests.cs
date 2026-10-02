@@ -218,8 +218,8 @@ public class ApiKeyAuthenticationHandlerTests
         // Act
         var result = await _handler.AuthenticateAsync();
 
-        // Assert
-        result.Succeeded.Should().BeFalse();
+        // Assert - HTTP headers are case-insensitive, so authentication should succeed
+        result.Succeeded.Should().BeTrue();
         result.Failure.Should().BeNull();
 
         var principal = result.Principal;

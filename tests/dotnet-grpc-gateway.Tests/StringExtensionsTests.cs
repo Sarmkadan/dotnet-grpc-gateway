@@ -22,7 +22,7 @@ public class StringExtensionsTests
     public void ToSha256Hash_NullInput_ThrowsArgumentNullException()
     {
         // Act and Assert
-        Assert.Throws<ArgumentNullException>(() => ("Hello, World!".ToSha256Hash()));
+        Assert.Throws<ArgumentNullException>(() => ((string)null!).ToSha256Hash());
     }
 
     [Fact]
@@ -42,7 +42,7 @@ public class StringExtensionsTests
     public void ToSlug_NullInput_ThrowsArgumentNullException()
     {
         // Act and Assert
-        Assert.Throws<ArgumentNullException>(() => ("Hello, World!".ToSlug()));
+        Assert.Throws<ArgumentNullException>(() => ((string)null!).ToSlug());
     }
 
     [Fact]
@@ -56,14 +56,14 @@ public class StringExtensionsTests
         var result = input.Truncate(maxLength);
 
         // Assert
-        Assert.Equal("Hello, Wo...", result);
+        Assert.Equal("Hello, ...", result);
     }
 
     [Fact]
     public void Truncate_NullInput_ThrowsArgumentNullException()
     {
         // Act and Assert
-        Assert.Throws<ArgumentNullException>(() => ("Hello, World!".Truncate(10)));
+        Assert.Throws<ArgumentNullException>(() => ((string)null!).Truncate(10));
     }
 
     [Fact]
@@ -107,13 +107,13 @@ public class StringExtensionsTests
     public void MatchesPattern_NullInput_ThrowsArgumentNullException()
     {
         // Act and Assert
-        Assert.Throws<ArgumentNullException>(() => ("Hello, World!".MatchesPattern("Hello, *")));
+        Assert.Throws<ArgumentNullException>(() => ((string)null!).MatchesPattern("Hello, *"));
     }
 
     [Fact]
     public void MatchesPattern_NullPattern_ThrowsArgumentNullException()
     {
         // Act and Assert
-        Assert.Throws<ArgumentNullException>(() => ("Hello, World!".MatchesPattern(null)));
+        Assert.Throws<ArgumentNullException>(() => ("Hello, World!".MatchesPattern(null!)));
     }
 }

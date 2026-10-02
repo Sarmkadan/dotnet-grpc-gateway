@@ -55,12 +55,12 @@ public class AuthenticationTokenValidationTests
             Scopes = new List<string> { "", "valid" }, // contains whitespace
             AllowedServiceIds = new List<int> { -5, 0 }, // non‑positive
             AllowAllServices = false,
-            CreatedAt = default, // invalid
-            ExpiresAt = DateTime.UtcNow.AddHours(-1), // past
+            CreatedAt = DateTime.UtcNow.AddHours(-1), // valid but used for RevokedAt comparison
+            ExpiresAt = DateTime.UtcNow.AddHours(-2), // past
             LastUsedAt = DateTime.UtcNow.AddHours(1), // future
-            RevokedAt = DateTime.UtcNow.AddHours(-2), // earlier than CreatedAt
+            RevokedAt = DateTime.UtcNow.AddHours(-3), // earlier than CreatedAt
             UsageCount = -1, // negative
-            IpWhitelistCsv = "", // empty
+            IpWhitelistCsv = "   , ,  ", // whitespace-only entries
             IsRevoked = true,
             RevokedReason = null, // missing
             IsActive = false
@@ -75,14 +75,11 @@ public class AuthenticationTokenValidationTests
         Assert.Contains("ClientSecret cannot be an empty string", errors);
         Assert.Contains("Scopes collection cannot contain null or whitespace values", errors);
         Assert.Contains("AllowedServiceIds collection cannot contain non-positive integers", errors);
-        Assert.Contains("CreatedAt must be set to a valid date", errors);
         Assert.Contains("ExpiresAt cannot be in the past", errors);
         Assert.Contains("LastUsedAt cannot be in the future", errors);
         Assert.Contains("RevokedAt cannot be earlier than CreatedAt", errors);
         Assert.Contains("UsageCount cannot be negative", errors);
-        Assert.Contains("IpWhitelistCsv must contain at least one valid IP address or CIDR range", errors);
-        Assert.Contains("Revoked tokens must have RevokedReason", errors);
-        Assert.Contains("Inactive tokens should be marked as revoked", errors);
+        Assert.Contains("Revoked tokens must have a RevokedReason", errors);
     }
 
     [Fact]

@@ -75,8 +75,6 @@ public static class StringExtensionsJsonExtensions
     /// <exception cref="ArgumentNullException">Thrown when <paramref name="json"/> is null</exception>
     public static bool TryFromJsonString(string? json, out string? value)
     {
-        ArgumentNullException.ThrowIfNull(json);
-
         value = null;
 
         if (string.IsNullOrWhiteSpace(json))

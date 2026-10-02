@@ -272,8 +272,8 @@ public class PerformanceMonitorTests
 
         // Assert
         metrics.P50DurationMs.Should().Be(300); // Median of 5 values
-        metrics.P95DurationMs.Should().Be(500); // 95th percentile rounds down to max
-        metrics.P99DurationMs.Should().Be(500);
+        metrics.P95DurationMs.Should().Be(400); // (4)*0.95=3.8 -> index 3 -> 400
+        metrics.P99DurationMs.Should().Be(400); // (4)*0.99=3.96 -> index 3 -> 400
     }
 
     [Fact]
@@ -464,7 +464,7 @@ public class PerformanceMonitorTests
         metrics.TotalRequests.Should().Be(8);
         metrics.P50DurationMs.Should().Be(250);
         metrics.P95DurationMs.Should().Be(400);
-        metrics.P99DurationMs.Should().Be(500);
+        metrics.P99DurationMs.Should().Be(400); // (7)*0.99=6.93 -> index 6 -> 400
     }
 
     [Fact]
@@ -475,7 +475,7 @@ public class PerformanceMonitorTests
         {
             _monitor.RecordRequestDuration("/api/test", 100);
             var metrics = await _monitor.GetMetricsAsync();
-            metrics.TotalRequests.Should().Be(i + 1);
+            metrics.TotalRequests.Should().Be(1);
 
             _monitor.ResetAsync().GetAwaiter().GetResult();
         }

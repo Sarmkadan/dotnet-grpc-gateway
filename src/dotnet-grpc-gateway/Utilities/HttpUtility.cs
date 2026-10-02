@@ -19,7 +19,8 @@ public static class HttpUtility
     /// </summary>
     public static string GetAcceptedContentType(string? acceptHeader, string defaultType = "application/json")
     {
-        ArgumentException.ThrowIfNullOrEmpty(acceptHeader);
+        if (string.IsNullOrEmpty(acceptHeader))
+            return defaultType;
 
         // Parse Accept header and return first supported type
         var types = acceptHeader.Split(',')

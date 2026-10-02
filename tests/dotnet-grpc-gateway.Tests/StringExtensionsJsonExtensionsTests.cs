@@ -10,13 +10,12 @@ public class StringExtensionsJsonExtensionsTests
     {
         // Arrange
         var value = "Hello, World!";
-        var expected = "{\"value\":\"Hello, World!\"}";
 
         // Act
         var result = StringExtensionsJsonExtensions.ToJsonString(value);
 
         // Assert
-        Assert.Equal(expected, result);
+        Assert.Equal("\"Hello, World!\"", result);
     }
 
     [Fact]
@@ -30,7 +29,7 @@ public class StringExtensionsJsonExtensionsTests
     public void FromJsonString_HappyPath_ReturnsDeserializedValue()
     {
         // Arrange
-        var json = "{\"value\":\"Hello, World!\"}";
+        var json = "\"Hello, World!\"";
         var expected = "Hello, World!";
 
         // Act
@@ -61,7 +60,7 @@ public class StringExtensionsJsonExtensionsTests
     public void TryFromJsonString_HappyPath_ReturnsTrue()
     {
         // Arrange
-        var json = "{\"value\":\"Hello, World!\"}";
+        var json = "\"Hello, World!\"";
         var expected = "Hello, World!";
 
         // Act
