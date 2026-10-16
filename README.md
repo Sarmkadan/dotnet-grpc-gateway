@@ -4,6 +4,95 @@
 // CTO & Software Architect
 // =============================================================================
 
+## Getting Started
+
+This section wires the gateway into a new ASP.NET Core app that forwards to one gRPC
+backend. It needs the .NET 10 SDK. The example backend is `localhost:5001`; change
+`Host`/`Port` to match your service.
+
+### 1. Install the package
+
+```bash
+dotnet add package Zaiets.dotnet.grpc.gateway --version 1.0.0
+```
+
+The package is not yet published to nuget.org, so the line above fails with
+"no versions available" today. Until it is, pack the library locally and add it from
+that folder (`<repo>` is your clone of this repository):
+
+```bash
+dotnet pack <repo>/src/dotnet-grpc-gateway/dotnet-grpc-gateway.csproj -c Release -p:IsPackable=true -o <repo>/artifacts
+dotnet add package Zaiets.dotnet.grpc.gateway --version 1.0.0 --source <repo>/artifacts
+```
+
+### 2. Program.cs
+
+```csharp
+using DotNetGrpcGateway.Configuration;
+using DotNetGrpcGateway.Domain;
+using DotNetGrpcGateway.Infrastructure;
+using DotNetGrpcGateway.Services;
+
+var builder = WebApplication.CreateBuilder(args);
+builder.Services.AddSingleton<IConnectionStringProvider>(new ConnectionStringProvider(
+    builder.Configuration.GetConnectionString("DefaultConnection")!));
+builder.Services.AddGatewayServices().AddGatewayConfiguration(builder.Configuration);
+builder.Services.AddControllers();
+
+var app = builder.Build();
+app.MapControllers();
+
+// Register one gRPC backend at startup (in-memory, so it is re-created on each start)
+using (var scope = app.Services.CreateScope())
+    await scope.ServiceProvider.GetRequiredService<IGatewayService>().RegisterServiceAsync(
+        new GrpcService { Name = "UserService", ServiceFullName = "user.UserService", Host = "localhost", Port = 5001 });
+
+app.Run();
+```
+
+Run it with a connection string (nothing in this release opens the connection yet, so the value is only stored):
+
+```bash
+ASPNETCORE_URLS=http://localhost:5000 \
+ConnectionStrings__DefaultConnection="Host=localhost;Database=grpc_gateway" \
+dotnet run
+```
+
+### 3. Add a route and check it with curl
+
+The gateway's JSON API is its management API. This call creates a route that sends
+`user.UserService.*` requests to the backend registered above (`id` 1). The gateway
+does not currently forward JSON requests to gRPC methods, so this example only
+manages routing.
+
+```bash
+curl -i -X POST http://localhost:5000/api/gateway/routes \
+  -H "Content-Type: application/json" \
+  -d '{"pattern":"user.UserService.*","targetServiceId":1,"matchType":1,"priority":100}'
+```
+
+Expected response (trimmed to the main fields; the real body is one line with more
+fields such as `createdAt` and `modifiedAt`):
+
+```http
+HTTP/1.1 201 Created
+Content-Type: application/json; charset=utf-8
+Location: /api/gateway/routes/1
+```
+
+```json
+{
+  "id": 1,
+  "pattern": "user.UserService.*",
+  "targetServiceId": 1,
+  "priority": 100,
+  "matchType": 1,
+  "rateLimitPerMinute": 1000,
+  "enableCaching": false,
+  "isActive": true
+}
+```
+
 ## Architecture
 
 For the big picture - project layout, middleware pipeline order, core abstractions, 
