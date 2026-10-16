@@ -96,6 +96,30 @@ curl -X POST http://localhost:5000/api/gateway/routes \
 
 Prefix match is recommended for routing all methods of a service to the same backend.
 
+## Discovery Configuration
+
+Discovery settings live in the `ServiceDiscovery` section and are validated at host startup (`ValidateOnStart`). An invalid value stops the host before it accepts traffic, and the error names every offending key.
+
+```json
+{
+  "ServiceDiscovery": {
+    "Endpoints": [ "http://orders-svc:5001", "https://billing-svc:5002" ],
+    "Provider": null,
+    "RefreshIntervalSeconds": 30,
+    "ConnectTimeoutMs": 2000,
+    "RequestTimeoutMs": 5000
+  }
+}
+```
+
+| Setting | Rule |
+|---------|------|
+| `Endpoints` | Each entry must be an absolute `http` or `https` URI. Required unless `Provider` is set. |
+| `Provider` | Name of an external discovery provider. Required unless `Endpoints` has at least one entry. |
+| `RefreshIntervalSeconds` | Greater than 0 and less than 3600. |
+| `ConnectTimeoutMs` | Greater than 0. |
+| `RequestTimeoutMs` | Greater than 0. |
+
 ## Health Checking
 
 The background service `HealthCheckBackgroundService` runs health checks on every registered service at the configured interval.
