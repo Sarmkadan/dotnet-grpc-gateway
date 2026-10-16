@@ -86,6 +86,13 @@ public static class ServiceCollectionExtensions
             .ValidateOnStart();
         services.AddSingleton<IValidateOptions<ServiceDiscoveryOptions>, ServiceDiscoveryOptionsValidator>();
 
+        // Load balancer options follow the same fail-fast pattern. Its validator reads
+        // ServiceDiscovery:Endpoints, so both sections are registered here together.
+        services.AddOptions<LoadBalancerOptions>()
+            .Bind(configuration.GetSection(LoadBalancerOptions.SectionName))
+            .ValidateOnStart();
+        services.AddSingleton<IValidateOptions<LoadBalancerOptions>, LoadBalancerOptionsValidator>();
+
         return services;
     }
 
