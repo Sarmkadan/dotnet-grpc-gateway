@@ -93,6 +93,83 @@ Location: /api/gateway/routes/1
 }
 ```
 
+## Loading proto definitions
+
+The gateway does not have a `.proto` parser. There is no `ProtoParser` type in this
+repository, so nothing here reads a `.proto` file or a descriptor set at startup. Backend
+services are registered by name and address with `IGatewayService.RegisterServiceAsync`,
+and routes are added through the management API.
+
+Given this backend contract:
+
+```proto
+// user.proto
+syntax = "proto3";
+
+package user;
+
+service UserService {
+  rpc GetUser (GetUserRequest) returns (UserReply);
+}
+
+message GetUserRequest { int32 id = 1; }
+message UserReply { int32 id = 1; string name = 2; }
+```
+
+Register the backend at startup and expose it through a pattern route:
+
+```csharp
+using DotNetGrpcGateway.Domain;
+using DotNetGrpcGateway.Services;
+
+// Replaces the RegisterServiceAsync block in step 2; keep the builder setup from there
+var app = builder.Build();
+
+using (var scope = app.Services.CreateScope())
+{
+    var gateway = scope.ServiceProvider.GetRequiredService<IGatewayService>();
+
+    // Registers the backend (id is assigned by the gateway)
+    await gateway.RegisterServiceAsync(new GrpcService
+    {
+        Name = "UserService",
+        ServiceFullName = "user.UserService",
+        Host = "localhost",
+        Port = 5001
+    });
+
+    // Routes every method of user.UserService to service id 1
+    await gateway.AddRouteAsync(new GatewayRoute
+    {
+        Pattern = "user.UserService.",
+        TargetServiceId = 1,
+        MatchType = RouteMatchType.Prefix,
+        Priority = 100
+    });
+}
+```
+
+`Prefix` matches `$"{serviceName}.{methodName}"` with `StartsWith(Pattern)`, so `user.UserService.GetUser`
+matches. `Pattern` is a plain prefix, not a glob: a trailing `*` would be matched as a literal
+character.
+
+The resulting HTTP routes are the management API:
+
+```bash
+# Routes table: shows user.UserService.* targeting service 1
+curl http://localhost:5000/api/gateway/routes
+
+# Service list: shows UserService registered with its Host and Port
+curl http://localhost:5000/api/gateway/services
+```
+
+Gateway reflection, `GET /api/Reflection/1/methods`, returns the method list cached for
+service 1. That list is not read from `user.proto`. `ReflectionService` derives it from the
+service name using fixed placeholder methods: `Get`, `List`, `Create`, `Update`, `Delete`,
+and `Watch`. It does not show `GetUser`. The probe only checks that the backend answers at
+`/grpc.reflection.v1alpha.ServerReflection`. Treat the reflection output as approximate until
+a real descriptor parser is added.
+
 ## Architecture
 
 For the big picture - project layout, middleware pipeline order, core abstractions, 
