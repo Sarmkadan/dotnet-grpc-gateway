@@ -6,11 +6,12 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <RootNamespace>DotNetGrpcGateway</RootNamespace>
     <AssemblyName>DotNetGrpcGateway</AssemblyName>
+    <IsPackable>true</IsPackable>
     <Version>1.0.0</Version>
     <Authors>Vladyslav Zaiets</Authors>
-    <Description>Minimal gRPC-Web gateway for .NET - browser-compatible gRPC without Envoy or complex proxies</Description>
+    <Description>Gateway for ASP.NET Core that exposes backend gRPC services to browsers over gRPC-Web without Envoy, adding service discovery, load balancing, circuit breakers, metrics and request logging.</Description>
     <PackageId>Zaiets.dotnet.grpc.gateway</PackageId>
-    <PackageTags>grpc grpc-web gateway proxy dotnet api</PackageTags>
+    <PackageTags>grpc gateway http-json transcoding load-balancing service-discovery</PackageTags>
     <PackageProjectUrl>https://github.com/sarmkadan/dotnet-grpc-gateway</PackageProjectUrl>
     <RepositoryUrl>https://github.com/sarmkadan/dotnet-grpc-gateway</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
