@@ -79,6 +79,13 @@ public static class ServiceCollectionExtensions
             .ValidateDataAnnotations()
             .ValidateOnStart();
 
+        // Service discovery options fail fast at host startup; the validator reports every
+        // invalid key in a single OptionsValidationException.
+        services.AddOptions<ServiceDiscoveryOptions>()
+            .Bind(configuration.GetSection(ServiceDiscoveryOptions.SectionName))
+            .ValidateOnStart();
+        services.AddSingleton<IValidateOptions<ServiceDiscoveryOptions>, ServiceDiscoveryOptionsValidator>();
+
         return services;
     }
 
