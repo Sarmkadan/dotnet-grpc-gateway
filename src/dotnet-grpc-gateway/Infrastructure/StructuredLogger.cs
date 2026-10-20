@@ -15,6 +15,11 @@ public static class StructuredLogger
     /// <summary>
     /// Logs a request start event with context information.
     /// </summary>
+    /// <param name="logger">The logger instance to write to.</param>
+    /// <param name="requestId">Unique identifier for the request.</param>
+    /// <param name="path">The request path.</param>
+    /// <param name="method">The HTTP method.</param>
+    /// <param name="clientIp">The client IP address.</param>
     public static void LogRequestStart(ILogger logger, string requestId, string path, string method, string clientIp)
     {
         ArgumentNullException.ThrowIfNull(logger);
@@ -31,6 +36,11 @@ public static class StructuredLogger
     /// <summary>
     /// Logs a request completion with duration and status.
     /// </summary>
+    /// <param name="logger">The logger instance to write to.</param>
+    /// <param name="requestId">Unique identifier for the request.</param>
+    /// <param name="path">The request path.</param>
+    /// <param name="statusCode">The HTTP status code of the response.</param>
+    /// <param name="durationMs">The request duration in milliseconds.</param>
     public static void LogRequestComplete(ILogger logger, string requestId, string path, int statusCode, long durationMs)
     {
         ArgumentNullException.ThrowIfNull(logger);
@@ -48,6 +58,10 @@ public static class StructuredLogger
     /// <summary>
     /// Logs a service discovery event.
     /// </summary>
+    /// <param name="logger">The logger instance to write to.</param>
+    /// <param name="serviceId">The numeric identifier of the service.</param>
+    /// <param name="serviceName">The name of the service.</param>
+    /// <param name="healthy">Whether the service is healthy.</param>
     public static void LogServiceDiscovery(ILogger logger, int serviceId, string serviceName, bool healthy)
     {
         ArgumentNullException.ThrowIfNull(logger);
@@ -60,6 +74,10 @@ public static class StructuredLogger
     /// <summary>
     /// Logs a cache operation.
     /// </summary>
+    /// <param name="logger">The logger instance to write to.</param>
+    /// <param name="operation">The cache operation name (e.g. Get, Set, Remove).</param>
+    /// <param name="key">The cache key.</param>
+    /// <param name="hit">Whether the cache operation was a hit.</param>
     public static void LogCacheOperation(ILogger logger, string operation, string key, bool hit)
     {
         ArgumentNullException.ThrowIfNull(logger);
@@ -73,6 +91,10 @@ public static class StructuredLogger
     /// <summary>
     /// Logs a route resolution.
     /// </summary>
+    /// <param name="logger">The logger instance to write to.</param>
+    /// <param name="path">The request path being resolved.</param>
+    /// <param name="routePattern">The matched route pattern.</param>
+    /// <param name="targetServiceId">The identifier of the target service.</param>
     public static void LogRouteResolution(ILogger logger, string path, string routePattern, int targetServiceId)
     {
         ArgumentNullException.ThrowIfNull(logger);
@@ -87,6 +109,10 @@ public static class StructuredLogger
     /// <summary>
     /// Logs a rate limit event.
     /// </summary>
+    /// <param name="logger">The logger instance to write to.</param>
+    /// <param name="clientIp">The client IP address that exceeded the limit.</param>
+    /// <param name="path">The request path.</param>
+    /// <param name="limit">The rate limit that was exceeded.</param>
     public static void LogRateLimit(ILogger logger, string clientIp, string path, int limit)
     {
         logger.LogWarning("Rate limit exceeded - ClientIp: {ClientIp}, Path: {Path}, Limit: {Limit}",
@@ -96,6 +122,10 @@ public static class StructuredLogger
     /// <summary>
     /// Logs an authentication event.
     /// </summary>
+    /// <param name="logger">The logger instance to write to.</param>
+    /// <param name="userId">The user identifier, or <c>null</c> if unknown.</param>
+    /// <param name="success">Whether the authentication succeeded.</param>
+    /// <param name="reason">Optional reason for the authentication result.</param>
     public static void LogAuthentication(ILogger logger, string? userId, bool success, string? reason = null)
     {
         ArgumentNullException.ThrowIfNull(logger);
@@ -108,6 +138,10 @@ public static class StructuredLogger
     /// <summary>
     /// Logs a critical error with full context.
     /// </summary>
+    /// <param name="logger">The logger instance to write to.</param>
+    /// <param name="ex">The exception that occurred.</param>
+    /// <param name="context">A description of the context in which the error occurred.</param>
+    /// <param name="additionalData">Optional additional diagnostic data to include in the log entry.</param>
     public static void LogCriticalError(ILogger logger, Exception ex, string context, Dictionary<string, object>? additionalData = null)
     {
         var logData = new Dictionary<string, object> { { "context", context } };
@@ -125,6 +159,10 @@ public static class StructuredLogger
     /// <summary>
     /// Logs performance metrics.
     /// </summary>
+    /// <param name="logger">The logger instance to write to.</param>
+    /// <param name="operation">The name of the operation being measured.</param>
+    /// <param name="durationMs">The operation duration in milliseconds.</param>
+    /// <param name="itemCount">Optional number of items processed during the operation.</param>
     public static void LogPerformanceMetrics(ILogger logger, string operation, long durationMs, int? itemCount = null)
     {
         if (itemCount.HasValue)
