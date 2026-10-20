@@ -28,8 +28,11 @@ public class MetricsController : ControllerBase
         ILogger<MetricsController> logger,
         IPerformanceMonitor? performanceMonitor = null)
     {
-        _metricsService = metricsService ?? throw new ArgumentNullException(nameof(metricsService));
-        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+        ArgumentNullException.ThrowIfNull(metricsService);
+        ArgumentNullException.ThrowIfNull(logger);
+
+        _metricsService = metricsService;
+        _logger = logger;
         _performanceMonitor = performanceMonitor;
     }
 
