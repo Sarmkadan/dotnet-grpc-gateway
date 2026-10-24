@@ -26,7 +26,7 @@ public class RouteRemovedEventHandler : EventHandlerBase<RouteRemovedEvent>, IEv
     /// <summary>
     /// Handles route removal events by logging the removal.
     /// </summary>
-    /// <param name="@event">The route removal event.</param>
+    /// <param name="event">The route removal event.</param>
     /// <exception cref="ArgumentNullException">Thrown when the event is null.</exception>
     public async Task HandleAsync(RouteRemovedEvent @event)
     {

@@ -29,7 +29,7 @@ public class RequestThrottledEventHandler : EventHandlerBase<RequestThrottledEve
     /// <summary>
     /// Handles request throttling events by logging the throttling and tracking per-IP counters.
     /// </summary>
-    /// <param name="@event">The request throttling event.</param>
+    /// <param name="event">The request throttling event.</param>
     /// <exception cref="ArgumentNullException">Thrown when the event is null.</exception>
     public async Task HandleAsync(RequestThrottledEvent @event)
     {

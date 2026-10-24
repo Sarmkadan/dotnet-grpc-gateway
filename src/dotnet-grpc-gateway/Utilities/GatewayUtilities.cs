@@ -138,12 +138,8 @@ public static class GatewayUtilities
     /// </summary>
     public static string GenerateRandomToken(int length = 32)
     {
-        using (var rng = new System.Security.Cryptography.RNGCryptoServiceProvider())
-        {
-            var tokenData = new byte[length];
-            rng.GetBytes(tokenData);
-            return Convert.ToBase64String(tokenData);
-        }
+        var tokenData = System.Security.Cryptography.RandomNumberGenerator.GetBytes(length);
+        return Convert.ToBase64String(tokenData);
     }
 
     /// <summary>

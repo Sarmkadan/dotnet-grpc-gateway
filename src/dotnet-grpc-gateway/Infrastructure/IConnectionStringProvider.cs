@@ -43,7 +43,7 @@ public interface ISecretStoreConnectionStringProvider : IConnectionStringProvide
     /// <summary>
     /// Gets the secret store identifier (e.g., Azure Key Vault URI, AWS Secrets Manager ARN).
     /// </summary>
-    string SecretStoreIdentifier { get; }
+    string? SecretStoreIdentifier { get; }
 }
 
 /// <summary>

@@ -17,8 +17,6 @@ public class GatewayExceptionBenchmarks
     private string _errorCode = "TEST_ERROR";
     private int _httpStatusCode = 400;
     private string _serviceName = "TestService";
-    private string _reason = "Test reason";
-    private string _pattern = "/test/pattern";
 
     // Parameter for number of details to add
     [Params(10, 100, 1000)]

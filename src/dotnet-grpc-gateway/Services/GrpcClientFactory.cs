@@ -125,7 +125,7 @@ public class GrpcClientFactory : IGrpcClientFactory
             _logger.LogDebug("Response from {Service}.{Method}: {Content}", service.Name, methodName, content);
 
             // In real implementation, would deserialize response to T
-            return null! as T;
+            return default!;
         }
         catch (Exception ex)
         {

@@ -159,7 +159,7 @@ app.UseForwardedHeaders(new ForwardedHeadersOptions
     // For development/testing, only localhost is trusted
     // For production, add your reverse proxy IPs here
     KnownProxies = { IPAddress.Parse("127.0.0.1"), IPAddress.Parse("::1") },
-    KnownNetworks = { }
+    KnownIPNetworks = { }
 });
 
 // Initialize request context early in the pipeline so it's available to all middleware

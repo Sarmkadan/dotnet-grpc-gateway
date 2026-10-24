@@ -2,12 +2,13 @@
 
 <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
-    <ImplicitUsings>enable</ImplicitUsings>
-    <Nullable>enable</Nullable>
     <IsPackable>false</IsPackable>
     <IsTestProject>false</IsTestProject>
     <OutputType>Exe</OutputType>
     <InvariantGlobalization>true</InvariantGlobalization>
+    <!-- NU1603: pinned package versions are not on the configured feed, so NuGet resolves newer patches instead. -->
+    <!-- CS8618: benchmark fields are assigned in [GlobalSetup] methods, which the compiler's constructor analysis cannot see. -->
+    <NoWarn>$(NoWarn);NU1603;CS8618</NoWarn>
 </PropertyGroup>
 
 <ItemGroup>

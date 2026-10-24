@@ -107,7 +107,7 @@ public class RequestLogService : IRequestLogService
         }
 
         if (statusCode.HasValue)
-            query = query.Where(entry => entry.StatusCode == statusCode.Value);
+            query = query.Where(entry => entry.HttpStatusCode == statusCode.Value);
 
         if (from.HasValue)
             query = query.Where(entry => entry.Timestamp >= from.Value);
@@ -129,7 +129,7 @@ public class RequestLogService : IRequestLogService
         if (entries.Count == 0)
             return new RequestLogSummary();
 
-        var successCount = entries.Count(entry => entry.IsSuccess);
+        var successCount = entries.Count(entry => entry.IsSuccessful);
         var durations = entries.Select(entry => entry.DurationMs).ToList();
 
         return new RequestLogSummary

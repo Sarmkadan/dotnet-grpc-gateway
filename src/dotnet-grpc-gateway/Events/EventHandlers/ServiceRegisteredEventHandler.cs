@@ -26,7 +26,7 @@ public class ServiceRegisteredEventHandler : EventHandlerBase<ServiceRegisteredE
     /// <summary>
     /// Handles service registration events by logging the registration.
     /// </summary>
-    /// <param name="@event">The service registration event.</param>
+    /// <param name="event">The service registration event.</param>
     /// <exception cref="ArgumentNullException">Thrown when the event is null.</exception>
     public async Task HandleAsync(ServiceRegisteredEvent @event)
     {
