@@ -6,6 +6,7 @@ root = true
 # All files
 [*]
 charset = utf-8
+end_of_line = lf
 trim_trailing_whitespace = true
 insert_final_newline = true
 
@@ -17,6 +18,7 @@ charset = utf-8-bom
 
 # C# files
 [*.cs]
+file_header_template = Copyright (c) Vladyslav Zaiets
 
 # New line preferences (Allman style)
 csharp_new_line_before_open_brace = all
@@ -142,6 +144,11 @@ indent_style = space
 
 # YAML files
 [*.{yaml,yml}]
+indent_size = 2
+indent_style = space
+
+# Protobuf files
+[*.proto]
 indent_size = 2
 indent_style = space
 
