@@ -4,6 +4,7 @@
 // CTO & Software Architect
 // =====================================================================
 
+using System.Data.Common;
 using System.Diagnostics.CodeAnalysis;
 
 namespace DotNetGrpcGateway.Infrastructure;
@@ -52,6 +53,8 @@ public interface ISecretStoreConnectionStringProvider : IConnectionStringProvide
 /// </summary>
 public sealed class ConnectionStringProvider : IConnectionStringProvider, ISecretStoreConnectionStringProvider
 {
+    private const string RedactedPlaceholder = "[REDACTED]";
+
     private readonly string _connectionString;
     private readonly string? _secretStoreIdentifier;
     private readonly string? _providerType;
@@ -106,49 +109,30 @@ public sealed class ConnectionStringProvider : IConnectionStringProvider, ISecre
     /// (password, pwd, secret, token, key, accesskey, etc.) are replaced with
     /// [REDACTED] to prevent accidental logging of credentials.
     /// </summary>
-    [SuppressMessage("Security", "CA2016:ForwardingProblematicArguments", Justification = "Redaction only")]
     private string CreateRedactedConnectionString()
     {
-        if (string.IsNullOrEmpty(_connectionString))
+        // Parse with the ADO.NET grammar so quoted values keep any ';' or '=' they contain.
+        // A naive split would let a quoted password's tail surface as an unredacted fragment.
+        DbConnectionStringBuilder builder;
+        try
         {
-            return string.Empty;
+            builder = new DbConnectionStringBuilder { ConnectionString = _connectionString };
+        }
+        catch (ArgumentException)
+        {
+            // Fail closed: an unparseable string may still hold secrets, so nothing is shown.
+            return RedactedPlaceholder;
         }
 
-        // Split by semicolon to handle individual parameters
-        var parts = _connectionString.Split(';');
-        var redactedParts = new List<string>();
-
-        foreach (var part in parts)
+        foreach (var key in builder.Keys.Cast<string>().ToList())
         {
-            if (string.IsNullOrEmpty(part))
+            if (IsSensitiveParameter(key))
             {
-                continue;
-            }
-
-            var keyValue = part.Split('=', 2);
-            if (keyValue.Length == 2)
-            {
-                var key = keyValue[0].Trim();
-                var value = keyValue[1].Trim();
-
-                // Check if this is a sensitive parameter
-                if (IsSensitiveParameter(key))
-                {
-                    redactedParts.Add($"{key}=[REDACTED]");
-                }
-                else
-                {
-                    redactedParts.Add(part);
-                }
-            }
-            else
-            {
-                // Not a key=value pair, keep as-is
-                redactedParts.Add(part);
+                builder[key] = RedactedPlaceholder;
             }
         }
 
-        return string.Join(";", redactedParts);
+        return builder.ConnectionString;
     }
 
     /// <summary>
@@ -183,8 +167,7 @@ public sealed class ConnectionStringProvider : IConnectionStringProvider, ISecre
             "auth" or
             "credential" or
             "credentials" or
-            "connectionstring" or
-            "pwd" => true,
+            "connectionstring" => true,
             _ => normalized.Contains("password") ||
                  normalized.Contains("secret") ||
                  normalized.Contains("token") ||
