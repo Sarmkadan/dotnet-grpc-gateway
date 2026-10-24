@@ -135,7 +135,7 @@ public class EventPublisher : IEventPublisher
     {
         _logger.LogError(
             ex,
-            "Handler failed: {HandlerType} for event {EventType} [{EventId}] - {FailureMessage}",
+            "Handler failed: {HandlerType} for event {EventType} - {FailureMessage}",
             handlerType.Name,
             eventType.Name,
             ex.Message);

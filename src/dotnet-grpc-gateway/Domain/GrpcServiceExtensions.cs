@@ -49,6 +49,7 @@ namespace DotNetGrpcGateway.Domain
         /// <summary>
         /// Records a successful request, updating request counters and the average response time.
         /// </summary>
+        /// <param name="service">The service that handled the request.</param>
         /// <param name="responseTimeMs">The response time of the request in milliseconds.</param>
         public static void RecordSuccessfulRequest(this GrpcService service, double responseTimeMs)
         {
@@ -73,6 +74,7 @@ namespace DotNetGrpcGateway.Domain
         /// <summary>
         /// Records a failed request, incrementing the failure counter and storing the error message.
         /// </summary>
+        /// <param name="service">The service that handled the request.</param>
         /// <param name="errorMessage">A description of the failure.</param>
         public static void RecordFailedRequest(this GrpcService service, string errorMessage)
         {

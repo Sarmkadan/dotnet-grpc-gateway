@@ -33,7 +33,7 @@ public class ServiceHealthCheckFailedEventHandler : EventHandlerBase<ServiceHeal
     /// <summary>
     /// Handles service health check failure events by logging and optionally sending webhooks.
     /// </summary>
-    /// <param name="@event">The service health check failure event.</param>
+    /// <param name="event">The service health check failure event.</param>
     /// <exception cref="ArgumentNullException">Thrown when the event is null.</exception>
     public async Task HandleAsync(ServiceHealthCheckFailedEvent @event)
     {

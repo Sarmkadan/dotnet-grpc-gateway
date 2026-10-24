@@ -3,8 +3,10 @@
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
     <IsPackable>false</IsPackable>
-    <Nullable>enable</Nullable>
-    <ImplicitUsings>enable</ImplicitUsings>
+    <!-- NU1603: pinned package versions are not on the configured feed, so NuGet resolves newer patches instead. -->
+    <!-- CS8600/CS8604/CS8625/CS8629: tests pass null on purpose to exercise argument guards and null-handling paths. -->
+    <!-- CS8620: Moq/ILogger formatter delegates use a non-nullable Exception parameter that doesn't match Microsoft.Extensions.Logging's Exception?. -->
+    <NoWarn>$(NoWarn);NU1603;CS8600;CS8604;CS8620;CS8625;CS8629</NoWarn>
   </PropertyGroup>
 
   <ItemGroup>

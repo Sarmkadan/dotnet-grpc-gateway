@@ -226,12 +226,9 @@ public static class HttpContextExtensions
         // Return request ID as fallback
         return context.GetRequestId();
 
-        /// <summary>
-        /// Attempts to parse a W3C traceparent header value.
-        /// </summary>
-        /// <param name="traceParent">The traceparent header value</param>
-        /// <param name="traceId">Output parameter for the parsed TraceId</param>
-        /// <returns>True if parsing succeeded, false otherwise</returns>
+        // Attempts to parse a W3C traceparent header value.
+        // traceParent: the traceparent header value; traceId: output parameter for the parsed TraceId.
+        // Returns true if parsing succeeded, false otherwise.
         static bool TryParseTraceParent(string traceParent, out ActivityTraceId traceId)
         {
             traceId = default;

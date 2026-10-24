@@ -306,7 +306,7 @@ public class PerformanceMonitorTests
         metricsBefore.RouteMetrics.Should().HaveCount(1);
 
         // Act - reset
-        _monitor.ResetAsync().GetAwaiter().GetResult();
+        await _monitor.ResetAsync();
 
         // Assert - all metrics should be zero/empty
         var metricsAfter = await _monitor.GetMetricsAsync();
@@ -326,10 +326,10 @@ public class PerformanceMonitorTests
     {
         // Arrange - record metrics, reset, record more, reset again
         _monitor.RecordRequestDuration("/api/test", 100);
-        _monitor.ResetAsync().GetAwaiter().GetResult();
+        await _monitor.ResetAsync();
 
         _monitor.RecordRequestDuration("/api/test", 200);
-        _monitor.ResetAsync().GetAwaiter().GetResult();
+        await _monitor.ResetAsync();
 
         // Act
         var metrics = await _monitor.GetMetricsAsync();
@@ -402,7 +402,7 @@ public class PerformanceMonitorTests
         {
             tasks.Add(Task.Run(async () =>
             {
-                _monitor.ResetAsync().GetAwaiter().GetResult();
+                await _monitor.ResetAsync();
                 // Small delay to increase chance of interleaving
                 Thread.Sleep(1);
                 _monitor.RecordRequestDuration("/api/test", 200);
@@ -477,7 +477,7 @@ public class PerformanceMonitorTests
             var metrics = await _monitor.GetMetricsAsync();
             metrics.TotalRequests.Should().Be(1);
 
-            _monitor.ResetAsync().GetAwaiter().GetResult();
+            await _monitor.ResetAsync();
         }
 
         // Act - final metrics

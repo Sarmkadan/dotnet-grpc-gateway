@@ -29,7 +29,7 @@ public class CircuitBreakerStateChangedEventHandler : EventHandlerBase<CircuitBr
     /// <summary>
     /// Handles circuit breaker state change events by logging the state transition.
     /// </summary>
-    /// <param name="@event">The circuit breaker state change event.</param>
+    /// <param name="event">The circuit breaker state change event.</param>
     /// <exception cref="ArgumentNullException">Thrown when the event is null.</exception>
     public async Task HandleAsync(CircuitBreakerStateChangedEvent @event)
     {

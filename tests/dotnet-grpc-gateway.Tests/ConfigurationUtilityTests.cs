@@ -27,9 +27,9 @@ public class ConfigurationUtilityTests
         public string EnvironmentName { get; set; } = Environments.Development;
         public string ApplicationName { get; set; } = string.Empty;
         public string ContentRootPath { get; set; } = string.Empty;
-        public Microsoft.Extensions.FileProviders.IFileProvider? ContentRootFileProvider { get; set; }
-        public string? WebRootPath { get; set; }
-        public Microsoft.Extensions.FileProviders.IFileProvider? WebRootFileProvider { get; set; }
+        public Microsoft.Extensions.FileProviders.IFileProvider ContentRootFileProvider { get; set; } = null!;
+        public string WebRootPath { get; set; } = string.Empty;
+        public Microsoft.Extensions.FileProviders.IFileProvider WebRootFileProvider { get; set; } = null!;
     }
 
     [Fact]

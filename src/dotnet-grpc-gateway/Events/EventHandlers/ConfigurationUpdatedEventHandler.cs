@@ -25,7 +25,7 @@ public class ConfigurationUpdatedEventHandler : EventHandlerBase<ConfigurationUp
     /// <summary>
     /// Handles configuration update events by logging the changes.
     /// </summary>
-    /// <param name="@event">The configuration update event.</param>
+    /// <param name="event">The configuration update event.</param>
     /// <exception cref="ArgumentNullException">Thrown when the event is null.</exception>
     public async Task HandleAsync(ConfigurationUpdatedEvent @event)
     {

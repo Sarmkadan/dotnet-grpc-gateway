@@ -26,7 +26,7 @@ public class ServiceUnregisteredEventHandler : EventHandlerBase<ServiceUnregiste
     /// <summary>
     /// Handles service unregistration events by logging the removal.
     /// </summary>
-    /// <param name="@event">The service unregistration event.</param>
+    /// <param name="event">The service unregistration event.</param>
     /// <exception cref="ArgumentNullException">Thrown when the event is null.</exception>
     public async Task HandleAsync(ServiceUnregisteredEvent @event)
     {

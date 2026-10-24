@@ -107,13 +107,13 @@ public class RequestResponseCapturingMiddleware
             Method = request.Method,
             Path = path,
             GrpcMethod = grpcMethod,
-            StatusCode = response.StatusCode,
+            HttpStatusCode = response.StatusCode,
             DurationMs = elapsedMs,
             ClientIp = context.GetClientIpAddress(),
             UpstreamAddress = upstream,
             RequestHeaders = headers,
-            RequestBodyBytes = request.ContentLength ?? 0,
-            ResponseBodyBytes = responseBodyBytes,
+            RequestSizeBytes = request.ContentLength ?? 0,
+            ResponseSizeBytes = responseBodyBytes,
             ErrorMessage = errorMessage
         };
     }

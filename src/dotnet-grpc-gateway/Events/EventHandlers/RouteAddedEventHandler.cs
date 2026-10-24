@@ -26,7 +26,7 @@ public class RouteAddedEventHandler : EventHandlerBase<RouteAddedEvent>, IEventH
     /// <summary>
     /// Handles route addition events by logging the addition.
     /// </summary>
-    /// <param name="@event">The route addition event.</param>
+    /// <param name="event">The route addition event.</param>
     /// <exception cref="ArgumentNullException">Thrown when the event is null.</exception>
     public async Task HandleAsync(RouteAddedEvent @event)
     {

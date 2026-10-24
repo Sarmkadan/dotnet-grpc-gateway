@@ -4,6 +4,7 @@
 // CTO & Software Architect
 // =============================================================================
 
+using System.Diagnostics.CodeAnalysis;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
@@ -95,7 +96,7 @@ public class JsonSerializationUtility
     /// <summary>
     /// Checks if a string is valid JSON.
     /// </summary>
-    public bool IsValidJson(string? json)
+    public bool IsValidJson([NotNullWhen(true)] string? json)
     {
         if (string.IsNullOrWhiteSpace(json))
             return false;
