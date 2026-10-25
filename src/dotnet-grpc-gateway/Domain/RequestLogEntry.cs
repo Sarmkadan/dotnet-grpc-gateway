@@ -191,4 +191,18 @@ public string? CorrelationId { get; set; }
 
 		return string.Join(" - ", parts);
 	}
+
+	/// <summary>
+	/// Returns a one-line summary of the key properties of this entry for logs and diagnostics.
+	/// Headers, body sizes and stack traces are intentionally omitted.
+	/// </summary>
+	public override string ToString()
+	{
+		var error = string.IsNullOrEmpty(ErrorMessage) ? string.Empty : $", Error={ErrorMessage}";
+
+		return $"[{Timestamp:O}] {LogLevel} {Method} {Path} -> {HttpStatusCode} in {DurationMs}ms " +
+			$"(Id={Id}, RequestId={RequestId ?? "-"}, CorrelationId={CorrelationId ?? "-"}, " +
+			$"Service={ServiceName ?? "-"}, MethodName={MethodName ?? "-"}, " +
+			$"Success={IsSuccessful}, Cache={(CacheHit ? "HIT" : "MISS")}, Retries={RetryCount}{error})";
+	}
 }
