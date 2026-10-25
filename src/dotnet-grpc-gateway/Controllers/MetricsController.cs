@@ -15,10 +15,26 @@ namespace DotNetGrpcGateway.Controllers;
 /// Provides detailed performance statistics, latency percentiles, and historical data.
 /// </summary>
 [ApiController]
-[Route("api/[controller]")]
-[Produces("application/json")]
+[Route(ApiRouteTemplate)]
+[Produces(JsonContentType)]
 public class MetricsController : ControllerBase
 {
+    private const string ApiRouteTemplate = "api/[controller]";
+    private const string JsonContentType = "application/json";
+    private const string PerformanceRoute = "performance";
+    private const string RequestsRoute = "requests";
+    private const string SlowRoute = "slow";
+    private const string ErrorsRoute = "errors";
+    private const string EndpointsRoute = "endpoints";
+    private const string ResetRoute = "reset";
+    private const string PerformanceMonitoringDisabledMessage = "Performance monitoring not enabled";
+    private const string GettingPerformanceMetricsLogMessage = "Getting performance metrics";
+    private const string FinishedGettingPerformanceMetricsLogMessage = "Finished getting performance metrics";
+    private const string InvalidDaysBackMessage = "daysBack must be at least 1";
+    private const string InvalidThresholdMessage = "Threshold must be non-negative";
+    private const string MetricsResetLogMessage = "Metrics reset by user";
+    private const string MetricsResetSuccessMessage = "Metrics reset successfully";
+
     private readonly IMetricsCollectionService _metricsService;
     private readonly IPerformanceMonitor? _performanceMonitor;
     private readonly ILogger<MetricsController> _logger;
@@ -39,31 +55,31 @@ public class MetricsController : ControllerBase
     /// <summary>
     /// Gets performance metrics including latency percentiles and throughput.
     /// </summary>
-    [HttpGet("performance")]
+    [HttpGet(PerformanceRoute)]
     [ProducesResponseType(typeof(PerformanceMetrics), StatusCodes.Status200OK)]
     public async Task<ActionResult<PerformanceMetrics>> GetPerformanceMetrics()
     {
-        _logger.LogInformation("Getting performance metrics");
+        _logger.LogInformation(GettingPerformanceMetricsLogMessage);
         if (_performanceMonitor is null)
         {
-            _logger.LogWarning("Performance monitoring not enabled");
-            return StatusCode(StatusCodes.Status503ServiceUnavailable, "Performance monitoring not enabled");
+            _logger.LogWarning(PerformanceMonitoringDisabledMessage);
+            return StatusCode(StatusCodes.Status503ServiceUnavailable, PerformanceMonitoringDisabledMessage);
         }
 
         var metrics = await _performanceMonitor.GetMetricsAsync();
-        _logger.LogInformation("Finished getting performance metrics");
+        _logger.LogInformation(FinishedGettingPerformanceMetricsLogMessage);
         return Ok(metrics);
     }
 
     /// <summary>
     /// Gets request count over a time period.
     /// </summary>
-    [HttpGet("requests")]
+    [HttpGet(RequestsRoute)]
     [ProducesResponseType(typeof(object), StatusCodes.Status200OK)]
     public async Task<ActionResult> GetRequestMetrics([FromQuery] int? daysBack = 7)
     {
         if (daysBack.GetValueOrDefault(7) < 1)
-            return BadRequest("daysBack must be at least 1");
+            return BadRequest(InvalidDaysBackMessage);
 
         var stats = await _metricsService.GetTodayStatisticsAsync();
 
@@ -80,12 +96,12 @@ public class MetricsController : ControllerBase
     /// <summary>
     /// Gets slow requests exceeding a threshold.
     /// </summary>
-    [HttpGet("slow")]
+    [HttpGet(SlowRoute)]
     [ProducesResponseType(typeof(List<object>), StatusCodes.Status200OK)]
     public async Task<ActionResult> GetSlowRequests([FromQuery] int thresholdMs = 1000, [FromQuery] int limit = 20)
     {
         if (thresholdMs < 0)
-            return BadRequest("Threshold must be non-negative");
+            return BadRequest(InvalidThresholdMessage);
 
         var slowRequests = await _metricsService.GetSlowRequestsAsync(thresholdMs);
 
@@ -104,7 +120,7 @@ public class MetricsController : ControllerBase
     /// <summary>
     /// Gets error distribution across different error codes.
     /// </summary>
-    [HttpGet("errors")]
+    [HttpGet(ErrorsRoute)]
     [ProducesResponseType(typeof(object), StatusCodes.Status200OK)]
     public async Task<ActionResult> GetErrorMetrics()
     {
@@ -127,7 +143,7 @@ public class MetricsController : ControllerBase
     /// <summary>
     /// Gets endpoint usage statistics.
     /// </summary>
-    [HttpGet("endpoints")]
+    [HttpGet(EndpointsRoute)]
     [ProducesResponseType(typeof(List<object>), StatusCodes.Status200OK)]
     public async Task<ActionResult> GetEndpointStats()
     {
@@ -153,16 +169,16 @@ public class MetricsController : ControllerBase
     /// <summary>
     /// Resets all performance metrics.
     /// </summary>
-    [HttpPost("reset")]
+    [HttpPost(ResetRoute)]
     [ProducesResponseType(StatusCodes.Status200OK)]
     public async Task<ActionResult> ResetMetrics()
     {
         if (_performanceMonitor is null)
-            return StatusCode(StatusCodes.Status503ServiceUnavailable, "Performance monitoring not enabled");
+            return StatusCode(StatusCodes.Status503ServiceUnavailable, PerformanceMonitoringDisabledMessage);
 
         await _performanceMonitor.ResetAsync();
-        _logger.LogInformation("Metrics reset by user");
+        _logger.LogInformation(MetricsResetLogMessage);
 
-        return Ok(new { message = "Metrics reset successfully" });
+        return Ok(new { message = MetricsResetSuccessMessage });
     }
 }
