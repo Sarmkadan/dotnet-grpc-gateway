@@ -1894,6 +1894,163 @@ its consecutive failure count.
 - **404 Not Found** — when no circuit breaker is registered for `serviceId`; the
   body is `No circuit breaker registered for service {serviceId}`.
 
+## LoadBalancerController
+
+`LoadBalancerController` is the REST API for managing the endpoint pool of each
+gRPC service and the active load balancing strategy. It is an `[ApiController]`
+routed at `api/LoadBalancer` and produces `application/json`. It delegates to
+`ILoadBalancerService`, which holds the pools in memory, so endpoint registrations
+and strategy changes are not persisted across restarts. Registrations, deregistrations,
+and strategy changes are logged through `ILogger<LoadBalancerController>`.
+
+### Endpoints
+
+#### GET api/LoadBalancer/services/{serviceId}/endpoints
+
+Returns all endpoints registered for a service, including unhealthy and draining ones.
+An unknown `serviceId` returns an empty array.
+
+- **200 OK** — `IReadOnlyList<ServiceEndpoint>`:
+
+```json
+[
+  {
+    "id": 1,
+    "serviceId": 2,
+    "host": "10.0.0.5",
+    "port": 5001,
+    "useTls": false,
+    "isHealthy": true,
+    "draining": false,
+    "weight": 1,
+    "totalRequestsHandled": 412,
+    "failedRequestsCount": 3,
+    "averageResponseTimeMs": 14.2,
+    "registeredAt": "2026-10-01T09:00:00Z",
+    "lastUsedAt": "2026-10-25T12:00:00Z"
+  }
+]
+```
+
+#### POST api/LoadBalancer/services/{serviceId}/endpoints
+
+Registers a new endpoint for a service. The `serviceId` from the route overrides any
+`serviceId` in the body. The endpoint `id` is taken from the request body.
+
+```json
+{
+  "id": 1,
+  "host": "10.0.0.5",
+  "port": 5001,
+  "useTls": false,
+  "weight": 1
+}
+```
+
+- **201 Created** — the registered endpoint. The `Location` header is
+  `/api/loadbalancer/services/{serviceId}/endpoints`.
+- **400 Bad Request** — when the body is missing; the body is `Endpoint is required`.
+
+If an endpoint with the same `id` is already registered for the service, the new
+registration is ignored and the response is still **201 Created**.
+
+#### DELETE api/LoadBalancer/services/{serviceId}/endpoints/{endpointId}
+
+Removes an endpoint from a service pool.
+
+- **204 No Content** — returned whether or not the endpoint existed.
+
+#### PATCH api/LoadBalancer/services/{serviceId}/endpoints/{endpointId}/health
+
+Marks an endpoint as healthy or unhealthy. Unhealthy endpoints are skipped by the
+strategies. The body is a JSON boolean.
+
+```json
+false
+```
+
+- **200 OK** — an object confirming the change:
+
+```json
+{
+  "serviceId": 2,
+  "endpointId": 1,
+  "isHealthy": false
+}
+```
+
+#### PATCH api/LoadBalancer/services/{serviceId}/endpoints/{endpointId}/draining
+
+Sets or clears the draining state of an endpoint. The body is a JSON boolean. A draining
+endpoint receives no new traffic while other non-draining healthy endpoints exist, which
+lets in-flight work finish before the endpoint is removed.
+
+```json
+true
+```
+
+- **200 OK** — an object confirming the change:
+
+```json
+{
+  "serviceId": 2,
+  "endpointId": 1,
+  "draining": true
+}
+```
+
+#### GET api/LoadBalancer/strategy
+
+Returns the active load balancing strategy. The strategy is process-wide and applies
+to all services.
+
+- **200 OK**:
+
+```json
+{
+  "strategy": "RoundRobin"
+}
+```
+
+#### PUT api/LoadBalancer/strategy
+
+Sets the active load balancing strategy. The body is a JSON string whose value is one
+of `RoundRobin`, `Random`, or `LeastConnections`. Matching is case-insensitive.
+
+```json
+"LeastConnections"
+```
+
+- **200 OK** — an object confirming the new strategy:
+
+```json
+{
+  "strategy": "LeastConnections"
+}
+```
+
+- **400 Bad Request** — when the name is not a known strategy; the body is
+  `Unknown strategy '{name}'. Valid values: RoundRobin, Random, LeastConnections`.
+
+### Strategies
+
+The `LoadBalancingStrategy` enum defines the strategies below. Before a strategy is
+applied, `LoadBalancerService` filters the pool the same way for all of them:
+
+1. Only **healthy** endpoints (`isHealthy: true`) are considered. If none are healthy,
+   no endpoint is selected.
+2. **Draining** endpoints are skipped, unless every healthy endpoint is draining. In
+   that case the draining endpoints are used.
+
+| Strategy           | Selection                                                                      |
+|--------------------|--------------------------------------------------------------------------------|
+| `RoundRobin`       | Default. Cycles through the candidate endpoints in order, with a counter per service. |
+| `Random`           | Picks one candidate endpoint at random for each request.                       |
+| `LeastConnections` | Picks the candidate endpoint with the fewest active connections.               |
+
+The endpoint `weight` is stored on each endpoint, but the built-in strategies do not
+use it when selecting an endpoint.
+
 ## RequestLogServiceTests
 
 `RequestLogServiceTests` is a comprehensive test class that validates the behavior of request logging functionality in the gRPC gateway. It tests various scenarios including successful requests, failed requests, slow requests, large payloads, cache hits/misses, and retry behavior. The tests ensure that log entries are created with appropriate log levels (INFO, WARN, ERROR) and contain the expected message patterns and metadata for different request outcomes.
