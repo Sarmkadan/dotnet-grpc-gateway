@@ -144,6 +144,11 @@ public class RouteMetrics
 /// </summary>
 public class PerformanceMonitor : IPerformanceMonitor
 {
+    private const string NegativeDurationMessage = "Duration must be non-negative";
+    private const double P50Quantile = 0.50;
+    private const double P95Quantile = 0.95;
+    private const double P99Quantile = 0.99;
+
     // Thread-safe counters using Interlocked operations
     private readonly AtomicLong _totalRequests = new();
     private readonly AtomicLong _totalDurationMs = new();
@@ -164,7 +169,7 @@ public class PerformanceMonitor : IPerformanceMonitor
         ArgumentException.ThrowIfNullOrWhiteSpace(path);
         if (durationMs < 0)
         {
-            throw new ArgumentOutOfRangeException(nameof(durationMs), "Duration must be non-negative");
+            throw new ArgumentOutOfRangeException(nameof(durationMs), NegativeDurationMessage);
         }
 
         // Update global counters atomically
@@ -249,9 +254,9 @@ public class PerformanceMonitor : IPerformanceMonitor
                 AverageDurationMs = sketch.AverageDurationMs,
                 MinDurationMs = sketch.MinDurationMs,
                 MaxDurationMs = sketch.MaxDurationMs,
-                P50DurationMs = sketch.GetPercentile(0.50),
-                P95DurationMs = sketch.GetPercentile(0.95),
-                P99DurationMs = sketch.GetPercentile(0.99)
+                P50DurationMs = sketch.GetPercentile(P50Quantile),
+                P95DurationMs = sketch.GetPercentile(P95Quantile),
+                P99DurationMs = sketch.GetPercentile(P99Quantile)
             };
         }
 
@@ -261,9 +266,9 @@ public class PerformanceMonitor : IPerformanceMonitor
             AverageDurationMs = averageDurationMs,
             MinDurationMs = minDurationMs,
             MaxDurationMs = maxDurationMs,
-            P50DurationMs = globalDurations.Count > 0 ? GetPercentile(globalDurations, 0.50) : 0,
-            P95DurationMs = globalDurations.Count > 0 ? GetPercentile(globalDurations, 0.95) : 0,
-            P99DurationMs = globalDurations.Count > 0 ? GetPercentile(globalDurations, 0.99) : 0,
+            P50DurationMs = globalDurations.Count > 0 ? GetPercentile(globalDurations, P50Quantile) : 0,
+            P95DurationMs = globalDurations.Count > 0 ? GetPercentile(globalDurations, P95Quantile) : 0,
+            P99DurationMs = globalDurations.Count > 0 ? GetPercentile(globalDurations, P99Quantile) : 0,
             RequestsPerSecond = requestsPerSecond,
             RouteMetrics = routeMetricsDict
         };
