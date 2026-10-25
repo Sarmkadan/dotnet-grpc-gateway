@@ -115,6 +115,10 @@ public static class StructuredLogger
     /// <param name="limit">The rate limit that was exceeded.</param>
     public static void LogRateLimit(ILogger logger, string clientIp, string path, int limit)
     {
+        ArgumentNullException.ThrowIfNull(logger);
+        ArgumentNullException.ThrowIfNull(clientIp);
+        ArgumentNullException.ThrowIfNull(path);
+
         logger.LogWarning("Rate limit exceeded - ClientIp: {ClientIp}, Path: {Path}, Limit: {Limit}",
             clientIp, path, limit);
     }
@@ -144,6 +148,10 @@ public static class StructuredLogger
     /// <param name="additionalData">Optional additional diagnostic data to include in the log entry.</param>
     public static void LogCriticalError(ILogger logger, Exception ex, string context, Dictionary<string, object>? additionalData = null)
     {
+        ArgumentNullException.ThrowIfNull(logger);
+        ArgumentNullException.ThrowIfNull(ex);
+        ArgumentNullException.ThrowIfNull(context);
+
         var logData = new Dictionary<string, object> { { "context", context } };
 
         if (additionalData is not null)
@@ -165,6 +173,9 @@ public static class StructuredLogger
     /// <param name="itemCount">Optional number of items processed during the operation.</param>
     public static void LogPerformanceMetrics(ILogger logger, string operation, long durationMs, int? itemCount = null)
     {
+        ArgumentNullException.ThrowIfNull(logger);
+        ArgumentNullException.ThrowIfNull(operation);
+
         if (itemCount.HasValue)
             logger.LogInformation("Performance - Operation: {Operation}, DurationMs: {DurationMs}, ItemCount: {ItemCount}",
                 operation, durationMs, itemCount);
