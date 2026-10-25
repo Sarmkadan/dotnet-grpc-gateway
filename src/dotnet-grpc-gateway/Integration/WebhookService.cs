@@ -257,8 +257,8 @@ public class WebhookService : IWebhookService
 
         return await Task.FromResult(
             _history.Where(h => h.Url.Equals(url, StringComparison.OrdinalIgnoreCase))
-                   .OrderByDescending(h => h.DeliveredAt)
-                   .ToList()
+                    .OrderByDescending(h => h.DeliveredAt)
+                    .ToList()
         );
     }
 }
