@@ -23,8 +23,11 @@ public class LoadBalancerController : ControllerBase
 
     public LoadBalancerController(ILoadBalancerService loadBalancer, ILogger<LoadBalancerController> logger)
     {
-        _loadBalancer = loadBalancer ?? throw new ArgumentNullException(nameof(loadBalancer));
-        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+        ArgumentNullException.ThrowIfNull(loadBalancer);
+        ArgumentNullException.ThrowIfNull(logger);
+
+        _loadBalancer = loadBalancer;
+        _logger = logger;
     }
 
     /// <summary>Returns all endpoints registered for a service.</summary>
