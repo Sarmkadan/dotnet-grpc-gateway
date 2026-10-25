@@ -2051,6 +2051,170 @@ applied, `LoadBalancerService` filters the pool the same way for all of them:
 The endpoint `weight` is stored on each endpoint, but the built-in strategies do not
 use it when selecting an endpoint.
 
+## ReflectionController
+
+`ReflectionController` exposes gRPC Server Reflection metadata for registered back-end
+services as a REST API. It is an `[ApiController]` routed at `api/Reflection` and produces
+`application/json`. It delegates to `IReflectionService`, which keeps one cached
+`ServiceReflectionInfo` snapshot per service.
+
+The GET endpoints and the `health` endpoint read only the cache and never contact the
+back-end. A service appears in the cache after one of the `refresh` endpoints has probed
+it. The probe sends a `HEAD` request to `/grpc.reflection.v1alpha.ServerReflection` on the
+service endpoint. A response of `200`, `405`, or `415` marks the service as available.
+
+The method list is not read from the service's `.proto` files or from the reflection
+response. `ReflectionService` builds it from the service name as six placeholder methods:
+`Get`, `List`, `Create`, `Update`, `Delete`, and `Watch`. Treat it as approximate until a
+real descriptor parser is added, as noted in *Getting Started → 3. Add a route and check it
+with curl*.
+
+### Endpoints
+
+#### GET api/Reflection
+
+Returns the cached reflection snapshot for every registered service. It returns an empty
+list until a refresh has run.
+
+- **200 OK** — `IReadOnlyList<ServiceReflectionInfo>` (see the response models below).
+
+#### GET api/Reflection/{serviceId}
+
+Returns the cached snapshot for one service.
+
+- **200 OK** — `ServiceReflectionInfo`.
+- **404 Not Found** — when nothing is cached for `serviceId`; the body is
+  `No reflection data available for service {serviceId}. Call POST /api/reflection/{serviceId}/refresh first.`
+
+```json
+{
+  "serviceId": 1,
+  "serviceName": "UserService",
+  "serviceFullName": "user.UserService",
+  "methods": [
+    {
+      "name": "Get",
+      "requestType": "UserServiceRequest",
+      "responseType": "UserService",
+      "isClientStreaming": false,
+      "isServerStreaming": false,
+      "streamingMode": "Unary"
+    },
+    {
+      "name": "Watch",
+      "requestType": "WatchUserServiceRequest",
+      "responseType": "UserServiceEvent",
+      "isClientStreaming": false,
+      "isServerStreaming": true,
+      "streamingMode": "ServerStreaming"
+    }
+  ],
+  "reflectedAt": "2026-10-20T09:15:00Z",
+  "isAvailable": true,
+  "errorMessage": null,
+  "methodCount": 6,
+  "streamingMethodCount": 2
+}
+```
+
+The example is abbreviated: a real response lists all six methods. Type names are derived
+from the last segment of `serviceFullName`.
+
+#### GET api/Reflection/{serviceId}/methods
+
+Returns only the `methods` array of the cached snapshot for one service.
+
+- **200 OK** — `List<ServiceMethodDescriptor>`.
+- **404 Not Found** — when nothing is cached for `serviceId`; the body is
+  `No reflection data for service {serviceId}`.
+
+#### POST api/Reflection/{serviceId}/refresh
+
+Probes the service, replaces its cache entry, and returns the new snapshot. Unlike the
+bulk refresh, this endpoint does not check `EnableReflection`.
+
+- **200 OK** — `ServiceReflectionInfo`. If the probe fails, the body still returns `200`
+  with `isAvailable: false` and `errorMessage` set (for example, `Reflection probe timed out`).
+- **500 Internal Server Error** — for an unknown `serviceId`. `IGatewayService.GetServiceAsync`
+  wraps the registry's `KeyNotFoundException` in a `ConfigurationException`, so the controller's
+  `404` branch (`Service {serviceId} not found`) is not reached in practice.
+
+#### POST api/Reflection/refresh
+
+Probes every active service concurrently and updates the cache.
+
+- **202 Accepted** — always returned after a successful run, even when no service responds:
+
+```json
+{
+  "message": "Reflection refresh completed",
+  "timestamp": "2026-10-20T09:16:42.118Z"
+}
+```
+
+When `EnableReflection` is `false`, the endpoint returns `202` without probing anything.
+- **500 Internal Server Error** — when the refresh throws.
+
+#### GET api/Reflection/health
+
+Reports how many registered services have a cached reflection snapshot marked available.
+It reads the cache, so run a refresh first if the result is stale.
+
+- **200 OK** — `ReflectionHealthSummary` when at least one service is available, or when no
+  services are registered.
+- **503 Service Unavailable** — `ReflectionHealthSummary` when services are registered but
+  none is available, or when the health check itself throws.
+
+```json
+{
+  "isAvailable": true,
+  "availableServiceCount": 2,
+  "totalServiceCount": 3,
+  "checkedAt": "2026-10-20T09:17:05.402Z",
+  "message": "2/3 service(s) have reflection enabled"
+}
+```
+
+Note that `totalServiceCount` counts the cached snapshots, so a service that has never
+been refreshed is not included.
+
+### Response Models
+
+`ServiceReflectionInfo` — reflection snapshot for one service:
+
+| Field | Type | Notes |
+| --- | --- | --- |
+| `serviceId` | `int` | Identifier of the registered service |
+| `serviceName` | `string` | Short display name |
+| `serviceFullName` | `string` | Fully-qualified name (`package.ServiceName`) |
+| `methods` | `List<ServiceMethodDescriptor>` | Discovered RPC methods; empty when the probe fails |
+| `reflectedAt` | `DateTime` | When the snapshot was taken (UTC) |
+| `isAvailable` | `bool` | Whether the reflection endpoint responded |
+| `errorMessage` | `string?` | Diagnostic message when the probe fails |
+| `methodCount` | `int` | Computed: number of methods |
+| `streamingMethodCount` | `int` | Computed: methods that are client-, server-, or bidirectionally streaming |
+
+`ServiceMethodDescriptor` — one RPC method:
+
+| Field | Type | Notes |
+| --- | --- | --- |
+| `name` | `string` | Unqualified method name |
+| `requestType` | `string` | Fully-qualified request message type |
+| `responseType` | `string` | Fully-qualified response message type |
+| `isClientStreaming` | `bool` | Client sends a stream of requests |
+| `isServerStreaming` | `bool` | Server sends a stream of responses |
+| `streamingMode` | `string` | Computed: `Unary`, `ClientStreaming`, `ServerStreaming`, or `BidirectionalStreaming` |
+
+`ReflectionHealthSummary` — health state of the reflection subsystem:
+
+| Field | Type | Notes |
+| --- | --- | --- |
+| `isAvailable` | `bool` | `true` when at least one service is available |
+| `availableServiceCount` | `int` | Services whose cached snapshot is available |
+| `totalServiceCount` | `int` | Cached snapshots checked |
+| `checkedAt` | `DateTime` | When the summary was generated (UTC) |
+| `message` | `string?` | Human-readable status |
+
 ## RequestLogServiceTests
 
 `RequestLogServiceTests` is a comprehensive test class that validates the behavior of request logging functionality in the gRPC gateway. It tests various scenarios including successful requests, failed requests, slow requests, large payloads, cache hits/misses, and retry behavior. The tests ensure that log entries are created with appropriate log levels (INFO, WARN, ERROR) and contain the expected message patterns and metadata for different request outcomes.
