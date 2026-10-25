@@ -26,7 +26,10 @@ public class RetryPolicy : IRetryPolicy
     /// <param name="classifier">Classifier used to decide whether an exception is retryable.</param>
     /// <param name="logger">Logger used to record retry attempts.</param>
     /// <exception cref="ArgumentNullException">Thrown when <paramref name="classifier"/> or <paramref name="logger"/> is null.</exception>
-    public RetryPolicy(RetryPolicyOptions? options, ITransientExceptionClassifier classifier, ILogger<RetryPolicy> logger)
+    public RetryPolicy(
+        RetryPolicyOptions? options,
+        ITransientExceptionClassifier classifier,
+        ILogger<RetryPolicy> logger)
     {
         ArgumentNullException.ThrowIfNull(classifier);
         ArgumentNullException.ThrowIfNull(logger);
@@ -50,7 +53,10 @@ public class RetryPolicy : IRetryPolicy
     /// <exception cref="OperationCanceledException">
     /// Thrown when cancellation is requested or the total retry timeout is exceeded.
     /// </exception>
-    public async Task<T> ExecuteAsync<T>(Func<CancellationToken, Task<T>> operation, string operationName, CancellationToken cancellationToken = default)
+    public async Task<T> ExecuteAsync<T>(
+        Func<CancellationToken, Task<T>> operation,
+        string operationName,
+        CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(operation);
         ArgumentNullException.ThrowIfNull(operationName);
@@ -73,7 +79,8 @@ public class RetryPolicy : IRetryPolicy
             {
                 await DelayBeforeRetryAsync(operationName, attempt, ex, timeoutCts.Token).ConfigureAwait(false);
             }
-            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested is false && timeoutCts.IsCancellationRequested)
+            catch (OperationCanceledException)
+                when (cancellationToken.IsCancellationRequested is false && timeoutCts.IsCancellationRequested)
             {
                 throw new OperationCanceledException(
                     $"Operation '{operationName}' exceeded the total retry timeout of {_options.TotalTimeout} after {attempt} attempt(s).",
@@ -94,7 +101,10 @@ public class RetryPolicy : IRetryPolicy
     /// <exception cref="OperationCanceledException">
     /// Thrown when cancellation is requested or the total retry timeout is exceeded.
     /// </exception>
-    public async Task ExecuteAsync(Func<CancellationToken, Task> operation, string operationName, CancellationToken cancellationToken = default)
+    public async Task ExecuteAsync(
+        Func<CancellationToken, Task> operation,
+        string operationName,
+        CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(operation);
         ArgumentNullException.ThrowIfNull(operationName);
