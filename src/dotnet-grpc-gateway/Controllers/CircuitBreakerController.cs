@@ -23,8 +23,11 @@ public class CircuitBreakerController : ControllerBase
 
     public CircuitBreakerController(ICircuitBreakerRegistry registry, ILogger<CircuitBreakerController> logger)
     {
-        _registry = registry ?? throw new ArgumentNullException(nameof(registry));
-        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+        ArgumentNullException.ThrowIfNull(registry);
+        ArgumentNullException.ThrowIfNull(logger);
+
+        _registry = registry;
+        _logger = logger;
     }
 
     /// <summary>Returns the state of all circuit breakers.</summary>
