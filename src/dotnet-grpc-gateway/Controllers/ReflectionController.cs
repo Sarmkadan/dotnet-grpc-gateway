@@ -33,6 +33,7 @@ public class ReflectionController : ControllerBase
     /// <summary>
     /// Lists cached reflection metadata for all registered services.
     /// </summary>
+    /// <param name="cancellationToken">Token used to cancel the request.</param>
     [HttpGet]
     [ProducesResponseType(typeof(IReadOnlyList<ServiceReflectionInfo>), StatusCodes.Status200OK)]
     public async Task<ActionResult<IReadOnlyList<ServiceReflectionInfo>>> GetAllReflection(
