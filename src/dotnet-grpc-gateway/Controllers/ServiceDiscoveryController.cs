@@ -2,8 +2,6 @@
 // =============================================================================
 // Author: Vladyslav Zaiets | https://sarmkadan.com
 // CTO & Software Architect
-// =anchors.com
-// CTO & Software Architect
 // =============================================================================
 
 using DotNetGrpcGateway.Domain;
