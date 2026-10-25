@@ -77,6 +77,24 @@ public static class RouteChannelOptionsExtensions
     }
 
     /// <summary>
+    /// Removes a header from the additional headers collection, if present.
+    /// </summary>
+    /// <param name="options">The route channel options to configure.</param>
+    /// <param name="name">The header name to remove.</param>
+    /// <exception cref="ArgumentNullException"><paramref name="options"/> or <paramref name="name"/> is <see langword="null"/>.</exception>
+    /// <exception cref="ArgumentException"><paramref name="name"/> is <see cref="string.Empty"/>.</exception>
+    /// <returns>The configured <see cref="RouteChannelOptions"/> for method chaining.</returns>
+    public static RouteChannelOptions WithoutHeader(this RouteChannelOptions options, string name)
+    {
+        ArgumentNullException.ThrowIfNull(options);
+        ArgumentNullException.ThrowIfNull(name);
+        ArgumentException.ThrowIfNullOrEmpty(name);
+
+        options.AdditionalHeaders.Remove(name);
+        return options;
+    }
+
+    /// <summary>
     /// Sets the TLS target name for the upstream service.
     /// </summary>
     /// <param name="options">The route channel options to configure.</param>
