@@ -26,8 +26,11 @@ public class ReflectionController : ControllerBase
         IReflectionService reflectionService,
         ILogger<ReflectionController> logger)
     {
-        _reflectionService = reflectionService ?? throw new ArgumentNullException(nameof(reflectionService));
-        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+        ArgumentNullException.ThrowIfNull(reflectionService);
+        ArgumentNullException.ThrowIfNull(logger);
+
+        _reflectionService = reflectionService;
+        _logger = logger;
     }
 
     /// <summary>
